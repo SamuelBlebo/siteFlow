@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { attendanceRef, exists, siteRef, sub, toList, todayLogsQuery } from '../lib/db';
-import { presentCount, usageByMaterial } from '@siteflow/shared';
+import { isSiteOpen, presentCount, usageByMaterial } from '@siteflow/shared';
 
 const SiteCtx = createContext(null);
 
@@ -33,7 +33,9 @@ export function SiteProvider({ sid, children }) {
   const present = attendance?.present || {};
   return (
     <SiteCtx.Provider value={{
-      cid, sid, site, loading: site === undefined, error, materials, workers, pay: withPay ? pay : null,
+      cid, sid, site, loading: site === undefined, error,
+      // Daily site work needs the role and an open (not closed) site; the rules check both
+      canWork: can('site.work') && isSiteOpen(site), materials, workers, pay: withPay ? pay : null,
       attendance, present, usage: usageByMaterial(logs), presentCount: presentCount(present),
     }}>
       {children}

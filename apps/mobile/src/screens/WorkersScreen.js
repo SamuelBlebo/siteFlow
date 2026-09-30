@@ -9,8 +9,7 @@ import { colors } from '../theme';
 
 export default function WorkersScreen() {
   const { user, can } = useAuth();
-  const { cid, sid, workers, present, presentCount, pay, error } = useSite();
-  const work = can('site.work');
+  const { cid, sid, workers, present, presentCount, pay, error, canWork: work } = useSite();
   const withPay = can('finance.edit');
   const [name, setName] = useState('');
   const [trade, setTrade] = useState(TRADES[0]);

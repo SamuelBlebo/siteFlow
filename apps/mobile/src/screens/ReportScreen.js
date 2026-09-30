@@ -10,7 +10,7 @@ import { colors } from '../theme';
 
 export default function ReportScreen() {
   const { user, profile, can } = useAuth();
-  const { cid, sid, site, loading, error, presentCount } = useSite();
+  const { cid, sid, site, loading, error, presentCount, canWork } = useSite();
   const [text, setText] = useState('');
   const [stage, setStage] = useState(null);
   const [progress, setProgress] = useState('');
@@ -21,7 +21,9 @@ export default function ReportScreen() {
 
   if (loading) return <Screen><Muted>Loading…</Muted></Screen>;
   if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
-  if (!can('site.work')) return <Screen><H1>Daily report</H1><Muted>Your role can view this site but not send reports.</Muted></Screen>;
+  if (!canWork) {
+    return <Screen><H1>Daily report</H1><Muted>{site.status === 'closed' ? 'This site is closed, so no new reports can be sent.' : 'Your role can view this site but not send reports.'}</Muted></Screen>;
+  }
   if (site.lastReportDate === todayKey()) {
     return <Screen><H1>Daily report</H1><Notice>Today's report was sent at {site.lastReportTime}. The owner can see it now.</Notice></Screen>;
   }

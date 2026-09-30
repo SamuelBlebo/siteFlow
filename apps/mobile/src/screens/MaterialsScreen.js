@@ -9,8 +9,7 @@ import { colors } from '../theme';
 
 export default function MaterialsScreen() {
   const { user, can } = useAuth();
-  const { cid, sid, materials, usage, error } = useSite();
-  const work = can('site.work');
+  const { cid, sid, materials, usage, error, canWork: work } = useSite();
   const withCost = can('finance.edit');
   const [type, setType] = useState('usage');
   const [mid, setMid] = useState(null);

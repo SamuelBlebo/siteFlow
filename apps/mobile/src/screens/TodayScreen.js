@@ -1,16 +1,16 @@
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
-import { longToday, materialStatus, todayKey } from '@siteflow/shared';
-import { Card, ErrorView, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
+import { SITE_STATUS_LABELS, longToday, materialStatus, plannedPct, prettyDate, todayKey, waPhone } from '@siteflow/shared';
+import { Button, Card, ErrorView, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function TodayScreen({ navigation }) {
-  const { profile, can } = useAuth();
-  const { site, loading, error, materials, usage, presentCount } = useSite();
+  const { profile } = useAuth();
+  const { site, loading, error, materials, usage, presentCount, canWork } = useSite();
   if (loading) return <Screen><Muted>Loading site…</Muted></Screen>;
   if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
-  const work = can('site.work');
+  const work = canWork;
 
   const sent = site.lastReportDate === todayKey();
   const used = Object.keys(usage).length > 0;
@@ -23,7 +23,9 @@ export default function TodayScreen({ navigation }) {
   return (
     <Screen>
       <H1>Hello, {profile.name?.split(' ')[0]}</H1>
-      <Muted style={{ marginBottom: 16 }}>{longToday()}{work ? '' : '. You can view this site but not change it.'}</Muted>
+      <Muted style={{ marginBottom: 16 }}>{longToday()}</Muted>
+      {site.status === 'closed' ? <Pill kind="bad">This site is closed. You can view it but not add anything.</Pill> : !work ? <Muted style={{ marginBottom: 12 }}>You can view this site but not change it.</Muted> : null}
+      {site.status === 'on_hold' ? <Muted style={{ marginBottom: 12 }}>This site is on hold. Daily reports are not expected, but you can still send one.</Muted> : null}
       {error ? <ErrorView error={error} what="some site data" /> : null}
       {steps.map((st, i) => (
         <Pressable key={st.tab} onPress={() => navigation.navigate(st.tab)} accessibilityRole="button"
@@ -38,6 +40,8 @@ export default function TodayScreen({ navigation }) {
           </View>
         </Pressable>
       ))}
+      <H2>Site information</H2>
+      <SiteInfo site={site} />
       <H2>Stock on site</H2>
       <Card>
         {!materials.length ? <Text style={{ padding: 14, color: colors.muted }}>No materials set up yet.</Text> :
@@ -50,5 +54,35 @@ export default function TodayScreen({ navigation }) {
           ))}
       </Card>
     </Screen>
+  );
+}
+
+function SiteInfo({ site }) {
+  const planned = plannedPct(site);
+  const rows = [
+    ['Status', SITE_STATUS_LABELS[site.status] || site.status],
+    ['Location', site.location],
+    ['Stage', `${site.stage}, ${site.progress || 0}% done${planned != null ? ` (plan: ${planned}%)` : ''}`],
+    ['Planned', site.planStart || site.planEnd ? `${site.planStart ? prettyDate(site.planStart) : '?'} to ${site.planEnd ? prettyDate(site.planEnd) : '?'}` : 'No dates set'],
+    ['Foreman', site.foremanName || '–'],
+    ['Client', site.client?.name || '–'],
+  ];
+  return (
+    <>
+      <Card>
+        {rows.map(([label, value], i) => (
+          <View key={label} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
+            <Text style={{ color: colors.muted, width: 80 }}>{label}</Text>
+            <Text style={{ color: colors.ink, flex: 1 }}>{value}</Text>
+          </View>
+        ))}
+      </Card>
+      {site.foremanPhone ? (
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          <Button title="Call foreman" variant="ghost" onPress={() => Linking.openURL(`tel:${site.foremanPhone}`)} style={{ flex: 1 }} />
+          <Button title="WhatsApp" variant="ghost" onPress={() => Linking.openURL(`https://wa.me/${waPhone(site.foremanPhone)}`)} style={{ flex: 1 }} />
+        </View>
+      ) : null}
+    </>
   );
 }
