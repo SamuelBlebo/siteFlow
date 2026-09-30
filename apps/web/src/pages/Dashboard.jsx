@@ -4,6 +4,7 @@ import { useDoc, useQuery, useSiteSignals } from '../lib/hooks';
 import { companyDoc, sitesCol } from '../lib/db';
 import { budgetUsedPct, cedi, longToday, siteAlerts, todayKey } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
+import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
 
 export default function Dashboard() {
@@ -34,18 +35,19 @@ export default function Dashboard() {
 
   const alerts = active.flatMap((s) => siteAlerts(s, materials[s.id], usage[s.id], { company, finance: money ? finance[s.id] : null })
     .map((a) => ({ ...a, site: s })));
-  const reportsIn = active.filter((s) => s.lastReportDate === today).length;
+  const reporting = active.filter((s) => s.status === 'active');
+  const reportsIn = reporting.filter((s) => s.lastReportDate === today).length;
   const workers = active.reduce((n, s) => n + (present[s.id] || 0), 0);
   const spent = active.reduce((n, s) => n + (finance[s.id]?.spent || 0), 0);
 
   return (
     <section className="wrap">
       <div className="head row-between">
-        <div><h1>Today across your sites</h1><p className="muted">{longToday()}, {active.length} active sites</p></div>
+        <div><h1>Today across your sites</h1><p className="muted">{longToday()}, {reporting.length} active{active.length > reporting.length ? `, ${active.length - reporting.length} on hold` : ''}</p></div>
         {can('sites.manage') && <Link to="/sites/new" className="btn ghost">Add a site</Link>}
       </div>
       <dl className="strip">
-        <div><dt>Daily reports in</dt><dd>{reportsIn} of {active.length}</dd></div>
+        <div><dt>Daily reports in</dt><dd>{reportsIn} of {reporting.length}</dd></div>
         <div><dt>Workers on site today</dt><dd>{workers}</dd></div>
         {money && <div><dt>Total spent</dt><dd>{cedi(spent)}</dd></div>}
       </dl>
@@ -59,7 +61,7 @@ export default function Dashboard() {
             const p = budgetUsedPct(f);
             return (
               <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
-                <td><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link><div className="muted small">{s.location}</div></td>
+                <td><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link> {s.status !== 'active' && <StatusPill status={s.status} />}<div className="muted small">{s.location}</div></td>
                 <td>{s.stage || '–'}</td>
                 <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small></td>
                 {money && (
@@ -68,7 +70,7 @@ export default function Dashboard() {
                     : <small className="muted">–</small>}
                   </td>
                 )}
-                <td>{s.lastReportDate === today ? <span className="pill ok">Sent {s.lastReportTime}</span> : <span className="pill bad">Missing</span>}</td>
+                <td>{s.lastReportDate === today ? <span className="pill ok">Sent {s.lastReportTime}</span> : s.status === 'active' ? <span className="pill bad">Missing</span> : <span className="muted">–</span>}</td>
                 <td>{present[s.id] || 0}</td>
               </tr>
             );

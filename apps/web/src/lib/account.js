@@ -23,4 +23,5 @@ export const team = {
   setActive: call('setMemberActive'),
   resetPassword: call('resetMemberPassword'),
   remove: call('removeMember'),
+  assignToSite: call('assignToSite'),
 };

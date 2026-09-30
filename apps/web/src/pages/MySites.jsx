@@ -4,6 +4,7 @@ import { useDoc, useQuery } from '../lib/hooks';
 import { siteDoc, sitesCol } from '../lib/db';
 import { todayKey } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from '../components/States';
+import StatusPill from '../components/StatusPill';
 
 export default function MySites() {
   const { cid, profile, can } = useAuth();
@@ -35,7 +36,7 @@ function SiteLink({ cid, sid }) {
   return (
     <li><Link className="it" to={`/work/${sid}`}>
       <span className="grow"><b>{s.name}</b><small>{s.location}</small></span>
-      <span className={`pill ${sent ? 'ok' : 'bad'}`}>{sent ? 'Report sent' : 'Report due'}</span>
+      {s.status === 'on_hold' ? <StatusPill status="on_hold" /> : <span className={`pill ${sent ? 'ok' : 'bad'}`}>{sent ? 'Report sent' : 'Report due'}</span>}
     </Link></li>
   );
 }

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useSiteData } from '../lib/hooks';
 import { siteDoc } from '../lib/db';
-import { longToday, todayKey } from '@siteflow/shared';
+import { isSiteOpen, longToday, todayKey } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import AttendanceList from '../components/AttendanceList';
@@ -18,12 +18,13 @@ export default function SiteWorkspace() {
   const [tab, setTab] = useState('today');
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const d = useSiteData(cid, sid, { withPay: can('finance.view') });
-  const work = can('site.work');
 
   if (loading) return <Loading />;
   if (error) return <section className="wrap narrow"><ErrorState error={error} what="this site" /><Link to="/work">Back to your sites</Link></section>;
   if (!site) return <p className="pad">You don't have access to this site. <Link to="/work">Back to your sites</Link></p>;
 
+  // Closed sites are read-only (the rules block writes too)
+  const work = can('site.work') && isSiteOpen(site);
   const usedToday = Object.keys(d.usage).length > 0;
   const sent = site.lastReportDate === todayKey();
   const steps = [
@@ -39,7 +40,8 @@ export default function SiteWorkspace() {
     <section className="wrap narrow">
       <Link to="/work" className="btn sm ghost back">Your sites</Link>
       <h1>{site.name}</h1>
-      <p className="muted">{longToday()}. Signed in as {profile.name}.{work ? '' : ' You can view this site but not change it.'}</p>
+      <p className="muted">{longToday()}. Signed in as {profile.name}.</p>
+      {!work && <p className="notice warn">{isSiteOpen(site) ? 'You can view this site but not change it.' : 'This site is closed. You can view its records but not add new ones.'}</p>}
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       {d.error && <ErrorState error={d.error} what="some site data" />}
 

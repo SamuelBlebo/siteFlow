@@ -3,7 +3,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { paths, stockDelta, todayKey, timeHM } from '@siteflow/shared';
+import { paths, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
 export const userDoc = (uid) => doc(db, paths.user(uid));
@@ -29,14 +29,20 @@ export const updateCompany = (cid, { name, phone, location }) => updateDoc(compa
 // ---------- writes ----------
 // Each returns the Firestore promise. Wrap calls in save() from ./save so failures reach the user.
 
-// Site details and its money live in separate documents (site teams can't read the money)
-export function createSite(cid, { budget, ...site }) {
+// Site details and its money live in separate documents (site teams can't read the money).
+// input: validated siteInput
+export function createSite(cid, { budget, ...details }) {
   const b = writeBatch(db);
   const siteRef = doc(sitesCol(cid));
-  b.set(siteRef, { ...site, progress: 0, status: 'active', lastReportDate: null, createdAt: serverTimestamp() });
+  b.set(siteRef, { ...siteFields(details), progress: 0, status: 'active', lastReportDate: null, createdAt: serverTimestamp() });
   b.set(financeDoc(cid, siteRef.id), { budget, spent: 0, updatedAt: serverTimestamp() });
   return { id: siteRef.id, done: b.commit() };
 }
+
+// input: validated siteDetailsInput
+export const updateSiteDetails = (cid, sid, details) => updateDoc(siteDoc(cid, sid), { ...siteFields(details), updatedAt: serverTimestamp() });
+export const setSiteStatus = (cid, sid, status) => updateDoc(siteDoc(cid, sid), { status, updatedAt: serverTimestamp() });
+export const setBudget = (cid, sid, budget) => updateDoc(financeDoc(cid, sid), { budget, updatedAt: serverTimestamp() });
 
 export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, createdAt: serverTimestamp() });
 

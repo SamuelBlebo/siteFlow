@@ -13,6 +13,7 @@ import Account from './pages/Account';
 import Company from './pages/Company';
 import Dashboard from './pages/Dashboard';
 import NewSite from './pages/NewSite';
+import Sites from './pages/Sites';
 import SiteDetail from './pages/SiteDetail';
 import Team from './pages/Team';
 import MySites from './pages/MySites';
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route element={<Guard><Layout /></Guard>}>
           <Route index element={<Home />} />
+          <Route path="sites" element={<Guard perm="sites.all"><Sites /></Guard>} />
           <Route path="sites/new" element={<Guard perm="sites.manage"><NewSite /></Guard>} />
           <Route path="sites/:sid" element={<Guard perm="sites.all"><SiteDetail /></Guard>} />
           <Route path="team" element={<Guard perm="team.manage"><Team /></Guard>} />
