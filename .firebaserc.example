@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "dev": "siteflow-dev",
+    "prod": "siteflow-prod"
+  }
+}

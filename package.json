@@ -1,0 +1,23 @@
+{
+  "name": "siteflow",
+  "private": true,
+  "description": "SiteFlow monorepo: web app, mobile app, shared package and Firebase backend",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "setup": "npm install && npm --prefix firebase/functions install",
+    "dev:web": "npm run dev -w @siteflow/web",
+    "dev:mobile": "npm run start -w @siteflow/mobile",
+    "build:web": "npm run build -w @siteflow/web",
+    "build:functions": "npm --prefix firebase/functions run build",
+    "typecheck": "npm run typecheck -w @siteflow/shared && npm --prefix firebase/functions run typecheck",
+    "emulators": "firebase emulators:start",
+    "deploy:dev": "npm run build:web && firebase deploy --project dev",
+    "deploy:prod": "npm run build:web && firebase deploy --project prod",
+    "deploy:rules": "firebase deploy --only firestore,storage"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.20.0",
+    "typescript": "^5.6.3"
+  }
+}

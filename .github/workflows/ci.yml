@@ -1,0 +1,23 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm --prefix firebase/functions ci
+      - name: Type-check shared package and functions
+        run: npm run typecheck
+      - name: Build web app
+        run: npm run build:web
+        env:
+          VITE_FB_PROJECT_ID: ci-placeholder
+      - name: Build functions
+        run: npm run build:functions

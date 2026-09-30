@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function myDoc() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(myDoc()).data; }
+    function inCompany(cid) { return signedIn() && exists(myDoc()) && me().companyId == cid; }
+    function isAdmin(cid) { return inCompany(cid) && me().role in ['owner', 'manager']; }
+    function onSite(cid, sid) { return inCompany(cid) && (me().role in ['owner', 'manager'] || sid in me().siteIds); }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function byMe() { return request.resource.data.createdBy == request.auth.uid; }
+    function moduleCollections() {
+      return ['changeOrders', 'rfis', 'inspections', 'punchItems', 'subcontractors', 'incidents',
+              'toolboxTalks', 'tasks', 'drawings', 'documents', 'billing'];
+    }
+
+    // users/{uid}: companyId, role (owner | manager | site), name, email, siteIds[]
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin(resource.data.companyId));
+      // Owner self-signup: company id = owner uid. Team members are created by the inviteMember function.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'owner' && request.resource.data.companyId == uid;
+      allow update: if isAdmin(resource.data.companyId) && resource.data.role != 'owner'
+        && onlyChanges(['siteIds', 'role']) && request.resource.data.role in ['manager', 'site'];
+    }
+
+    match /companies/{cid} {
+      allow read: if inCompany(cid);
+      allow create: if signedIn() && cid == request.auth.uid;
+      // Owner changes company settings: name, modules, notification rules
+      allow update: if inCompany(cid) && me().role == 'owner';
+
+      match /equipment/{id} {
+        allow read: if inCompany(cid);
+        allow write: if isAdmin(cid);
+      }
+      // Audit trail: written by Cloud Functions only, read by admins
+      match /activity/{id} {
+        allow read: if isAdmin(cid);
+        allow write: if false;
+      }
+
+      match /sites/{sid} {
+        allow read: if onSite(cid, sid);
+        allow create, delete: if isAdmin(cid);
+        allow update: if isAdmin(cid)
+          || (onSite(cid, sid) && onlyChanges(['stage', 'progress', 'lastReportDate', 'lastReportTime', 'spent']));
+
+        match /materials/{id} {
+          allow read: if onSite(cid, sid);
+          allow create, delete: if isAdmin(cid);
+          allow update: if isAdmin(cid) || (onSite(cid, sid) && onlyChanges(['stock']));
+        }
+        match /workers/{id} {
+          allow read, create: if onSite(cid, sid);
+          allow update, delete: if isAdmin(cid);
+        }
+        match /attendance/{date} {
+          allow read, create, update: if onSite(cid, sid);
+          allow delete: if isAdmin(cid);
+        }
+        match /reports/{id} {
+          allow read: if onSite(cid, sid);
+          allow create: if onSite(cid, sid) && byMe();
+          allow update: if isAdmin(cid)
+            || (onSite(cid, sid) && resource.data.createdBy == request.auth.uid && onlyChanges(['photos']));
+          allow delete: if isAdmin(cid);
+        }
+        match /materialLogs/{id} {
+          allow read: if onSite(cid, sid);
+          allow create: if onSite(cid, sid) && byMe();
+          allow update, delete: if isAdmin(cid);
+        }
+        match /expenses/{id} {
+          allow read: if onSite(cid, sid);
+          allow create: if onSite(cid, sid) && byMe();
+          allow update, delete: if isAdmin(cid);
+        }
+        // Module collections: site team can read and add, admins edit and delete.
+        match /{coll}/{id} {
+          allow read: if onSite(cid, sid) && coll in moduleCollections();
+          allow create: if onSite(cid, sid) && coll in moduleCollections() && byMe();
+          allow update: if coll in moduleCollections()
+            && (isAdmin(cid) || (onSite(cid, sid) && coll in ['punchItems', 'inspections'] && onlyChanges(['status', 'items', 'photo'])));
+          allow delete: if isAdmin(cid) && coll in moduleCollections();
+        }
+      }
+    }
+  }
+}

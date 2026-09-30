@@ -1,0 +1,33 @@
+# Builds the mobile app in the cloud with EAS and (optionally) submits to the stores.
+# Run it from the Actions tab.
+name: Mobile build
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        type: choice
+        options: [preview, production]
+        default: preview
+      platform:
+        type: choice
+        options: [android, ios, all]
+        default: android
+      submit:
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Build
+        working-directory: apps/mobile
+        run: eas build --profile ${{ inputs.profile }} --platform ${{ inputs.platform }} --non-interactive ${{ inputs.submit && '--auto-submit' || '' }}
