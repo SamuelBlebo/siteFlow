@@ -65,6 +65,9 @@ export const createCompany = onCall(async (req) => {
   const { companyName, name } = parse(companySetupInput, req.data);
   const uid = req.auth.uid;
   const db = getFirestore();
+  // A login removed from a company may still hold a valid token for a while
+  const login = await getAuth().getUser(uid).catch(() => null);
+  if (!login || login.disabled) throw new HttpsError('permission-denied', 'This login is no longer active.');
 
   const userRef = db.doc(paths.user(uid));
   const companyRef = db.doc(paths.company(uid)); // an owner's company id is their uid
