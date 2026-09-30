@@ -20,3 +20,6 @@ firestore-debug.log
 ui-debug.log
 .ci-export/
 .audit-export/
+.emulator-tmp/
+firebase-debug.log
+firestore-debug.log

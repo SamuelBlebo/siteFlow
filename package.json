@@ -22,8 +22,8 @@
     "deploy:rules": "firebase deploy --only firestore,storage",
     "test": "npm run test:shared && npm run test:rules && npm run test:web",
     "test:shared": "npm test -w @siteflow/shared",
-    "test:rules": "firebase emulators:exec --config firebase.test.json --only firestore,storage --project demo-siteflow \"vitest run --config firebase/tests/vitest.config.ts\"",
-    "test:web": "npm run build:functions && firebase emulators:exec --config firebase.test.json --only auth,firestore,storage,functions --project demo-siteflow \"npm run test:integration -w @siteflow/web\""
+    "test:rules": "node scripts/test-emulators.mjs firestore,storage \"vitest run --config firebase/tests/vitest.config.ts\"",
+    "test:web": "npm run build:functions && node scripts/test-emulators.mjs auth,firestore,storage,functions \"npm run test:integration -w @siteflow/web\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

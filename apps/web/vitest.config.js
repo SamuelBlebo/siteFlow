@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.js'],
     environment: 'node',
+    fileParallelism: false, // one emulator set; keep the load predictable
     testTimeout: 30000,
     hookTimeout: 60000,
     env: {
