@@ -23,8 +23,10 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app, 'europe-west1');
 
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-  connectAuthEmulator(auth, 'http://localhost:9099');
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  connectStorageEmulator(storage, 'localhost', 9199);
-  connectFunctionsEmulator(functions, 'localhost', 5001);
+  // Ports from firebase.json; the automated tests use firebase.test.json's ports instead
+  const port = (name, fallback) => Number(import.meta.env[`VITE_EMULATOR_${name}_PORT`] || fallback);
+  connectAuthEmulator(auth, `http://127.0.0.1:${port('AUTH', 9099)}`, { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', port('FIRESTORE', 8080));
+  connectStorageEmulator(storage, '127.0.0.1', port('STORAGE', 9199));
+  connectFunctionsEmulator(functions, '127.0.0.1', port('FUNCTIONS', 5001));
 }
