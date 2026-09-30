@@ -1,5 +1,6 @@
 // Firestore document shapes. `id` is the document id (not stored as a field).
-export type Role = 'owner' | 'manager' | 'site';
+// See permissions.ts for what each role can do
+export type Role = 'owner' | 'admin' | 'manager' | 'finance' | 'supervisor' | 'viewer';
 export type Plan = 'starter' | 'professional' | 'enterprise';
 export type ModuleKey =
   | 'reports' | 'ai' | 'materials' | 'labour' | 'safety' | 'budget' | 'changeorders' | 'scheduling'
@@ -27,6 +28,7 @@ export interface UserProfile {
   email: string;
   phone?: string;
   siteIds: string[];
+  active?: boolean;          // false = switched off; treated as having no access
 }
 
 export interface Site {
@@ -36,8 +38,6 @@ export interface Site {
   foremanName?: string;
   foremanPhone?: string;
   foremanEmail?: string;
-  budget: number;
-  spent: number;
   stage: string;
   progress: number;          // 0-100
   status: 'active' | 'closed';
@@ -48,17 +48,24 @@ export interface Site {
   client?: { name: string; email?: string; phone?: string };
 }
 
-export interface Material { id: string; name: string; unit: string; stock: number; reorderLevel: number; avgDaily: number }
+// companies/{cid}/sites/{sid}/finance/summary. Finance roles only.
+export interface SiteFinance { budget: number; spent: number }
+
+// stock only changes together with a materialLogs entry (lastLogId points at it); the rules check the two match
+export interface Material { id: string; name: string; unit: string; stock: number; reorderLevel: number; avgDaily: number; lastLogId?: string }
 export interface MaterialLog {
   id?: string; materialId: string; materialName: string; unit: string;
   type: 'usage' | 'delivery'; qty: number; cost: number; supplier: string; date: string; createdBy: string;
 }
-export interface Worker { id: string; name: string; trade: string; dailyRate: number; active: boolean; bankName?: string; accountLast4?: string }
-export interface Attendance { date: string; present: Record<string, boolean>; count: number; wages: number; markedBy: string }
+export interface Worker { id: string; name: string; trade: string; active: boolean; createdBy?: string }
+// companies/{cid}/sites/{sid}/workerPay/{workerId}. Finance roles only.
+export interface WorkerPay { dailyRate: number; bankName?: string; accountLast4?: string }
+// One doc per day. Each worker is its own map key, so two phones marking different workers never overwrite each other.
+export interface Attendance { date: string; present: Record<string, boolean>; markedBy: string }
 export type ReportSource = 'app' | 'web' | 'voice' | 'whatsapp';
 export interface Report {
   id?: string; date: string; time: string; text: string; stage: string; progress: number; issues: string;
-  photos: string[]; workersPresent: number; createdBy: string; createdByName: string; source?: ReportSource;
+  photos: string[]; photoCount?: number; workersPresent: number; createdBy: string; createdByName: string; source?: ReportSource;
 }
 export interface Expense { id?: string; date: string; category: string; note: string; amount: number; createdBy: string }
 

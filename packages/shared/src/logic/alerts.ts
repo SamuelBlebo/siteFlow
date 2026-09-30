@@ -1,15 +1,17 @@
-import { BUDGET_WARN_PCT, HIGH_USAGE_FACTOR } from '../constants';
+import { BUDGET_WARN_PCT } from '../constants';
 import { isOn } from '../modules';
 import { todayKey } from '../dates';
-import { pct } from '../format';
+import { budgetUsedPct } from './budget';
+import { materialStatus } from './materials';
 import { isBehind, plannedPct, weeksBehind } from './schedule';
-import type { Alert, ChangeOrder, Company, Incident, Material, Rfi, Site } from '../types';
+import type { Alert, ChangeOrder, Company, Incident, Material, Rfi, Site, SiteFinance } from '../types';
 
 export interface AlertContext {
   company?: Pick<Company, 'modules'> | null;   // when omitted, every module counts as on
   pendingChangeOrders?: ChangeOrder[];
   openRfis?: (Rfi & { overdue?: boolean })[];
   openIncidents?: Incident[];
+  finance?: SiteFinance | null;                 // only passed for roles that can see money
   now?: Date;
 }
 
@@ -25,12 +27,13 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   if (on('materials')) {
     for (const m of materials) {
       const used = usageToday[m.id] || 0;
-      if (m.avgDaily && used > m.avgDaily * HIGH_USAGE_FACTOR) a.push({ kind: 'usage', severity: 'bad', title: `High ${m.name} use`, detail: `${used} ${m.unit} used today against a usual ${m.avgDaily}.`, tab: 'materials' });
-      if (m.reorderLevel != null && m.stock < m.reorderLevel) a.push({ kind: 'stock', severity: 'warn', title: `Low ${m.name} stock`, detail: `${m.stock} ${m.unit} left. Reorder level is ${m.reorderLevel}.`, tab: 'materials' });
+      const st = materialStatus(m, used);
+      if (st.highUse) a.push({ kind: 'usage', severity: 'bad', title: `High ${m.name} use`, detail: `${used} ${m.unit} used today against a usual ${m.avgDaily}.`, tab: 'materials' });
+      if (st.low) a.push({ kind: 'stock', severity: 'warn', title: `Low ${m.name} stock`, detail: `${m.stock} ${m.unit} left. Reorder level is ${m.reorderLevel}.`, tab: 'materials' });
     }
   }
-  if (on('budget')) {
-    const used = pct(site.spent, site.budget);
+  if (on('budget') && ctx.finance) {
+    const used = budgetUsedPct(ctx.finance);
     if (used >= BUDGET_WARN_PCT) a.push({ kind: 'budget', severity: 'bad', title: 'Budget nearly used', detail: `${used}% of budget spent, work is ${site.progress || 0}% done.`, tab: 'budget' });
   }
   if (on('changeorders')) for (const c of ctx.pendingChangeOrders ?? []) a.push({ kind: 'co', severity: 'warn', title: 'Change order awaiting approval', detail: `${c.number}: ${c.title}.`, tab: 'changeorders' });
