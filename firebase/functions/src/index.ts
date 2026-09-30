@@ -5,5 +5,5 @@ import { initializeApp } from 'firebase-admin/app';
 initializeApp();
 setGlobalOptions({ region: 'europe-west1', maxInstances: 10 }); // nearest region to Ghana
 
-export { inviteMember } from './team';
+export { createCompany, inviteMember } from './team';
 export { missingReportReminder, weeklyDigest } from './reminders';
