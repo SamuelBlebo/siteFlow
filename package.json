@@ -15,11 +15,14 @@
     "dev:mobile": "npm run start -w @siteflow/mobile",
     "build:web": "npm run build -w @siteflow/web",
     "build:functions": "npm --prefix firebase/functions run build",
-    "typecheck": "npm run typecheck -w @siteflow/shared && npm --prefix firebase/functions run typecheck",
+    "typecheck": "npm run typecheck -w @siteflow/shared && npm --prefix firebase/functions run typecheck && tsc -p firebase/tests --noEmit",
     "emulators": "firebase emulators:start",
     "deploy:dev": "npm run build:web && firebase deploy --project dev",
     "deploy:prod": "npm run build:web && firebase deploy --project prod",
-    "deploy:rules": "firebase deploy --only firestore,storage"
+    "deploy:rules": "firebase deploy --only firestore,storage",
+    "test": "npm run test:shared && npm run test:rules",
+    "test:shared": "npm test -w @siteflow/shared",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-siteflow \"vitest run --config firebase/tests/vitest.config.ts\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

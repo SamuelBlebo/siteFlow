@@ -1,89 +1,224 @@
 rules_version = '2';
+
+// Role lists mirror packages/shared/src/permissions.ts (PERMISSIONS).
+// firebase/tests/firestore.rules.test.ts checks every role against that table.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- who is asking ----------
     function signedIn() { return request.auth != null; }
-    function myDoc() { return /databases/$(database)/documents/users/$(request.auth.uid); }
-    function me() { return get(myDoc()).data; }
-    function inCompany(cid) { return signedIn() && exists(myDoc()) && me().companyId == cid; }
-    function isAdmin(cid) { return inCompany(cid) && me().role in ['owner', 'manager']; }
-    function onSite(cid, sid) { return inCompany(cid) && (me().role in ['owner', 'manager'] || sid in me().siteIds); }
-    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
-    function byMe() { return request.resource.data.createdBy == request.auth.uid; }
-    function moduleCollections() {
-      return ['changeOrders', 'rfis', 'inspections', 'punchItems', 'subcontractors', 'incidents',
-              'toolboxTalks', 'tasks', 'drawings', 'documents', 'billing'];
+    function myPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(myPath()).data; }
+    // Member of this company, and not switched off
+    function member(cid) {
+      return signedIn() && exists(myPath()) && me().companyId == cid && me().get('active', true) != false;
     }
+    function hasRole(cid, roles) { return member(cid) && me().role in roles; }
 
-    // users/{uid}: companyId, role (owner | manager | site), name, email, siteIds[]
+    // ---------- permissions (see PERMISSIONS in shared) ----------
+    function companySettings(cid) { return hasRole(cid, ['owner']); }
+    function teamManager(cid) { return hasRole(cid, ['owner', 'admin']); }
+    function allSites(cid) { return hasRole(cid, ['owner', 'admin', 'manager', 'finance']); }
+    function siteManager(cid) { return hasRole(cid, ['owner', 'admin', 'manager']); }
+    function financeView(cid) { return hasRole(cid, ['owner', 'admin', 'manager', 'finance']); }
+    function financeEdit(cid) { return hasRole(cid, ['owner', 'admin', 'manager', 'finance']); }
+    function auditView(cid) { return hasRole(cid, ['owner', 'admin']); }
+
+    function onSite(cid, sid) { return allSites(cid) || (member(cid) && sid in me().siteIds); }
+    // Daily site work: reports, attendance, material logs, adding workers
+    function siteWork(cid, sid) { return onSite(cid, sid) && me().role in ['owner', 'admin', 'manager', 'supervisor']; }
+
+    // ---------- helpers ----------
+    function data() { return request.resource.data; }
+    function onlyChanges(keys) { return data().diff(resource.data).affectedKeys().hasOnly(keys); }
+    function byMe() { return data().createdBy == request.auth.uid; }
+    function isText(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function optText(field, max) { return !(field in data()) || isText(data()[field], 0, max); }
+    function isAmount(v) { return (v is int || v is float) && v >= 0; }
+    function isPct(v) { return (v is int || v is float) && v >= 0 && v <= 100; }
+    function isDateKey(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function sitePath(cid, sid) { return /databases/$(database)/documents/companies/$(cid)/sites/$(sid); }
+
+    // ---------- users ----------
+    // Profiles are created only by Cloud Functions (createCompany, inviteMember).
     match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isAdmin(resource.data.companyId));
-      // Owner self-signup: company id = owner uid. Team members are created by the inviteMember function.
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.role == 'owner' && request.resource.data.companyId == uid;
-      allow update: if isAdmin(resource.data.companyId) && resource.data.role != 'owner'
-        && onlyChanges(['siteIds', 'role']) && request.resource.data.role in ['manager', 'site'];
+      allow read: if signedIn() && (request.auth.uid == uid || teamManager(resource.data.companyId));
+      allow create, delete: if false;
+      // Team managers change another member's role and sites. Nobody edits the owner or
+      // themselves this way, only the owner can make or change admins, and nobody becomes owner.
+      allow update: if teamManager(resource.data.companyId)
+        && request.auth.uid != uid
+        && resource.data.role != 'owner'
+        && onlyChanges(['role', 'siteIds', 'active'])
+        && data().siteIds is list && data().siteIds.size() <= 200
+        && data().get('active', true) is bool
+        && (
+          (me().role == 'owner' && data().role in ['admin', 'manager', 'finance', 'supervisor', 'viewer'])
+          || (me().role == 'admin' && resource.data.role in ['manager', 'finance', 'supervisor', 'viewer']
+              && data().role in ['manager', 'finance', 'supervisor', 'viewer'])
+        );
     }
 
+    // ---------- companies ----------
     match /companies/{cid} {
-      allow read: if inCompany(cid);
-      allow create: if signedIn() && cid == request.auth.uid;
-      // Owner changes company settings: name, modules, notification rules
-      allow update: if inCompany(cid) && me().role == 'owner';
+      allow read: if member(cid);
+      // Created by the createCompany function. plan and modules are set by the server only.
+      allow create, delete: if false;
+      allow update: if companySettings(cid) && onlyChanges(['name', 'notifications', 'updatedAt'])
+        && isText(data().name, 2, 100)
+        && (!('notifications' in data()) || data().notifications is map);
 
       match /equipment/{id} {
-        allow read: if inCompany(cid);
-        allow write: if isAdmin(cid);
+        allow read: if member(cid);
+        allow write: if siteManager(cid);
       }
-      // Audit trail: written by Cloud Functions only, read by admins
+      // Audit trail: written by Cloud Functions only
       match /activity/{id} {
-        allow read: if isAdmin(cid);
+        allow read: if auditView(cid);
         allow write: if false;
       }
 
+      // ---------- sites ----------
       match /sites/{sid} {
+        function siteKeys() {
+          return ['name', 'location', 'foremanName', 'foremanPhone', 'foremanEmail', 'stage', 'progress', 'status',
+                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'createdAt', 'updatedAt'];
+        }
+        function validSite() {
+          return data().keys().hasOnly(siteKeys())
+            && isText(data().name, 2, 120) && isText(data().location, 2, 200)
+            && isText(data().stage, 1, 60) && isPct(data().progress)
+            && data().status in ['active', 'closed']
+            && optText('foremanName', 100) && optText('foremanPhone', 20) && optText('foremanEmail', 200);
+        }
+
         allow read: if onSite(cid, sid);
-        allow create, delete: if isAdmin(cid);
-        allow update: if isAdmin(cid)
-          || (onSite(cid, sid) && onlyChanges(['stage', 'progress', 'lastReportDate', 'lastReportTime', 'spent']));
+        allow create: if siteManager(cid) && validSite();
+        allow delete: if siteManager(cid);
+        // Site managers edit anything. The site team only moves stage/progress and marks the report sent.
+        allow update: if (siteManager(cid) && validSite())
+          || (siteWork(cid, sid)
+              && onlyChanges(['stage', 'progress', 'lastReportDate', 'lastReportTime'])
+              && isPct(data().progress) && isText(data().stage, 1, 60)
+              && isDateKey(data().lastReportDate) && optText('lastReportTime', 5));
+
+        // Money for this site: finance roles only. Budget is set by site managers.
+        match /finance/{docId} {
+          allow read: if financeView(cid);
+          allow create: if siteManager(cid) && docId == 'summary'
+            && data().keys().hasOnly(['budget', 'spent', 'updatedAt'])
+            && isAmount(data().budget) && data().spent == 0;
+          allow update: if financeEdit(cid) && docId == 'summary'
+            && data().keys().hasOnly(['budget', 'spent', 'updatedAt'])
+            && isAmount(data().budget) && isAmount(data().spent)
+            && (data().budget == resource.data.budget || siteManager(cid));
+          allow delete: if siteManager(cid);
+        }
 
         match /materials/{id} {
+          function validMaterial() {
+            return data().keys().hasOnly(['name', 'unit', 'stock', 'reorderLevel', 'avgDaily', 'lastLogId', 'createdAt', 'updatedAt'])
+              && isText(data().name, 1, 120) && isText(data().unit, 1, 20)
+              && isAmount(data().stock) && isAmount(data().reorderLevel) && isAmount(data().avgDaily);
+          }
+          // Stock may only move by the quantity of a log entry written in the same batch
+          function stockMovement() {
+            let logPath = /databases/$(database)/documents/companies/$(cid)/sites/$(sid)/materialLogs/$(data().lastLogId);
+            let log = getAfter(logPath).data;
+            return onlyChanges(['stock', 'lastLogId'])
+              && !exists(logPath)
+              && log.materialId == id && log.createdBy == request.auth.uid
+              && data().stock == resource.data.stock + (log.type == 'delivery' ? log.qty : -log.qty);
+          }
           allow read: if onSite(cid, sid);
-          allow create, delete: if isAdmin(cid);
-          allow update: if isAdmin(cid) || (onSite(cid, sid) && onlyChanges(['stock']));
+          allow create: if siteManager(cid) && validMaterial();
+          allow delete: if siteManager(cid);
+          allow update: if (siteManager(cid) && validMaterial()) || (siteWork(cid, sid) && stockMovement());
         }
-        match /workers/{id} {
-          allow read, create: if onSite(cid, sid);
-          allow update, delete: if isAdmin(cid);
-        }
-        match /attendance/{date} {
-          allow read, create, update: if onSite(cid, sid);
-          allow delete: if isAdmin(cid);
-        }
-        match /reports/{id} {
-          allow read: if onSite(cid, sid);
-          allow create: if onSite(cid, sid) && byMe();
-          allow update: if isAdmin(cid)
-            || (onSite(cid, sid) && resource.data.createdBy == request.auth.uid && onlyChanges(['photos']));
-          allow delete: if isAdmin(cid);
-        }
+
         match /materialLogs/{id} {
           allow read: if onSite(cid, sid);
-          allow create: if onSite(cid, sid) && byMe();
-          allow update, delete: if isAdmin(cid);
+          // Delivery cost is a money figure: only finance roles may record one.
+          // The matching material must point at this log (stock moves in the same batch).
+          allow create: if siteWork(cid, sid) && byMe()
+            && data().keys().hasOnly(['materialId', 'materialName', 'unit', 'type', 'qty', 'cost', 'supplier', 'date', 'createdBy', 'createdAt'])
+            && data().type in ['usage', 'delivery']
+            && (data().qty is int || data().qty is float) && data().qty > 0
+            && isAmount(data().cost) && (data().cost == 0 || financeEdit(cid))
+            && isDateKey(data().date) && optText('supplier', 120)
+            && getAfter(/databases/$(database)/documents/companies/$(cid)/sites/$(sid)/materials/$(data().materialId)).data.lastLogId == id;
+          allow update, delete: if siteManager(cid);
         }
+
         match /expenses/{id} {
-          allow read: if onSite(cid, sid);
-          allow create: if onSite(cid, sid) && byMe();
-          allow update, delete: if isAdmin(cid);
+          allow read: if financeView(cid);
+          allow create: if financeEdit(cid) && byMe()
+            && data().keys().hasOnly(['date', 'category', 'note', 'amount', 'createdBy', 'createdAt'])
+            && isAmount(data().amount) && data().amount > 0
+            && isText(data().category, 1, 60) && optText('note', 500) && isDateKey(data().date);
+          allow update, delete: if siteManager(cid);
         }
-        // Module collections: site team can read and add, admins edit and delete.
+
+        // Worker names and trades are visible to the site team; pay is not.
+        match /workers/{id} {
+          function validWorker() {
+            return data().keys().hasOnly(['name', 'trade', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+              && isText(data().name, 2, 100) && isText(data().trade, 1, 60) && data().active is bool;
+          }
+          allow read: if onSite(cid, sid);
+          allow create: if siteWork(cid, sid) && byMe() && validWorker();
+          allow update: if siteManager(cid) && validWorker();
+          allow delete: if siteManager(cid);
+        }
+        match /workerPay/{id} {
+          allow read: if financeView(cid);
+          allow create, update: if financeEdit(cid)
+            && data().keys().hasOnly(['dailyRate', 'bankName', 'accountLast4', 'updatedAt'])
+            && isAmount(data().dailyRate) && optText('bankName', 60)
+            && (!('accountLast4' in data()) || data().accountLast4.matches('^[0-9]{0,4}$'));
+          allow delete: if financeEdit(cid);
+        }
+
+        // One doc per day: { date, present: { workerId: bool }, markedBy }
+        match /attendance/{date} {
+          allow read: if onSite(cid, sid);
+          allow create, update: if siteWork(cid, sid)
+            && data().keys().hasOnly(['date', 'present', 'markedBy', 'updatedAt'])
+            && data().date == date && isDateKey(date)
+            && data().present is map && data().present.size() <= 500
+            && data().markedBy == request.auth.uid;
+          allow delete: if siteManager(cid);
+        }
+
+        match /reports/{id} {
+          allow read: if onSite(cid, sid);
+          allow create: if siteWork(cid, sid) && byMe()
+            && data().keys().hasOnly(['date', 'time', 'text', 'stage', 'progress', 'issues', 'photos', 'photoCount',
+                                      'workersPresent', 'createdBy', 'createdByName', 'source', 'createdAt'])
+            && isDateKey(data().date) && isText(data().text, 1, 5000) && isText(data().stage, 1, 60)
+            && isPct(data().progress) && optText('issues', 5000)
+            && data().photos is list && data().photos.size() <= 8
+            && data().workersPresent is int && data().workersPresent >= 0
+            && data().createdByName == me().name;
+          // The author adds photo links as they finish uploading
+          allow update: if siteManager(cid)
+            || (siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
+                && onlyChanges(['photos']) && data().photos is list && data().photos.size() <= 8);
+          allow delete: if siteManager(cid);
+        }
+
+        // Future modules. Money-bearing collections are finance-only.
         match /{coll}/{id} {
-          allow read: if onSite(cid, sid) && coll in moduleCollections();
-          allow create: if onSite(cid, sid) && coll in moduleCollections() && byMe();
-          allow update: if coll in moduleCollections()
-            && (isAdmin(cid) || (onSite(cid, sid) && coll in ['punchItems', 'inspections'] && onlyChanges(['status', 'items', 'photo'])));
-          allow delete: if isAdmin(cid) && coll in moduleCollections();
+          function moduleColl() {
+            return coll in ['rfis', 'inspections', 'punchItems', 'incidents', 'toolboxTalks', 'tasks', 'drawings', 'documents'];
+          }
+          function moneyColl() { return coll in ['changeOrders', 'subcontractors', 'billing']; }
+          allow read: if (moduleColl() && onSite(cid, sid)) || (moneyColl() && financeView(cid));
+          allow create: if byMe() && ((moduleColl() && siteWork(cid, sid)) || (moneyColl() && financeEdit(cid)));
+          allow update: if (moduleColl() || moneyColl())
+            && (siteManager(cid)
+                || (siteWork(cid, sid) && coll in ['punchItems', 'inspections'] && onlyChanges(['status', 'items', 'photo'])));
+          allow delete: if siteManager(cid) && (moduleColl() || moneyColl());
         }
       }
     }
