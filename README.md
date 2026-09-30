@@ -33,7 +33,7 @@ siteflow/
 │           ├── constants.ts  business rules (retention, alert thresholds, approval limits)
 │           └── logic/        alerts, budget, schedule, wages, message text
 ├── firebase/                 the shared backend
-│   ├── functions/            Cloud Functions (TypeScript): company setup, team invites, reminders, weekly digest
+│   ├── functions/            Cloud Functions (TypeScript): company setup, team management, reminders, weekly digest
 │   ├── tests/                security-rule tests (run on the emulators)
 │   ├── firestore.rules
 │   ├── firestore.indexes.json
@@ -66,6 +66,16 @@ siteflow/
 | Site supervisor | assigned | yes | no | no | no |
 | Viewer | assigned | view only | no | no | no |
 
+## Accounts and team
+- **Sign-up** (web) creates the company and owner through the `createCompany` function.
+- **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
+  and shows a temporary password to send on WhatsApp. The person chooses their own password at first sign-in.
+- **Team changes** (role, sites, switch off/on, new temporary password, remove) go through Cloud Functions
+  (`updateMember`, `setMemberActive`, `resetMemberPassword`, `removeMember`). They apply the role rules and
+  write the company activity log. Switching someone off also blocks their login and signs them out.
+- **Everyone** can edit their own name and WhatsApp number and change their password (web Account page,
+  mobile Account screen).
+
 ## First-time setup
 ```bash
 nvm use                                  # Node 20
@@ -93,6 +103,8 @@ Add a Web app, an Android app and an iOS app to each project. App ids:
 | Security-rule tests (needs Java 21) | `npm run test:rules` |
 | Web data layer against the emulators (needs Java 21) | `npm run test:web` |
 | Everything | `npm test` |
+
+The emulator tests use their own ports (`firebase.test.json`), so they can run while `npm run emulators` is open.
 | Deploy everything to dev | `npm run deploy:dev` |
 | Deploy everything to production | `npm run deploy:prod` |
 | Deploy rules only | `npm run deploy:rules` |
