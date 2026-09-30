@@ -42,10 +42,10 @@ function logMaterial(db: Firestore, cid: string, sid: string, uid: string, o: { 
 // Every permission in the shared table, checked against the rules for every role.
 // If someone edits PERMISSIONS without updating the rules (or the reverse), this fails.
 // ---------------------------------------------------------------------------
-const probes: Record<Permission, (db: Firestore, r: Role) => Promise<unknown>> = {
+// team.manage is not a rules permission: team changes only happen in Cloud Functions
+// (tested in apps/web/test/team.test.js).
+const probes: Partial<Record<Permission, (db: Firestore, r: Role) => Promise<unknown>>> = {
   'company.settings': (db) => updateDoc(doc(db, paths.company(C1)), { name: 'Renamed Builders' }),
-  // reading someone else's profile (never your own)
-  'team.manage': (db, r) => getDoc(doc(db, paths.user(r === 'supervisor' ? USERS.viewer : USERS.supervisor))),
   'sites.all': (db) => getDoc(doc(db, paths.site(C1, S2))),
   'sites.manage': (db) => setDoc(doc(db, paths.site(C1, 'new-site')), site('New site')),
   'site.work': (db, r) => setDoc(doc(db, paths.subDoc(C1, S1, 'reports', `probe-${r}`)), report(USERS[r], `${r} user`)),
@@ -57,11 +57,14 @@ const probes: Record<Permission, (db: Firestore, r: Role) => Promise<unknown>> =
 };
 
 describe('rules match the shared permission table', () => {
-  for (const perm of Object.keys(PERMISSIONS) as Permission[]) {
+  it('every rules-enforced permission has a probe', () => {
+    expect(Object.keys(PERMISSIONS).filter((p) => !(p in probes))).toEqual(['team.manage']);
+  });
+  for (const perm of Object.keys(probes) as Permission[]) {
     for (const role of ROLES) {
       const allowed = can(role, perm);
       it(`${role} ${allowed ? 'can' : 'cannot'} ${perm}`, async () => {
-        const run = probes[perm](asRole(role), role);
+        const run = probes[perm]!(asRole(role), role);
         await (allowed ? assertSucceeds(run) : assertFails(run));
       });
     }
@@ -106,7 +109,7 @@ describe('users and team', () => {
   });
   it('team managers list the company', async () => {
     await assertSucceeds(getDocs(query(collection(asRole('admin'), 'users'), where('companyId', '==', C1))));
-    await assertFails(getDocs(query(collection(asRole('manager'), 'users'), where('companyId', '==', C1))));
+    await assertFails(getDocs(query(collection(asRole('viewer'), 'users'), where('companyId', '==', C1))));
   });
   it('people edit their own name and phone, nothing else', async () => {
     const db = asRole('supervisor');
@@ -176,6 +179,47 @@ describe('sites', () => {
     await assertFails(setDoc(doc(asRole('manager'), paths.site(C1, 'bad')), { ...site('X'), name: '' }));
     await assertFails(setDoc(doc(asRole('manager'), paths.site(C1, 'bad')), { ...site('Fine'), status: 'deleted' }));
     await assertFails(setDoc(doc(asRole('manager'), paths.site(C1, 'bad')), { ...site('Fine'), hacked: true }));
+  });
+});
+
+describe('site status, details and team', () => {
+  const close = (sid: string, status = 'closed') => env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.site(C1, sid)), { status }));
+
+  it('a closed site is read-only for daily work, for every role', async () => {
+    await close(S1);
+    const sup = asRole('supervisor');
+    await assertSucceeds(getDoc(doc(sup, paths.site(C1, S1))));
+    await assertFails(setDoc(doc(sup, paths.subDoc(C1, S1, 'reports', 'late')), report(USERS.supervisor, 'supervisor user')));
+    await assertFails(setDoc(doc(sup, paths.attendance(C1, S1, today)), { date: today, present: {}, markedBy: USERS.supervisor }));
+    await assertFails(logMaterial(sup, C1, S1, USERS.supervisor));
+    await assertFails(setDoc(doc(sup, paths.subDoc(C1, S1, 'workers', 'late')), { name: 'Late Worker', trade: 'Mason', active: true, createdBy: USERS.supervisor }));
+    await assertFails(updateDoc(doc(sup, paths.site(C1, S1)), { progress: 99, lastReportDate: today }));
+    await assertFails(setDoc(doc(asRole('owner'), paths.subDoc(C1, S1, 'reports', 'owner-late')), report(USERS.owner, 'owner user')));
+  });
+  it('an on-hold site still takes reports', async () => {
+    await close(S1, 'on_hold');
+    await assertSucceeds(setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'reports', 'hold')), report(USERS.supervisor, 'supervisor user')));
+  });
+  it('site managers change status and can reopen a closed site', async () => {
+    await close(S1);
+    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.site(C1, S1)), { status: 'active' }));
+    await assertFails(updateDoc(doc(asRole('manager'), paths.site(C1, S1)), { status: 'archived' }));
+    await assertFails(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { status: 'closed' }));
+  });
+  it('sites are never deleted', async () => {
+    await assertFails(deleteDoc(doc(asRole('owner'), paths.site(C1, S2))));
+  });
+  it('planned dates and client details are checked', async () => {
+    const db = asRole('manager');
+    await assertSucceeds(updateDoc(doc(db, paths.site(C1, S1)), { planStart: '2026-01-05', planEnd: '2026-12-20', client: { name: 'Mr Mensah', phone: '0241234567', email: '' } }));
+    await assertSucceeds(updateDoc(doc(db, paths.site(C1, S1)), { planStart: null, client: null }));
+    await assertFails(updateDoc(doc(db, paths.site(C1, S1)), { planStart: 'next week' }));
+    await assertFails(updateDoc(doc(db, paths.site(C1, S1)), { client: { name: 'X', bank: '123' } }));
+  });
+  it('project managers see the team to assign people; site roles do not', async () => {
+    await assertSucceeds(getDocs(query(collection(asRole('manager'), 'users'), where('companyId', '==', C1))));
+    await assertFails(getDocs(query(collection(asRole('finance'), 'users'), where('companyId', '==', C1))));
+    await assertFails(getDocs(query(collection(asRole('supervisor'), 'users'), where('companyId', '==', C1))));
   });
 });
 

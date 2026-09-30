@@ -12,7 +12,10 @@ service firebase.storage {
     function onSite(cid, sid) {
       return member(cid) && (profile().role in ['owner', 'admin', 'manager', 'finance'] || sid in profile().siteIds);
     }
-    function siteWork(cid, sid) { return onSite(cid, sid) && profile().role in ['owner', 'admin', 'manager', 'supervisor']; }
+    function siteOpen(cid, sid) { return firestore.get(/databases/(default)/documents/companies/$(cid)/sites/$(sid)).data.status != 'closed'; }
+    function siteWork(cid, sid) {
+      return onSite(cid, sid) && profile().role in ['owner', 'admin', 'manager', 'supervisor'] && siteOpen(cid, sid);
+    }
     function siteManager(cid) { return member(cid) && profile().role in ['owner', 'admin', 'manager']; }
 
     // Daily report photos: paths.photo(cid, sid, reportId, file)

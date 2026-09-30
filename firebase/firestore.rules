@@ -25,8 +25,12 @@ service cloud.firestore {
     function auditView(cid) { return hasRole(cid, ['owner', 'admin']); }
 
     function onSite(cid, sid) { return allSites(cid) || (member(cid) && sid in me().siteIds); }
+    // Closed sites are read-only for daily work
+    function siteOpen(cid, sid) { return get(sitePath(cid, sid)).data.status != 'closed'; }
     // Daily site work: reports, attendance, material logs, adding workers
-    function siteWork(cid, sid) { return onSite(cid, sid) && me().role in ['owner', 'admin', 'manager', 'supervisor']; }
+    function siteWork(cid, sid) {
+      return onSite(cid, sid) && me().role in ['owner', 'admin', 'manager', 'supervisor'] && siteOpen(cid, sid);
+    }
 
     // ---------- helpers ----------
     function data() { return request.resource.data; }
@@ -37,6 +41,7 @@ service cloud.firestore {
     function isAmount(v) { return (v is int || v is float) && v >= 0; }
     function isPct(v) { return (v is int || v is float) && v >= 0 && v <= 100; }
     function isDateKey(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function optDate(field) { return !(field in data()) || data()[field] == null || isDateKey(data()[field]); }
     function sitePath(cid, sid) { return /databases/$(database)/documents/companies/$(cid)/sites/$(sid); }
 
     // ---------- users ----------
@@ -45,7 +50,8 @@ service cloud.firestore {
     // rules and write the audit trail. People may edit their own name and phone, and clear
     // the "must change password" flag after setting a new password.
     match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || teamManager(resource.data.companyId));
+      // Project managers also see the team, to assign people to their sites
+      allow read: if signedIn() && (request.auth.uid == uid || teamManager(resource.data.companyId) || siteManager(resource.data.companyId));
       allow create, delete: if false;
       allow update: if signedIn() && request.auth.uid == uid && member(resource.data.companyId)
         && onlyChanges(['name', 'phone', 'mustChangePassword', 'updatedAt'])
@@ -82,13 +88,17 @@ service cloud.firestore {
           return data().keys().hasOnly(siteKeys())
             && isText(data().name, 2, 120) && isText(data().location, 2, 200)
             && isText(data().stage, 1, 60) && isPct(data().progress)
-            && data().status in ['active', 'closed']
-            && optText('foremanName', 100) && optText('foremanPhone', 20) && optText('foremanEmail', 200);
+            && data().status in ['active', 'on_hold', 'closed']
+            && optText('foremanName', 100) && optText('foremanPhone', 20) && optText('foremanEmail', 200)
+            && optDate('planStart') && optDate('planEnd')
+            && (!('client' in data()) || data().client == null
+                || (data().client is map && data().client.keys().hasOnly(['name', 'phone', 'email']) && isText(data().client.name, 1, 120)));
         }
 
         allow read: if onSite(cid, sid);
         allow create: if siteManager(cid) && validSite();
-        allow delete: if siteManager(cid);
+        // Sites are closed, never deleted, so their history stays
+        allow delete: if false;
         // Site managers edit anything. The site team only moves stage/progress and marks the report sent.
         allow update: if (siteManager(cid) && validSite())
           || (siteWork(cid, sid)
