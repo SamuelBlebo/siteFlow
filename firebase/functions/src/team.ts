@@ -5,7 +5,7 @@ import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firesto
 import { randomBytes } from 'node:crypto';
 import {
   DEFAULT_MODULES, ROLE_LABELS, assignableRoles, canChangeMember, companySetupInput, inviteInput, isRole, isSiteScoped,
-  memberActiveInput, memberRefInput, memberUpdateInput, paths, validate,
+  can, memberActiveInput, memberRefInput, memberUpdateInput, paths, siteAssignInput, validate,
   type Role, type UserProfile,
 } from '@siteflow/shared';
 
@@ -175,4 +175,26 @@ export const removeMember = onCall(async (req) => {
   });
   await logActivity(db, me, `removed ${m.name} (${roleName(m.role)})`);
   return { removed: true };
+});
+
+// Put a supervisor or viewer on a site, or take them off. Project managers can do this
+// for any site (they manage sites but not the team); owners and admins too.
+export const assignToSite = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const db = getFirestore();
+  const { sid, uid, assigned } = parse(siteAssignInput, req.data);
+  const meSnap = await db.doc(paths.user(req.auth.uid)).get();
+  const me = meSnap.data() as UserProfile | undefined;
+  if (!me || me.active === false || !isRole(me.role) || !can(me.role, 'sites.manage')) {
+    throw new HttpsError('permission-denied', 'Only owners, admins and project managers can assign people to sites.');
+  }
+  const site = await db.doc(paths.site(me.companyId, sid)).get();
+  if (!site.exists) throw new HttpsError('not-found', 'That site was not found.');
+  const mSnap = await db.doc(paths.user(uid)).get();
+  const m = mSnap.data() as UserProfile | undefined;
+  if (!m || m.companyId !== me.companyId) throw new HttpsError('not-found', 'That team member was not found.');
+  if (!isSiteScoped(m.role)) throw new HttpsError('failed-precondition', `${m.name} already sees every site.`);
+  await db.doc(paths.user(uid)).update({ siteIds: assigned ? FieldValue.arrayUnion(sid) : FieldValue.arrayRemove(sid), updatedAt: FieldValue.serverTimestamp() });
+  await logActivity(db, { ...me, id: meSnap.id }, `${assigned ? 'added' : 'removed'} ${m.name} ${assigned ? 'to' : 'from'} ${site.data()?.name}`);
+  return { assigned };
 });
