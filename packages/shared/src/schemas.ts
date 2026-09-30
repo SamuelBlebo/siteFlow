@@ -5,12 +5,17 @@ import { ROLES } from './permissions';
 // Validation used by the forms (web and mobile) and again in Cloud Functions.
 const money = z.coerce.number({ invalid_type_error: 'Enter an amount.' }).nonnegative('Amount cannot be negative.');
 const positive = (label: string) => z.coerce.number().positive(`Enter a ${label} above zero.`);
+// Ghana mobile numbers: 024 000 0000, 0240000000, +233 24 000 0000. Empty is allowed.
+const phone = z.string().transform((v) => v.replace(/[\s-]/g, ''))
+  .pipe(z.string().regex(/^((\+?233)\d{9}|0\d{9})?$/, 'Enter a Ghana number, e.g. 024 000 0000.'))
+  .optional().default('');
+const personName = z.string().trim().min(2, 'Enter a name.').max(100, 'Keep the name under 100 characters.');
 
 export const siteInput = z.object({
   name: z.string().trim().min(2, 'Enter the project name.'),
   location: z.string().trim().min(2, 'Enter the location.'),
   foremanName: z.string().trim().optional().default(''),
-  foremanPhone: z.string().trim().regex(/^(\+?233|0)\d{9}$/, 'Enter a Ghana number, e.g. 024 000 0000.').or(z.literal('')).optional().default(''),
+  foremanPhone: phone,
   budget: positive('budget'),
   stage: z.string().min(1),
 });
@@ -52,16 +57,39 @@ export const rfiInput = z.object({ question: z.string().trim().min(5, 'Enter the
 export const incidentInput = z.object({ type: z.enum(INCIDENT_TYPES as [string, ...string[]]), severity: z.enum(['Low', 'Medium', 'High']), description: z.string().trim().min(5, 'Describe what happened.') });
 const roleEnum = z.enum(ROLES as [string, ...string[]]);
 export const inviteInput = z.object({
-  name: z.string().trim().min(2, 'Enter their name.'),
-  email: z.string().trim().email('Enter a valid email.'),
+  name: personName,
+  email: z.string().trim().toLowerCase().email('Enter a valid email.'),
+  phone,
   role: roleEnum.refine((r) => r !== 'owner', 'Choose a role.'),
   siteIds: z.array(z.string().min(1)).max(200).default([]),
 });
 // First sign-up: creates the company and the owner's profile (createCompany function)
 export const companySetupInput = z.object({
   companyName: z.string().trim().min(2, 'Enter your company name.').max(100),
-  name: z.string().trim().min(2, 'Enter your name.').max(100),
+  name: personName,
 });
+
+// Account and organisation
+export const profileInput = z.object({ name: personName, phone });
+export const companySettingsInput = z.object({
+  name: z.string().trim().min(2, 'Enter the company name.').max(100),
+  phone,
+  location: z.string().trim().max(200).optional().default(''),
+});
+export const passwordInput = z.object({
+  password: z.string().min(8, 'Use at least 8 characters.').max(128),
+  confirm: z.string(),
+}).refine((v) => v.password === v.confirm, { message: "The two passwords don't match.", path: ['confirm'] });
+
+// Team changes, done through Cloud Functions so they are checked and logged
+const memberId = z.string().min(1, 'Choose a team member.');
+export const memberUpdateInput = z.object({
+  uid: memberId,
+  role: roleEnum.refine((r) => r !== 'owner', 'Choose a role.'),
+  siteIds: z.array(z.string().min(1)).max(200).default([]),
+});
+export const memberActiveInput = z.object({ uid: memberId, active: z.boolean() });
+export const memberRefInput = z.object({ uid: memberId });
 
 // Small helper so forms get one friendly message instead of a zod error object
 export function validate<T extends z.ZodTypeAny>(schema: T, data: unknown):

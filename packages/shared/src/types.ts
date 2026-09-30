@@ -15,6 +15,8 @@ export interface Company {
   id: string;
   name: string;
   ownerId: string;
+  phone?: string;
+  location?: string;
   plan?: Plan;
   modules: Partial<Record<ModuleKey, boolean>>;
   notifications?: Partial<Record<NotificationKey, NotificationRule>>;
@@ -28,8 +30,12 @@ export interface UserProfile {
   email: string;
   phone?: string;
   siteIds: string[];
-  active?: boolean;          // false = switched off; treated as having no access
+  active?: boolean;              // false = switched off; treated as having no access
+  mustChangePassword?: boolean;  // set when an admin issues a temporary password
 }
+
+// companies/{cid}/activity/{id}: audit trail, written by Cloud Functions only
+export interface ActivityEntry { id?: string; who: string; whoId?: string; what: string; at: unknown }
 
 export interface Site {
   id: string;
