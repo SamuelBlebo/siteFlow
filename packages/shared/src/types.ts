@@ -37,6 +37,9 @@ export interface UserProfile {
 // companies/{cid}/activity/{id}: audit trail, written by Cloud Functions only
 export interface ActivityEntry { id?: string; who: string; whoId?: string; what: string; at: unknown }
 
+// active: work going on. on_hold: paused, still open for reports. closed: finished, read-only for the site team.
+export type SiteStatus = 'active' | 'on_hold' | 'closed';
+
 export interface Site {
   id: string;
   name: string;
@@ -46,12 +49,12 @@ export interface Site {
   foremanEmail?: string;
   stage: string;
   progress: number;          // 0-100
-  status: 'active' | 'closed';
+  status: SiteStatus;
   lastReportDate: string | null; // YYYY-MM-DD
   lastReportTime?: string;       // HH:MM
-  planStart?: string;            // YYYY-MM-DD
-  planEnd?: string;              // YYYY-MM-DD
-  client?: { name: string; email?: string; phone?: string };
+  planStart?: string | null;     // YYYY-MM-DD
+  planEnd?: string | null;       // YYYY-MM-DD
+  client?: { name: string; email?: string; phone?: string } | null;
 }
 
 // companies/{cid}/sites/{sid}/finance/summary. Finance roles only.

@@ -11,14 +11,31 @@ const phone = z.string().transform((v) => v.replace(/[\s-]/g, ''))
   .optional().default('');
 const personName = z.string().trim().min(2, 'Enter a name.').max(100, 'Keep the name under 100 characters.');
 
-export const siteInput = z.object({
-  name: z.string().trim().min(2, 'Enter the project name.'),
-  location: z.string().trim().min(2, 'Enter the location.'),
-  foremanName: z.string().trim().optional().default(''),
-  foremanPhone: phone,
-  budget: positive('budget'),
+const dateKey = z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date.').optional().default('');
+const email = z.string().trim().toLowerCase().pipe(z.string().email('Enter a valid email.').or(z.literal(''))).optional().default('');
+const siteBase = z.object({
+  name: z.string().trim().min(2, 'Enter the project name.').max(120),
+  location: z.string().trim().min(2, 'Enter the location.').max(200),
   stage: z.string().min(1),
+  foremanName: z.string().trim().max(100).optional().default(''),
+  foremanPhone: phone,
+  foremanEmail: email,
+  planStart: dateKey,
+  planEnd: dateKey,
+  clientName: z.string().trim().max(120).optional().default(''),
+  clientPhone: phone,
+  clientEmail: email,
 });
+const datesInOrder = (v: { planStart?: string; planEnd?: string }) => !v.planStart || !v.planEnd || v.planEnd >= v.planStart;
+const datesMsg = { message: 'The planned finish must be after the start.', path: ['planEnd'] };
+// Editing a site's details (site managers)
+export const siteDetailsInput = siteBase.refine(datesInOrder, datesMsg);
+// Creating a site: details plus the starting budget (kept in the finance document)
+export const siteInput = siteBase.extend({ budget: positive('budget') }).refine(datesInOrder, datesMsg);
+export const siteStatusInput = z.enum(['active', 'on_hold', 'closed']);
+export const budgetInput = z.object({ budget: positive('budget') });
+// Assigning a site-scoped member (supervisor, viewer) to a site: assignToSite function
+export const siteAssignInput = z.object({ sid: z.string().min(1), uid: z.string().min(1), assigned: z.boolean() });
 
 export const materialInput = z.object({
   name: z.string().trim().min(1, 'Enter the material name.'),
