@@ -21,7 +21,8 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   const now = ctx.now ?? new Date();
   const a: Alert[] = [];
 
-  if (site.lastReportDate !== todayKey(now)) {
+  // Only active sites are expected to report daily (on-hold and closed sites are not chased)
+  if (site.status === 'active' && site.lastReportDate !== todayKey(now)) {
     a.push({ kind: 'report', severity: 'bad', title: 'No daily report yet', detail: `${site.foremanName || 'The site team'} hasn't sent today's report.` });
   }
   if (on('materials')) {

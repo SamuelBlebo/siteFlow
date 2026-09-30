@@ -78,6 +78,11 @@ describe('alerts', () => {
     expect(a[0].kind).toBe('report');
     expect(a.map((x) => x.kind)).toEqual(expect.arrayContaining(['usage', 'stock']));
   });
+  it('on-hold and closed sites are not chased for reports', () => {
+    for (const status of ['on_hold', 'closed'] as const) {
+      expect(siteAlerts({ ...site, status, lastReportDate: '2026-06-14' }, [], {}, { now }).some((x) => x.kind === 'report')).toBe(false);
+    }
+  });
   it('budget alert only when finance data is given', () => {
     expect(siteAlerts(site, [], {}, { now }).some((x) => x.kind === 'budget')).toBe(false);
     expect(siteAlerts(site, [], {}, { now, finance: { budget: 100, spent: 95 } }).some((x) => x.kind === 'budget')).toBe(true);
