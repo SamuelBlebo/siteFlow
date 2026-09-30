@@ -1,15 +1,21 @@
 # Deploys the web app, Cloud Functions and rules to Firebase.
-# develop -> siteflow-dev, main -> siteflow-prod
+# Manual only for now: nothing deploys automatically, and production is never deployed
+# without someone choosing it here. Automatic dev deploys come with the CI/CD stage,
+# once the Firebase projects and secrets exist.
 name: Deploy web and backend
 on:
-  push:
-    branches: [main, develop]
-    paths: ['apps/web/**', 'packages/shared/**', 'firebase/**', 'firebase.json']
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which Firebase project
+        type: choice
+        options: [dev, prod]
+        default: dev
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    environment: ${{ inputs.target == 'prod' && 'production' || 'development' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,4 +36,4 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       - name: Deploy
-        run: npx firebase-tools deploy --project ${{ github.ref_name == 'main' && 'prod' || 'dev' }} --non-interactive --force
+        run: npx firebase-tools deploy --project ${{ inputs.target }} --non-interactive

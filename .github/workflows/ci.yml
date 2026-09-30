@@ -2,10 +2,15 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop]
+    branches: ['**']
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
+    name: Typecheck, unit tests and builds
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,11 +18,38 @@ jobs:
         with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci
       - run: npm --prefix firebase/functions ci
-      - name: Type-check shared package and functions
+      - name: Typecheck (shared, functions, rule tests)
         run: npm run typecheck
+      - name: Shared logic tests
+        run: npm run test:shared
+      - name: Mobile logic tests
+        run: npm test -w @siteflow/mobile
       - name: Build web app
         run: npm run build:web
         env:
           VITE_FB_PROJECT_ID: ci-placeholder
       - name: Build functions
         run: npm run build:functions
+      - name: Bundle mobile app (Android JS bundle)
+        working-directory: apps/mobile
+        run: npx expo export --platform android --output-dir .ci-export
+
+  emulator-tests:
+    name: Security rules and integration tests (emulators)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npm --prefix firebase/functions ci
+      - name: Firestore and Storage rules tests
+        run: npm run test:rules
+      - name: Web data layer against emulators
+        run: npm run test:web
