@@ -66,6 +66,15 @@ siteflow/
 | Site supervisor | assigned | yes | no | no | no |
 | Viewer | assigned | view only | no | no | no |
 
+## Sites
+One project = one site. Owners, admins and project managers create sites (name, location, stage, planned
+dates, foreman, client, budget) and manage them from the Sites page: details, status and budget under
+**Settings**, and who works there under **Team** (`assignToSite` function).
+- **Active**: daily reports expected and chased.
+- **On hold**: work paused; reports still allowed, not chased.
+- **Closed**: finished; records stay readable, but nobody can add reports, attendance, materials or photos
+  (enforced in the rules). Sites are never deleted.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
@@ -104,7 +113,8 @@ Add a Web app, an Android app and an iOS app to each project. App ids:
 | Web data layer against the emulators (needs Java 21) | `npm run test:web` |
 | Everything | `npm test` |
 
-The emulator tests use their own ports (`firebase.test.json`), so they can run while `npm run emulators` is open.
+The emulator tests use their own ports (`firebase.test.json`) and temp folder (`scripts/test-emulators.mjs`),
+so they can run while `npm run emulators`, or another project's emulators, are open.
 | Deploy everything to dev | `npm run deploy:dev` |
 | Deploy everything to production | `npm run deploy:prod` |
 | Deploy rules only | `npm run deploy:rules` |
