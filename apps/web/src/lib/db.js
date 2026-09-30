@@ -1,5 +1,5 @@
 import {
-  collection, doc, increment, query, serverTimestamp, setDoc, where, orderBy, limit, writeBatch,
+  collection, doc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
@@ -19,6 +19,12 @@ export const todayLogsQuery = (cid, sid) => query(sub(cid, sid, 'materialLogs'),
 export const reportsQuery = (cid, sid) => query(sub(cid, sid, 'reports'), orderBy('createdAt', 'desc'), limit(30));
 export const expensesQuery = (cid, sid) => query(sub(cid, sid, 'expenses'), orderBy('createdAt', 'desc'), limit(50));
 export const teamQuery = (cid) => query(usersCol(), where('companyId', '==', cid));
+export const activityQuery = (cid, n = 20) => query(collection(db, paths.activity(cid)), orderBy('at', 'desc'), limit(n));
+
+// ---------- account and company ----------
+export const updateMyProfile = (uid, { name, phone }) => updateDoc(userDoc(uid), { name, phone, updatedAt: serverTimestamp() });
+export const clearMustChangePassword = (uid) => updateDoc(userDoc(uid), { mustChangePassword: false, updatedAt: serverTimestamp() });
+export const updateCompany = (cid, { name, phone, location }) => updateDoc(companyDoc(cid), { name, phone, location, updatedAt: serverTimestamp() });
 
 // ---------- writes ----------
 // Each returns the Firestore promise. Wrap calls in save() from ./save so failures reach the user.

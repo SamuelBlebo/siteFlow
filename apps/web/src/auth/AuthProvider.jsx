@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { onSnapshot } from 'firebase/firestore';
 import { can as roleCan, isRole } from '@siteflow/shared';
 import { auth } from '../firebase';
@@ -17,13 +17,19 @@ export function AuthProvider({ children }) {
     let unsubProfile = () => {};
     const unsub = onAuthStateChanged(auth, (u) => {
       unsubProfile();
+      let hadProfile = false;
       setUser(u);
       setError(null);
       if (!u) { setProfile(null); setLoading(false); return; }
       setLoading(true);
       unsubProfile = onSnapshot(
         userDoc(u.uid),
-        (s) => { setProfile(s.exists() ? { id: s.id, ...s.data() } : null); setLoading(false); },
+        (s) => {
+          // Removed from the company while signed in: sign out rather than offer to set up a new company
+          if (hadProfile && !s.exists() && !s.metadata.fromCache) { signOut(auth); return; }
+          hadProfile = s.exists();
+          setProfile(s.exists() ? { id: s.id, ...s.data() } : null); setLoading(false);
+        },
         (e) => { console.error('Could not load profile', e); setError(e); setLoading(false); }
       );
     });

@@ -15,9 +15,10 @@ export default function Layout() {
             {can('sites.all') && <NavLink to="/" end>Dashboard</NavLink>}
             <NavLink to="/work">Site work</NavLink>
             {can('team.manage') && <NavLink to="/team">Team</NavLink>}
+            {can('company.settings') && <NavLink to="/company">Company</NavLink>}
           </nav>
           <div className="who">
-            <span className="muted">{profile?.name}{role ? `, ${ROLE_LABELS[role]}` : ''}</span>
+            <NavLink to="/account" className="muted" title="Your account">{profile?.name}{role ? `, ${ROLE_LABELS[role]}` : ''}</NavLink>
             <button className="btn sm ghost" onClick={() => signOut(auth)}>Sign out</button>
           </div>
         </div>

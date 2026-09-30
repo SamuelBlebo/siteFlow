@@ -159,3 +159,4 @@ tr.row:hover td { background: var(--sunk); }
 .toast.ok { border-left-color: var(--ok); }
 .toast.warn { border-left-color: var(--warn); background: var(--warnbg); }
 .toast.err { border-left-color: var(--bad); background: var(--badbg); color: var(--bad); font-weight: 500; }
+.btn.danger { color: var(--bad); border-color: var(--bad); }

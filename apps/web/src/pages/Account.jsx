@@ -1,0 +1,62 @@
+import { useState } from 'react';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate } from '@siteflow/shared';
+import { useAuth } from '../auth/AuthProvider';
+import { useDoc } from '../lib/hooks';
+import { companyDoc, updateMyProfile } from '../lib/db';
+import { save, savedText } from '../lib/save';
+import { logOut } from '../lib/account';
+import PasswordForm from '../components/PasswordForm';
+
+export default function Account() {
+  const { user, profile, role, cid } = useAuth();
+  const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
+  const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '' });
+  const [msg, setMsg] = useState({ kind: '', text: '' });
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    const v = validate(profileInput, f);
+    if (!v.ok) return setMsg({ kind: 'err', text: v.error });
+    setBusy(true); setMsg({});
+    try {
+      const res = await save(updateMyProfile(user.uid, v.data), 'Your details');
+      setMsg({ kind: 'ok', text: savedText(res, 'Your details') });
+      setF(v.data);
+    } catch (e2) {
+      setMsg({ kind: 'err', text: e2.message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="wrap narrow">
+      <h1>Your account</h1>
+      <dl className="cols" style={{ marginTop: 16 }}>
+        <div><dt>Company</dt><dd>{company?.name || '–'}</dd></div>
+        <div><dt>Role</dt><dd>{ROLE_LABELS[role]}</dd></div>
+        <div><dt>Sign-in email</dt><dd className="small">{user.email}</dd></div>
+      </dl>
+      <p className="muted">{ROLE_DESCRIPTIONS[role]} Your role is set by your company's owner or admin.</p>
+
+      <h2 className="sub">Your details</h2>
+      <form className="form card" onSubmit={submit}>
+        {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
+        <div className="grid2">
+          <div className="field"><label htmlFor="a-n">Name</label><input id="a-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
+          <div className="field"><label htmlFor="a-p">WhatsApp number</label><input id="a-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="024 000 0000" />
+            <p className="hint">Used for SiteFlow alerts on WhatsApp.</p></div>
+        </div>
+        <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
+      </form>
+
+      <h2 className="sub">Password</h2>
+      <div className="card"><PasswordForm /></div>
+
+      <h2 className="sub">Sign out</h2>
+      <p className="muted" style={{ marginBottom: 8 }}>Sign out of SiteFlow on this device.</p>
+      <button className="btn ghost" onClick={logOut}>Sign out</button>
+    </section>
+  );
+}

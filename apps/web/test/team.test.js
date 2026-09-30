@@ -1,0 +1,145 @@
+// Accounts, company settings and team management against the emulators
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getDoc, getDocs, terminate } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../src/firebase';
+import { activityQuery, companyDoc, createSite, teamQuery, updateCompany, updateMyProfile, userDoc } from '../src/lib/db';
+import { changePassword, team } from '../src/lib/account';
+import { save, SaveError } from '../src/lib/save';
+
+globalThis.navigator ??= {};
+Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
+
+const run = `${Date.now()}-t`;
+const email = (who) => `${who}-${run}@example.com`;
+const pw = { owner: 'owner-pass-1' };
+const ids = {};
+let cid, s1, s2;
+const as = async (who, password = pw[who]) => { await signOut(auth); return (await signInWithEmailAndPassword(auth, email(who), password)).user; };
+const code = (p) => p.then(() => 'ok', (e) => e.code);
+
+beforeAll(async () => {
+  const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
+  await httpsCallable(functions, 'createCompany')({ companyName: 'Asante Construction', name: 'Yaa Asante' });
+  cid = user.uid;
+  const a = createSite(cid, { name: 'Tema warehouse', location: 'Tema', stage: 'Foundation', budget: 500000 }); await a.done; s1 = a.id;
+  const b = createSite(cid, { name: 'Kumasi school', location: 'Kumasi', stage: 'Foundation', budget: 800000 }); await b.done; s2 = b.id;
+});
+afterAll(async () => { await signOut(auth); await terminate(db); });
+
+describe('invites and first sign-in', () => {
+  it('owner invites an admin and a supervisor; they must choose a password', async () => {
+    const admin = await team.invite({ name: 'Kwame Admin', email: email('admin'), role: 'admin' });
+    const sup = await team.invite({ name: 'Kofi Supervisor', email: email('super'), phone: '024 123 4567', role: 'supervisor', siteIds: [s1] });
+    ids.admin = admin.uid; ids.super = sup.uid;
+    pw.admin = admin.tempPassword; pw.super = sup.tempPassword;
+    expect(sup.tempPassword).toMatch(/^[a-z2-9]{12}$/);
+    expect((await getDoc(userDoc(sup.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [s1], phone: '0241234567', mustChangePassword: true });
+  });
+
+  it('the invited person signs in and sets their own password', async () => {
+    const u = await as('super');
+    await changePassword(pw.super, 'kofi-own-pass');
+    expect((await getDoc(userDoc(u.uid))).data().mustChangePassword).toBe(false);
+    pw.super = 'kofi-own-pass';
+    await expect(as('super')).resolves.toBeTruthy();
+  });
+
+  it('a wrong current password is refused', async () => {
+    await as('super');
+    expect(await code(changePassword('not-it', 'another-pass'))).toMatch(/auth\/(invalid-credential|wrong-password)/);
+  });
+
+  it('people edit their own details', async () => {
+    const u = await as('super');
+    await save(updateMyProfile(u.uid, { name: 'Kofi Asante', phone: '0209876543' }));
+    expect((await getDoc(userDoc(u.uid))).data()).toMatchObject({ name: 'Kofi Asante', phone: '0209876543' });
+  });
+
+  it('non-managers cannot use team functions', async () => {
+    await as('super');
+    expect(await code(team.invite({ name: 'Sneaky', email: email('sneaky'), role: 'admin' }))).toBe('functions/permission-denied');
+    expect(await code(team.update({ uid: ids.super, role: 'manager' }))).toBe('functions/permission-denied');
+    expect(await code(team.resetPassword({ uid: ids.admin }))).toBe('functions/permission-denied');
+  });
+});
+
+describe('admin limits', () => {
+  it('admin sets their password and invites staff, but not admins', async () => {
+    await as('admin');
+    await changePassword(pw.admin, 'admin-own-pass'); pw.admin = 'admin-own-pass';
+    const fin = await team.invite({ name: 'Efua Finance', email: email('finance'), role: 'finance' });
+    ids.finance = fin.uid;
+    expect(await code(team.invite({ name: 'Another Admin', email: email('admin2'), role: 'admin' }))).toBe('functions/permission-denied');
+    expect(await code(team.invite({ name: 'Owner Two', email: email('owner2'), role: 'owner' }))).toBe('functions/invalid-argument');
+  });
+
+  it('admin changes staff but not themselves, the owner or other admins', async () => {
+    await as('admin');
+    await expect(team.update({ uid: ids.super, role: 'supervisor', siteIds: [s1, s2, 'made-up'] })).resolves.toEqual({ role: 'supervisor', siteIds: [s1, s2] });
+    expect(await code(team.update({ uid: ids.super, role: 'admin' }))).toBe('functions/permission-denied');
+    expect(await code(team.update({ uid: ids.admin, role: 'manager' }))).toBe('functions/failed-precondition');
+    expect(await code(team.update({ uid: cid, role: 'manager' }))).toBe('functions/permission-denied');
+  });
+
+  it('only the owner changes company details', async () => {
+    await as('admin');
+    await expect(save(updateCompany(cid, { name: 'Hijacked Ltd', phone: '', location: '' }))).rejects.toBeInstanceOf(SaveError);
+    await as('owner');
+    await save(updateCompany(cid, { name: 'Asante Construction Ltd', phone: '0302123456', location: 'Accra' }));
+    expect((await getDoc(companyDoc(cid))).data()).toMatchObject({ name: 'Asante Construction Ltd', location: 'Accra' });
+  });
+});
+
+describe('switch off, reset, remove', () => {
+  it('a switched-off member cannot sign in until switched back on', async () => {
+    await as('owner');
+    await team.setActive({ uid: ids.super, active: false });
+    await signOut(auth);
+    expect(await code(signInWithEmailAndPassword(auth, email('super'), pw.super))).toBe('auth/user-disabled');
+    await as('owner');
+    await team.setActive({ uid: ids.super, active: true });
+    await expect(as('super')).resolves.toBeTruthy();
+  });
+
+  it('a new temporary password replaces the old one and asks for a change', async () => {
+    await as('owner');
+    const r = await team.resetPassword({ uid: ids.super });
+    await signOut(auth);
+    expect(await code(signInWithEmailAndPassword(auth, email('super'), pw.super))).toMatch(/auth\/(invalid-credential|wrong-password)/);
+    const u = await as('super', r.tempPassword);
+    expect((await getDoc(userDoc(u.uid))).data().mustChangePassword).toBe(true);
+  });
+
+  it('removing a member deletes their login and profile', async () => {
+    await as('owner');
+    await team.remove({ uid: ids.finance });
+    const members = (await getDocs(teamQuery(cid))).docs.map((d) => d.id);
+    expect(members).not.toContain(ids.finance);
+    expect(members).toContain(ids.super);
+    await signOut(auth);
+    expect(await code(signInWithEmailAndPassword(auth, email('finance'), 'anything1'))).toMatch(/auth\/(user-not-found|invalid-credential)/);
+  });
+
+  it('another company cannot touch our members', async () => {
+    await signOut(auth);
+    await createUserWithEmailAndPassword(auth, email('rival'), 'rival-pass-1');
+    await httpsCallable(functions, 'createCompany')({ companyName: 'Rival Co', name: 'Rival Owner' });
+    expect(await code(team.update({ uid: ids.super, role: 'viewer' }))).toBe('functions/not-found');
+    expect(await code(team.setActive({ uid: ids.super, active: false }))).toBe('functions/not-found');
+    expect(await code(team.remove({ uid: ids.admin }))).toBe('functions/not-found');
+  });
+});
+
+describe('activity log', () => {
+  it('records every team change for owners and admins only', async () => {
+    await as('owner');
+    const log = (await getDocs(activityQuery(cid, 50))).docs.map((d) => d.data().what).join('\n');
+    for (const what of ['added Kofi Supervisor as site supervisor', 'switched off Kofi', 'switched on Kofi', 'issued a new temporary password', 'removed Efua Finance']) {
+      expect(log).toContain(what);
+    }
+    await as('super', (await (async () => { await as('owner'); return team.resetPassword({ uid: ids.super }); })()).tempPassword);
+    await expect(getDocs(activityQuery(cid))).rejects.toThrow();
+  });
+});

@@ -8,6 +8,9 @@ import { ErrorState, Loading } from './components/States';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import FinishSetup from './pages/FinishSetup';
+import SetPassword from './pages/SetPassword';
+import Account from './pages/Account';
+import Company from './pages/Company';
 import Dashboard from './pages/Dashboard';
 import NewSite from './pages/NewSite';
 import SiteDetail from './pages/SiteDetail';
@@ -32,6 +35,7 @@ function Guard({ perm, children }) {
       </section>
     );
   }
+  if (profile.mustChangePassword) return <SetPassword />;
   if (perm && !can(perm)) return <Navigate to="/work" replace />;
   return children;
 }
@@ -52,6 +56,8 @@ export default function App() {
           <Route path="sites/new" element={<Guard perm="sites.manage"><NewSite /></Guard>} />
           <Route path="sites/:sid" element={<Guard perm="sites.all"><SiteDetail /></Guard>} />
           <Route path="team" element={<Guard perm="team.manage"><Team /></Guard>} />
+          <Route path="company" element={<Guard perm="company.settings"><Company /></Guard>} />
+          <Route path="account" element={<Account />} />
           <Route path="work" element={<MySites />} />
           <Route path="work/:sid" element={<SiteWorkspace />} />
         </Route>
