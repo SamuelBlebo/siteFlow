@@ -27,11 +27,14 @@ siteflow/
 │           ├── types.ts      shapes of every Firestore document
 │           ├── schemas.ts    form validation (zod)
 │           ├── modules.ts    module registry, plans, isOn()
-│           ├── paths.ts      Firestore paths as strings
+│           ├── permissions.ts roles and what each can do (mirrored in the security rules)
+│           ├── errors.ts     friendlyError(): what users see instead of raw Firebase errors
+│           ├── paths.ts      Firestore and Storage paths as strings
 │           ├── constants.ts  business rules (retention, alert thresholds, approval limits)
 │           └── logic/        alerts, budget, schedule, wages, message text
 ├── firebase/                 the shared backend
-│   ├── functions/            Cloud Functions (TypeScript): team invites, reminders, weekly digest
+│   ├── functions/            Cloud Functions (TypeScript): company setup, team invites, reminders, weekly digest
+│   ├── tests/                security-rule tests (run on the emulators)
 │   ├── firestore.rules
 │   ├── firestore.indexes.json
 │   └── storage.rules
@@ -46,6 +49,22 @@ siteflow/
 3. **Paths from `paths.ts`.** Never hand-type a Firestore path in an app.
 4. **Adding a module:** add its key to `types.ts` and `modules.ts`, its schema to `schemas.ts`, its alerts to `logic/alerts.ts`, its collection to `firestore.rules`, then build the screens in each app.
 5. **Two Firebase projects.** `siteflow-dev` for testing, `siteflow-prod` for customers. Never test on prod.
+6. **Permissions live in `permissions.ts` and the rules.** Hide what a role can't do in the UI *and* block it in
+   `firestore.rules` / `storage.rules`. `firebase/tests` checks every role against the permission table.
+7. **Money is kept apart.** Budgets and spending are in `sites/{sid}/finance/summary`, wage rates in
+   `sites/{sid}/workerPay/{workerId}`. Only finance roles can read them.
+8. **No silent failures.** Web writes go through `save()` (`apps/web/src/lib/save.js`), mobile writes through
+   `track()` (`apps/mobile/src/lib/sync.js`). Show `friendlyError()` text, never a raw error.
+
+## Roles
+| Role | Sites | Site work (reports, attendance, materials) | Money | Team | Company settings |
+|---|---|---|---|---|---|
+| Owner | all | yes | yes | yes | yes |
+| Admin | all | yes | yes | yes (not admins) | no |
+| Project manager | all | yes | yes | no | no |
+| Accounts / finance | all | view only | yes | no | no |
+| Site supervisor | assigned | yes | no | no | no |
+| Viewer | assigned | view only | no | no | no |
 
 ## First-time setup
 ```bash
@@ -68,7 +87,12 @@ Add a Web app, an Android app and an iOS app to each project. App ids:
 | Web app locally | `npm run dev:web` |
 | Mobile app locally (dev build on a phone) | `npm run dev:mobile` |
 | Local Firebase (no real data touched) | `npm run emulators`, with `VITE_USE_EMULATORS=true` |
-| Type-check shared and functions | `npm run typecheck` |
+| Type-check shared, functions and rule tests | `npm run typecheck` |
+| Shared logic tests | `npm run test:shared` |
+| Mobile logic tests | `npm test -w @siteflow/mobile` |
+| Security-rule tests (needs Java 21) | `npm run test:rules` |
+| Web data layer against the emulators (needs Java 21) | `npm run test:web` |
+| Everything | `npm test` |
 | Deploy everything to dev | `npm run deploy:dev` |
 | Deploy everything to production | `npm run deploy:prod` |
 | Deploy rules only | `npm run deploy:rules` |
@@ -95,7 +119,8 @@ Before the first store release you need: a Google Play developer account, an App
 real icon and splash images, a privacy policy URL, store screenshots, and test logins for the reviewers.
 
 ## CI/CD (GitHub Actions)
-- **CI**: every pull request type-checks and builds.
-- **Deploy web and backend**: push to `develop` deploys to dev, push to `main` deploys to production.
+- **CI**: every push and pull request runs the typecheck, all tests (including the security rules on the
+  emulators) and the web, functions and mobile builds.
+- **Deploy web and backend**: manual only, from the Actions tab, choosing dev or prod.
   Secrets: `FIREBASE_SERVICE_ACCOUNT` and the `VITE_FB_*` values, per GitHub environment.
 - **Mobile build**: run by hand from the Actions tab. Secret: `EXPO_TOKEN`.
