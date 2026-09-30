@@ -1,46 +1,65 @@
 import {
-  addDoc, collection, doc, increment, query, serverTimestamp, setDoc, where, orderBy, limit, writeBatch,
+  collection, doc, increment, query, serverTimestamp, setDoc, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { todayKey, timeHM } from '@siteflow/shared';
+import { paths, stockDelta, todayKey, timeHM } from '@siteflow/shared';
 
-// ---------- paths ----------
-export const sitesCol = (cid) => collection(db, 'companies', cid, 'sites');
-export const siteDoc = (cid, sid) => doc(db, 'companies', cid, 'sites', sid);
-export const sub = (cid, sid, name) => collection(db, 'companies', cid, 'sites', sid, name);
+// ---------- references (all paths come from @siteflow/shared) ----------
+export const userDoc = (uid) => doc(db, paths.user(uid));
+export const usersCol = () => collection(db, paths.users());
+export const companyDoc = (cid) => doc(db, paths.company(cid));
+export const sitesCol = (cid) => collection(db, paths.sites(cid));
+export const siteDoc = (cid, sid) => doc(db, paths.site(cid, sid));
+export const sub = (cid, sid, name) => collection(db, paths.sub(cid, sid, name));
+export const subDoc = (cid, sid, name, id) => doc(db, paths.subDoc(cid, sid, name, id));
+export const financeDoc = (cid, sid) => doc(db, paths.finance(cid, sid));
+export const attendanceDoc = (cid, sid, date = todayKey()) => doc(db, paths.attendance(cid, sid, date));
 export const todayLogsQuery = (cid, sid) => query(sub(cid, sid, 'materialLogs'), where('date', '==', todayKey()));
 export const reportsQuery = (cid, sid) => query(sub(cid, sid, 'reports'), orderBy('createdAt', 'desc'), limit(30));
 export const expensesQuery = (cid, sid) => query(sub(cid, sid, 'expenses'), orderBy('createdAt', 'desc'), limit(50));
-export const attendanceDoc = (cid, sid, date = todayKey()) => doc(db, 'companies', cid, 'sites', sid, 'attendance', date);
-
-// Offline-friendly: when offline, Firestore applies the write locally and syncs later,
-// but the promise only resolves once the server confirms. Don't block the UI on that.
-export const commit = (p) => (navigator.onLine ? p : (p.catch(console.error), Promise.resolve()));
+export const teamQuery = (cid) => query(usersCol(), where('companyId', '==', cid));
 
 // ---------- writes ----------
-export const createSite = (cid, data) =>
-  addDoc(sitesCol(cid), { ...data, spent: 0, progress: 0, status: 'active', lastReportDate: null, createdAt: serverTimestamp() });
+// Each returns the Firestore promise. Wrap calls in save() from ./save so failures reach the user.
 
-export const addMaterial = (cid, sid, m) => addDoc(sub(cid, sid, 'materials'), { ...m, createdAt: serverTimestamp() });
+// Site details and its money live in separate documents (site teams can't read the money)
+export function createSite(cid, { budget, ...site }) {
+  const b = writeBatch(db);
+  const siteRef = doc(sitesCol(cid));
+  b.set(siteRef, { ...site, progress: 0, status: 'active', lastReportDate: null, createdAt: serverTimestamp() });
+  b.set(financeDoc(cid, siteRef.id), { budget, spent: 0, updatedAt: serverTimestamp() });
+  return { id: siteRef.id, done: b.commit() };
+}
 
-export const addWorker = (cid, sid, w, uid) =>
-  addDoc(sub(cid, sid, 'workers'), { ...w, active: true, createdBy: uid, createdAt: serverTimestamp() });
+export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, createdAt: serverTimestamp() });
 
+// Worker details are visible to the site team; the daily rate goes to workerPay (finance roles only)
+export function addWorker(cid, sid, { name, trade, dailyRate }, uid) {
+  const b = writeBatch(db);
+  const w = doc(sub(cid, sid, 'workers'));
+  b.set(w, { name, trade, active: true, createdBy: uid, createdAt: serverTimestamp() });
+  if (dailyRate > 0) b.set(doc(db, paths.workerPay(cid, sid, w.id)), { dailyRate, updatedAt: serverTimestamp() });
+  return b.commit();
+}
+
+// Log entry and stock change go in one batch; the rules check they match.
+// A delivery cost (finance roles only) also records an expense and adds to spent.
 export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier = '', uid }) {
   const b = writeBatch(db);
   const date = todayKey();
-  b.set(doc(sub(cid, sid, 'materialLogs')), {
+  const logRef = doc(sub(cid, sid, 'materialLogs'));
+  b.set(logRef, {
     materialId: material.id, materialName: material.name, unit: material.unit,
     type, qty, cost, supplier, date, createdBy: uid, createdAt: serverTimestamp(),
   });
-  b.update(doc(sub(cid, sid, 'materials'), material.id), { stock: increment(type === 'usage' ? -qty : qty) });
+  b.update(subDoc(cid, sid, 'materials', material.id), { stock: increment(stockDelta({ type, qty })), lastLogId: logRef.id });
   if (type === 'delivery' && cost > 0) {
     b.set(doc(sub(cid, sid, 'expenses')), {
       date, category: 'Materials', amount: cost, createdBy: uid, createdAt: serverTimestamp(),
       note: `${material.name}, ${qty} ${material.unit}${supplier ? ` from ${supplier}` : ''}`,
     });
-    b.update(siteDoc(cid, sid), { spent: increment(cost) });
+    b.update(financeDoc(cid, sid), { spent: increment(cost), updatedAt: serverTimestamp() });
   }
   return b.commit();
 }
@@ -48,33 +67,38 @@ export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier 
 export function addExpense(cid, sid, { category, note, amount, uid }) {
   const b = writeBatch(db);
   b.set(doc(sub(cid, sid, 'expenses')), { date: todayKey(), category, note, amount, createdBy: uid, createdAt: serverTimestamp() });
-  b.update(siteDoc(cid, sid), { spent: increment(amount) });
+  b.update(financeDoc(cid, sid), { spent: increment(amount), updatedAt: serverTimestamp() });
   return b.commit();
 }
 
-export function saveAttendance(cid, sid, { present, workers, uid }) {
+// Marks one worker. Merging per worker means two people marking at once don't overwrite each other.
+export function markAttendance(cid, sid, { workerId, present, uid }) {
   const date = todayKey();
-  const wages = workers.filter((w) => present[w.id]).reduce((s, w) => s + (w.dailyRate || 0), 0);
-  const count = Object.values(present).filter(Boolean).length;
-  return setDoc(attendanceDoc(cid, sid, date), { date, present, count, wages, markedBy: uid, updatedAt: serverTimestamp() });
+  return setDoc(attendanceDoc(cid, sid, date), {
+    date, present: { [workerId]: present }, markedBy: uid, updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
-export async function uploadPhotos(cid, sid, files) {
+// A new report id, so photos can be stored under it before the report is written
+export const newReportId = (cid, sid) => doc(sub(cid, sid, 'reports')).id;
+
+export async function uploadPhotos(cid, sid, reportId, files) {
   const urls = [];
-  for (const f of files) {
-    const r = ref(storage, `companies/${cid}/sites/${sid}/reports/${todayKey()}/${Date.now()}-${f.name}`);
+  for (const [i, f] of files.entries()) {
+    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const r = ref(storage, paths.photo(cid, sid, reportId, `${i + 1}-${Date.now()}.${ext}`));
     await uploadBytes(r, f, { contentType: f.type });
     urls.push(await getDownloadURL(r));
   }
   return urls;
 }
 
-export function sendReport(cid, sid, { text, stage, progress, issues, photos, workersPresent, uid, name }) {
+export function sendReport(cid, sid, reportId, { text, stage, progress, issues, photos, workersPresent, uid, name }) {
   const b = writeBatch(db);
   const date = todayKey();
   const time = timeHM();
-  b.set(doc(sub(cid, sid, 'reports')), {
-    date, time, text, stage, progress, issues, photos, workersPresent,
+  b.set(subDoc(cid, sid, 'reports', reportId), {
+    date, time, text, stage, progress, issues, photos, workersPresent, source: 'web',
     createdBy: uid, createdByName: name, createdAt: serverTimestamp(),
   });
   b.update(siteDoc(cid, sid), { stage, progress, lastReportDate: date, lastReportTime: time });

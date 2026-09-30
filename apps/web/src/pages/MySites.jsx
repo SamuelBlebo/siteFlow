@@ -3,27 +3,34 @@ import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
 import { siteDoc, sitesCol } from '../lib/db';
 import { todayKey } from '@siteflow/shared';
+import { Empty, ErrorState, Loading } from '../components/States';
 
 export default function MySites() {
-  const { cid, profile, isAdmin } = useAuth();
-  // Admins list every site. Site team members read each assigned site directly (keeps security rules simple).
-  const { data: all } = useQuery(() => isAdmin && cid && sitesCol(cid), [cid, isAdmin]);
-  const ids = isAdmin ? all.map((s) => s.id) : profile?.siteIds || [];
+  const { cid, profile, can } = useAuth();
+  const all = can('sites.all');
+  // Roles that see every site list them; site-scoped roles read each assigned site directly
+  const { data: sites, loading, error } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
+  const ids = all ? sites.filter((s) => s.status !== 'closed').map((s) => s.id) : profile?.siteIds || [];
 
   return (
     <section className="wrap narrow">
       <h1>Site work</h1>
       <p className="muted">Pick a site to mark attendance, log materials or send today's report.</p>
-      {!ids.length ? <p className="empty" style={{ marginTop: 16 }}>You haven't been added to a site yet. Ask your manager to add you.</p> : (
-        <ul className="list" style={{ marginTop: 16 }}>{ids.map((id) => <SiteLink key={id} cid={cid} sid={id} />)}</ul>
-      )}
+      <div style={{ marginTop: 16 }}>
+        {all && loading ? <Loading what="sites" /> : error ? <ErrorState error={error} what="your sites" /> : !ids.length ? (
+          <Empty title="No sites yet.">{all ? 'Sites appear here once a manager adds them.' : "You haven't been added to a site yet. Ask your manager to add you."}</Empty>
+        ) : (
+          <ul className="list">{ids.map((id) => <SiteLink key={id} cid={cid} sid={id} />)}</ul>
+        )}
+      </div>
     </section>
   );
 }
 
 function SiteLink({ cid, sid }) {
-  const { data: s } = useDoc(() => siteDoc(cid, sid), [cid, sid]);
-  if (!s) return null;
+  const { data: s, error } = useDoc(() => siteDoc(cid, sid), [cid, sid]);
+  if (error) return <li><span className="it muted">A site could not be loaded. You may no longer have access.</span></li>;
+  if (!s || s.status === 'closed') return null;
   const sent = s.lastReportDate === todayKey();
   return (
     <li><Link className="it" to={`/work/${sid}`}>

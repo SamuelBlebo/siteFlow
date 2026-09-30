@@ -10,15 +10,18 @@ import AttendanceList from '../components/AttendanceList';
 import AddWorkerForm from '../components/AddWorkerForm';
 import MaterialLogForm from '../components/MaterialLogForm';
 import MaterialsTable from '../components/MaterialsTable';
+import { ErrorState, Loading } from '../components/States';
 
 export default function SiteWorkspace() {
   const { sid } = useParams();
-  const { cid, profile } = useAuth();
+  const { cid, profile, can } = useAuth();
   const [tab, setTab] = useState('today');
-  const { data: site, loading } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
-  const d = useSiteData(cid, sid);
+  const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
+  const d = useSiteData(cid, sid, { withPay: can('finance.view') });
+  const work = can('site.work');
 
-  if (loading) return <p className="pad">Loading…</p>;
+  if (loading) return <Loading />;
+  if (error) return <section className="wrap narrow"><ErrorState error={error} what="this site" /><Link to="/work">Back to your sites</Link></section>;
   if (!site) return <p className="pad">You don't have access to this site. <Link to="/work">Back to your sites</Link></p>;
 
   const usedToday = Object.keys(d.usage).length > 0;
@@ -28,20 +31,24 @@ export default function SiteWorkspace() {
     { key: 'materials', done: usedToday, title: 'Log materials used', note: usedToday ? 'Usage logged today' : 'Record what was used today' },
     { key: 'report', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
   ];
+  const tabs = work
+    ? [['today', 'Today'], ['report', 'Report'], ['materials', 'Materials'], ['workers', 'Workers']]
+    : [['today', 'Today'], ['materials', 'Materials'], ['workers', 'Workers']];
 
   return (
     <section className="wrap narrow">
       <Link to="/work" className="btn sm ghost back">Your sites</Link>
       <h1>{site.name}</h1>
-      <p className="muted">{longToday()}. Signed in as {profile.name}.</p>
-      <Tabs value={tab} onChange={setTab} tabs={[['today', 'Today'], ['report', 'Report'], ['materials', 'Materials'], ['workers', 'Workers']]} />
+      <p className="muted">{longToday()}. Signed in as {profile.name}.{work ? '' : ' You can view this site but not change it.'}</p>
+      <Tabs value={tab} onChange={setTab} tabs={tabs} />
+      {d.error && <ErrorState error={d.error} what="some site data" />}
 
       {tab === 'today' && (
         <>
           <ol className="steps">
             {steps.map((s) => (
               <li key={s.key} className={s.done ? 'done' : ''}>
-                <button onClick={() => setTab(s.key)}><span><b>{s.title}</b><small>{s.note}</small></span></button>
+                <button onClick={() => setTab(work || s.key !== 'report' ? s.key : 'today')}><span><b>{s.title}</b><small>{s.note}</small></span></button>
               </li>
             ))}
           </ol>
@@ -49,18 +56,18 @@ export default function SiteWorkspace() {
           <MaterialsTable materials={d.materials} usage={d.usage} />
         </>
       )}
-      {tab === 'report' && <ReportForm cid={cid} sid={sid} site={site} presentCount={d.presentCount} />}
+      {tab === 'report' && work && <ReportForm cid={cid} sid={sid} site={site} presentCount={d.presentCount} />}
       {tab === 'materials' && (
         <>
-          <MaterialLogForm cid={cid} sid={sid} materials={d.materials} />
+          {work && <MaterialLogForm cid={cid} sid={sid} materials={d.materials} />}
           <h3 className="sub">Stock</h3>
           <MaterialsTable materials={d.materials} usage={d.usage} />
         </>
       )}
       {tab === 'workers' && (
         <>
-          <AttendanceList cid={cid} sid={sid} workers={d.workers} attendance={d.attendance} />
-          <AddWorkerForm cid={cid} sid={sid} />
+          <AttendanceList cid={cid} sid={sid} workers={d.workers} present={d.present} pay={d.pay} readOnly={!work} />
+          {work && <AddWorkerForm cid={cid} sid={sid} />}
         </>
       )}
     </section>

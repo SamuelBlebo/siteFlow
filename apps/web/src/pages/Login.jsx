@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
+import { friendlyError } from '@siteflow/shared';
 
 export default function Login() {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ export default function Login() {
     e.preventDefault();
     setBusy(true); setMsg('');
     try { await signInWithEmailAndPassword(auth, email.trim(), password); }
-    catch { setMsg('Email or password is wrong. Check them and try again.'); }
+    catch (e2) { setMsg(friendlyError(e2, 'Email or password is wrong. Check them and try again.')); }
     finally { setBusy(false); }
   }
   async function reset() {

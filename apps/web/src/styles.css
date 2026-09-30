@@ -152,3 +152,10 @@ tr.row:hover td { background: var(--sunk); }
   .who span { display: none; }
   .strip div + div { padding-left: 14px; }
 }
+
+/* toasts: offline, syncing and save failures */
+.toasts { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 16px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
+.toast { pointer-events: auto; max-width: 440px; display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--steel); border-radius: 6px; padding: 10px 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, .12); }
+.toast.ok { border-left-color: var(--ok); }
+.toast.warn { border-left-color: var(--warn); background: var(--warnbg); }
+.toast.err { border-left-color: var(--bad); background: var(--badbg); color: var(--bad); font-weight: 500; }

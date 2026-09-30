@@ -1,33 +1,36 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { companySetupInput, friendlyError, validate } from '@siteflow/shared';
+import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
-import { DEFAULT_MODULES } from '@siteflow/shared';
 
 export default function Signup() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [f, setF] = useState({ company: '', name: '', email: '', password: '' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  if (user && profile) return <Navigate to="/" replace />;
+  // Signed in already (including a half-finished sign-up): the app takes over
+  if (user && !busy) return <Navigate to="/" replace />;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   async function submit(e) {
     e.preventDefault();
-    if (!f.company.trim() || !f.name.trim()) return setErr('Enter your company name and your name.');
+    const v = validate(companySetupInput, { companyName: f.company, name: f.name });
+    if (!v.ok) return setErr(v.error);
     if (f.password.length < 8) return setErr('Use a password with at least 8 characters.');
     setBusy(true); setErr('');
     try {
       const { user: u } = await createUserWithEmailAndPassword(auth, f.email.trim(), f.password);
-      await updateProfile(u, { displayName: f.name.trim() });
-      const b = writeBatch(db);
-      b.set(doc(db, 'companies', u.uid), { name: f.company.trim(), ownerId: u.uid, plan: 'trial', modules: DEFAULT_MODULES, createdAt: serverTimestamp() });
-      b.set(doc(db, 'users', u.uid), { companyId: u.uid, role: 'owner', name: f.name.trim(), email: f.email.trim(), siteIds: [], createdAt: serverTimestamp() });
-      await b.commit();
+      await updateProfile(u, { displayName: v.data.name });
+      // Company and owner profile are created on the server. If this fails, the
+      // "Finish setting up" screen lets the user try again without a new account.
+      await httpsCallable(functions, 'createCompany')(v.data);
     } catch (e2) {
-      setErr(e2.code === 'auth/email-already-in-use' ? 'That email already has an account. Sign in instead.' : 'Could not create the account. Try again.');
+      console.error('Sign-up failed', e2);
+      setErr(friendlyError(e2, 'Could not create the account. Try again.'));
+    } finally {
       setBusy(false);
     }
   }
@@ -40,7 +43,7 @@ export default function Signup() {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="field"><label htmlFor="c">Company name</label><input id="c" value={f.company} onChange={set('company')} /></div>
         <div className="field"><label htmlFor="n">Your name</label><input id="n" value={f.name} onChange={set('name')} /></div>
-        <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" value={f.email} onChange={set('email')} /></div>
+        <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="email" value={f.email} onChange={set('email')} /></div>
         <div className="field"><label htmlFor="p">Password</label><input id="p" type="password" autoComplete="new-password" value={f.password} onChange={set('password')} /></div>
         <button className="btn block" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         <p className="row-between"><span /><Link to="/login">I already have an account</Link></p>

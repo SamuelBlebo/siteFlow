@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { commit, sendReport, uploadPhotos } from '../lib/db';
-import { todayKey } from '@siteflow/shared';
-import { STAGES } from '@siteflow/shared';
+import { newReportId, sendReport, uploadPhotos } from '../lib/db';
+import { save } from '../lib/save';
+import { STAGES, friendlyError, reportInput, todayKey, validate } from '@siteflow/shared';
 
 export default function ReportForm({ cid, sid, site, presentCount }) {
   const { user, profile } = useAuth();
@@ -12,30 +12,43 @@ export default function ReportForm({ cid, sid, site, presentCount }) {
   const [issues, setIssues] = useState('');
   const [files, setFiles] = useState([]);
   const [err, setErr] = useState('');
+  const [queued, setQueued] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (site.lastReportDate === todayKey()) {
-    return <p className="notice ok">Today's report was sent at {site.lastReportTime}. The owner can see it now.</p>;
+    return (
+      <p className="notice ok">
+        Today's report was sent at {site.lastReportTime}.{' '}
+        {queued ? "It's saved on this device and reaches the office when you're back online." : 'The office can see it now.'}
+      </p>
+    );
   }
 
   async function submit(e) {
     e.preventDefault();
     setErr('');
-    if (!text.trim()) return setErr('Describe the work done today before sending.');
+    const v = validate(reportInput, { text, stage, progress, issues });
+    if (!v.ok) return setErr(v.error);
     if (presentCount === 0) return setErr('Mark attendance first so the report shows who was on site.');
-    const p = Number(progress);
-    if (!(p >= 0 && p <= 100)) return setErr('Progress must be between 0 and 100.');
     if (files.length && !navigator.onLine) return setErr('Photos need an internet connection. Remove them or send when you are back online.');
     setBusy(true);
+    const reportId = newReportId(cid, sid);
+    let photos = [];
     try {
-      const photos = files.length ? await uploadPhotos(cid, sid, files) : [];
-      await commit(sendReport(cid, sid, {
-        text: text.trim(), stage, progress: p, issues: issues.trim(), photos,
-        workersPresent: presentCount, uid: user.uid, name: profile.name,
-      }));
+      if (files.length) photos = await uploadPhotos(cid, sid, reportId, files);
     } catch (e2) {
-      console.error(e2);
-      setErr('Could not send the report. Check your connection and try again.');
+      console.error('Photo upload failed', e2);
+      setErr(`Photos could not be uploaded. ${friendlyError(e2)} Your report has not been sent yet.`);
+      setBusy(false);
+      return;
+    }
+    try {
+      const res = await save(sendReport(cid, sid, reportId, {
+        ...v.data, photos, workersPresent: presentCount, uid: user.uid, name: profile.name,
+      }), "Today's report");
+      setQueued(res.queued);
+    } catch (e2) {
+      setErr(`${e2.message} Your report is still here, so you can try again.`); // form keeps what was typed
     } finally {
       setBusy(false);
     }

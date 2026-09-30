@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onSnapshot } from 'firebase/firestore';
-import { sub, todayLogsQuery, attendanceDoc } from './db';
-import { usageByMaterial } from '@siteflow/shared';
+import { attendanceDoc, financeDoc, sub, todayLogsQuery } from './db';
+import { presentCount, usageByMaterial } from '@siteflow/shared';
 
 const toList = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
 
@@ -13,7 +13,7 @@ export function useQuery(makeQuery, deps) {
   useEffect(() => {
     const q = makeQuery();
     if (!q) { setData([]); setLoading(false); return; }
-    setLoading(true);
+    setLoading(true); setError(null);
     return onSnapshot(q, (s) => { setData(toList(s)); setLoading(false); }, (e) => { console.error(e); setError(e); setLoading(false); });
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   return { data, loading, error };
@@ -23,47 +23,55 @@ export function useQuery(makeQuery, deps) {
 export function useDoc(makeRef, deps) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   useEffect(() => {
     const r = makeRef();
-    if (!r) { setLoading(false); return; }
-    setLoading(true);
-    return onSnapshot(r, (s) => { setData(s.exists() ? { id: s.id, ...s.data() } : null); setLoading(false); }, () => setLoading(false));
+    if (!r) { setData(null); setLoading(false); return; }
+    setLoading(true); setError(null);
+    return onSnapshot(r, (s) => { setData(s.exists() ? { id: s.id, ...s.data() } : null); setLoading(false); },
+      (e) => { console.error(e); setError(e); setLoading(false); });
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
-  return { data, loading };
+  return { data, loading, error };
 }
 
-// Materials, today's usage and today's attendance count for many sites (owner dashboard)
-export function useSiteSignals(cid, siteIds) {
+// Materials, today's usage, today's attendance and (for finance roles) money, for many sites
+export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
   const [materials, setMaterials] = useState({});
   const [usage, setUsage] = useState({});
   const [present, setPresent] = useState({});
+  const [finance, setFinance] = useState({});
   const key = siteIds.join(',');
   useEffect(() => {
     if (!cid || !siteIds.length) return;
+    const fail = (what) => (e) => console.error(`Dashboard: could not load ${what}`, e);
     const unsubs = [];
     siteIds.forEach((sid) => {
-      unsubs.push(onSnapshot(sub(cid, sid, 'materials'), (s) => setMaterials((p) => ({ ...p, [sid]: toList(s) }))));
-      unsubs.push(onSnapshot(todayLogsQuery(cid, sid), (s) => setUsage((p) => ({ ...p, [sid]: usageByMaterial(toList(s)) }))));
-      unsubs.push(onSnapshot(attendanceDoc(cid, sid), (s) => setPresent((p) => ({ ...p, [sid]: s.exists() ? s.data().count || 0 : 0 }))));
+      unsubs.push(onSnapshot(sub(cid, sid, 'materials'), (s) => setMaterials((p) => ({ ...p, [sid]: toList(s) })), fail('materials')));
+      unsubs.push(onSnapshot(todayLogsQuery(cid, sid), (s) => setUsage((p) => ({ ...p, [sid]: usageByMaterial(toList(s)) })), fail('usage')));
+      unsubs.push(onSnapshot(attendanceDoc(cid, sid), (s) => setPresent((p) => ({ ...p, [sid]: presentCount(s.data()?.present) })), fail('attendance')));
+      if (withFinance) unsubs.push(onSnapshot(financeDoc(cid, sid), (s) => setFinance((p) => ({ ...p, [sid]: s.data() || null })), fail('finance')));
     });
     return () => unsubs.forEach((u) => u());
-  }, [cid, key]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { materials, usage, present };
+  }, [cid, key, withFinance]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { materials, usage, present, finance };
 }
 
-// Everything one site workspace needs
-export function useSiteData(cid, sid) {
+// Everything one site workspace needs. Pay is only loaded for roles that may see it.
+export function useSiteData(cid, sid, { withPay = false } = {}) {
   const materials = useQuery(() => cid && sid && sub(cid, sid, 'materials'), [cid, sid]);
   const workers = useQuery(() => cid && sid && sub(cid, sid, 'workers'), [cid, sid]);
+  const pay = useQuery(() => withPay && cid && sid && sub(cid, sid, 'workerPay'), [cid, sid, withPay]);
   const logs = useQuery(() => cid && sid && todayLogsQuery(cid, sid), [cid, sid]);
   const attendance = useDoc(() => cid && sid && attendanceDoc(cid, sid), [cid, sid]);
   const present = attendance.data?.present || {};
   return {
     materials: materials.data,
     workers: workers.data.filter((w) => w.active !== false),
+    pay: Object.fromEntries(pay.data.map((p) => [p.id, p])),
     usage: usageByMaterial(logs.data),
-    attendance: attendance.data,
-    presentCount: Object.values(present).filter(Boolean).length,
-    loading: materials.loading || workers.loading,
+    present,
+    presentCount: presentCount(present),
+    loading: materials.loading || workers.loading || attendance.loading,
+    error: materials.error || workers.error || attendance.error || logs.error || pay.error,
   };
 }
