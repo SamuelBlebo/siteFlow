@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/auth/AuthProvider';
 import { SiteProvider } from './src/site/SiteContext';
 import { startUploadQueue } from './src/lib/uploadQueue';
+import { startSync } from './src/lib/sync';
 import { colors } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
 import SitesScreen from './src/screens/SitesScreen';
@@ -21,6 +22,7 @@ const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
 function SiteTabs({ route }) {
+  const { can } = useAuth();
   return (
     <SiteProvider sid={route.params.sid}>
       <Tabs.Navigator
@@ -34,7 +36,7 @@ function SiteTabs({ route }) {
         }}
       >
         <Tabs.Screen name="Today" component={TodayScreen} />
-        <Tabs.Screen name="Report" component={ReportScreen} />
+        {can('site.work') && <Tabs.Screen name="Report" component={ReportScreen} />}
         <Tabs.Screen name="Materials" component={MaterialsScreen} />
         <Tabs.Screen name="Workers" component={WorkersScreen} />
       </Tabs.Navigator>
@@ -43,7 +45,7 @@ function SiteTabs({ route }) {
 }
 
 function Root() {
-  const { user, profile, loading } = useAuth();
+  const { user, active, loading } = useAuth();
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.steel} /></View>;
   }
@@ -51,7 +53,7 @@ function Root() {
     <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.steel }, headerTintColor: '#fff' }}>
       {!user ? (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-      ) : !profile ? (
+      ) : !active ? (
         <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'SiteFlow' }} />
       ) : (
         <>
@@ -65,6 +67,11 @@ function Root() {
 
 export default function App() {
   useEffect(() => startUploadQueue(), []);
+  useEffect(() => {
+    let stop = () => {};
+    startSync().then((unsub) => { stop = unsub; });
+    return () => stop();
+  }, []);
   return (
     <SafeAreaProvider>
       <AuthProvider>

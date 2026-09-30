@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import auth from '@react-native-firebase/auth';
+import { can as roleCan, isRole } from '@siteflow/shared';
 import { exists, userRef } from '../lib/db';
 
 const AuthCtx = createContext(null);
@@ -8,25 +9,33 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let unsubProfile = () => {};
     const unsub = auth().onAuthStateChanged((u) => {
       unsubProfile();
       setUser(u);
+      setError(null);
       if (!u) { setProfile(null); setLoading(false); return; }
       setLoading(true);
       unsubProfile = userRef(u.uid).onSnapshot(
         (s) => { setProfile(exists(s) ? { id: s.id, ...s.data() } : null); setLoading(false); },
-        () => setLoading(false)
+        (e) => { console.warn('Could not load profile', e); setError(e); setLoading(false); }
       );
     });
     return () => { unsub(); unsubProfile(); };
   }, []);
 
-  const isAdmin = !!profile && ['owner', 'manager'].includes(profile.role);
+  // A switched-off account or an unknown role gets no access
+  const active = !!profile && profile.active !== false && isRole(profile.role);
+  const role = active ? profile.role : null;
   return (
-    <AuthCtx.Provider value={{ user, profile, loading, isAdmin, cid: profile?.companyId, signOut: () => auth().signOut() }}>
+    <AuthCtx.Provider value={{
+      user, profile, loading, error, active, role, cid: active ? profile.companyId : null,
+      can: (permission) => roleCan(role, permission),
+      signOut: () => auth().signOut(),
+    }}>
       {children}
     </AuthCtx.Provider>
   );

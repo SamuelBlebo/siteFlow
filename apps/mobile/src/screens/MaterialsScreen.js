@@ -3,12 +3,15 @@ import { Text, View } from 'react-native';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
 import { logMaterial } from '../lib/db';
-import { Button, Card, Choice, ErrorText, Field, H1, H2, Muted, Notice, Screen, s } from '../components/ui';
+import { materialLogInput, materialStatus, validate } from '@siteflow/shared';
+import { Button, Card, Choice, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function MaterialsScreen() {
-  const { user } = useAuth();
-  const { cid, sid, materials, usage } = useSite();
+  const { user, can } = useAuth();
+  const { cid, sid, materials, usage, error } = useSite();
+  const work = can('site.work');
+  const withCost = can('finance.edit');
   const [type, setType] = useState('usage');
   const [mid, setMid] = useState(null);
   const [qty, setQty] = useState('');
@@ -17,17 +20,18 @@ export default function MaterialsScreen() {
   const [msg, setMsg] = useState({ kind: '', text: '' });
 
   if (!materials.length) {
-    return <Screen><H1>Materials</H1><Muted>No materials set up for this site yet. The owner adds them from the web dashboard.</Muted></Screen>;
+    return <Screen><H1>Materials</H1>{error ? <ErrorView error={error} what="materials" /> : null}<Muted>No materials set up for this site yet. A manager adds them from the web dashboard.</Muted></Screen>;
   }
   const material = materials.find((m) => m.id === mid) || materials[0];
 
   function save() {
-    const q = Number(qty);
-    if (!(q > 0)) return setMsg({ kind: 'err', text: 'Enter a quantity above zero.' });
+    const v = validate(materialLogInput, { materialId: material.id, type, qty, cost: withCost ? cost || 0 : 0, supplier });
+    if (!v.ok) return setMsg({ kind: 'err', text: v.error });
+    const q = v.data.qty;
     if (type === 'usage' && q > material.stock) {
       return setMsg({ kind: 'err', text: `Only ${material.stock} ${material.unit} in stock. Log the delivery first if more arrived.` });
     }
-    logMaterial(cid, sid, { material, type, qty: q, cost: Number(cost) || 0, supplier: supplier.trim(), uid: user.uid });
+    logMaterial(cid, sid, { material: { id: material.id, name: material.name, unit: material.unit }, type, qty: q, cost: v.data.cost, supplier: v.data.supplier, uid: user.uid });
     setMsg({ kind: 'ok', text: type === 'usage' ? `Saved: ${q} ${material.unit} of ${material.name} used.` : `Delivery saved: ${q} ${material.unit} added.` });
     setQty(''); setCost(''); setSupplier('');
   }
@@ -35,17 +39,22 @@ export default function MaterialsScreen() {
   return (
     <Screen>
       <H1>Materials</H1>
-      <Choice options={[{ value: 'usage', label: 'Log usage' }, { value: 'delivery', label: 'Log delivery' }]} value={type} onChange={(v) => { setType(v); setMsg({}); }} />
-      {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
-      <Choice label="Material" options={materials.map((m) => ({ value: m.id, label: m.name }))} value={material.id} onChange={setMid} />
-      <Field label={`Quantity (${material.unit})`} value={qty} onChangeText={setQty} keyboardType="decimal-pad" hint={`${material.stock} ${material.unit} in stock`} />
-      {type === 'delivery' && (
+      {error ? <ErrorView error={error} what="some site data" /> : null}
+      {work && (
         <>
-          <Field label="Supplier" value={supplier} onChangeText={setSupplier} placeholder="e.g. Ghacem depot, Tema" />
-          <Field label="Total cost (GH₵)" value={cost} onChangeText={setCost} keyboardType="number-pad" />
+          <Choice options={[{ value: 'usage', label: 'Log usage' }, { value: 'delivery', label: 'Log delivery' }]} value={type} onChange={(v) => { setType(v); setMsg({}); }} />
+          {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
+          <Choice label="Material" options={materials.map((m) => ({ value: m.id, label: m.name }))} value={material.id} onChange={setMid} />
+          <Field label={`Quantity (${material.unit})`} value={qty} onChangeText={setQty} keyboardType="decimal-pad" hint={`${material.stock} ${material.unit} in stock`} />
+          {type === 'delivery' && (
+            <>
+              <Field label="Supplier" value={supplier} onChangeText={setSupplier} placeholder="e.g. Ghacem depot, Tema" />
+              {withCost && <Field label="Total cost (GH₵)" value={cost} onChangeText={setCost} keyboardType="number-pad" />}
+            </>
+          )}
+          <Button title={type === 'usage' ? 'Save usage' : 'Save delivery'} onPress={save} />
         </>
       )}
-      <Button title={type === 'usage' ? 'Save usage' : 'Save delivery'} onPress={save} />
       <H2>Stock</H2>
       <Card>
         {materials.map((m, i) => (
@@ -55,6 +64,7 @@ export default function MaterialsScreen() {
               <Muted>Used today: {usage[m.id] || 0} {m.unit}</Muted>
             </View>
             <Text style={{ fontWeight: '700', color: colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>left</Text></Text>
+            {materialStatus(m, usage[m.id]).low ? <Pill kind="warn">Low</Pill> : null}
           </View>
         ))}
       </Card>

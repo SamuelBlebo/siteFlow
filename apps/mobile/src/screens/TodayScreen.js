@@ -1,14 +1,16 @@
 import { Pressable, Text, View } from 'react-native';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
-import { longToday, todayKey } from '@siteflow/shared';
-import { Card, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
+import { longToday, materialStatus, todayKey } from '@siteflow/shared';
+import { Card, ErrorView, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function TodayScreen({ navigation }) {
-  const { profile } = useAuth();
-  const { site, materials, usage, presentCount } = useSite();
-  if (!site) return <Screen><Muted>Loading site…</Muted></Screen>;
+  const { profile, can } = useAuth();
+  const { site, loading, error, materials, usage, presentCount } = useSite();
+  if (loading) return <Screen><Muted>Loading site…</Muted></Screen>;
+  if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
+  const work = can('site.work');
 
   const sent = site.lastReportDate === todayKey();
   const used = Object.keys(usage).length > 0;
@@ -16,12 +18,13 @@ export default function TodayScreen({ navigation }) {
     { tab: 'Workers', done: presentCount > 0, title: 'Mark attendance', note: presentCount ? `${presentCount} workers present` : 'Tick who came to site today' },
     { tab: 'Materials', done: used, title: 'Log materials used', note: used ? 'Usage logged today' : 'Record what was used today' },
     { tab: 'Report', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
-  ];
+  ].filter((st) => work || st.tab !== 'Report');
 
   return (
     <Screen>
       <H1>Hello, {profile.name?.split(' ')[0]}</H1>
-      <Muted style={{ marginBottom: 16 }}>{longToday()}</Muted>
+      <Muted style={{ marginBottom: 16 }}>{longToday()}{work ? '' : '. You can view this site but not change it.'}</Muted>
+      {error ? <ErrorView error={error} what="some site data" /> : null}
       {steps.map((st, i) => (
         <Pressable key={st.tab} onPress={() => navigation.navigate(st.tab)} accessibilityRole="button"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 14, marginBottom: 8 }}>
@@ -42,7 +45,7 @@ export default function TodayScreen({ navigation }) {
             <View key={m.id} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
               <Text style={{ flex: 1, color: colors.ink }}>{m.name}</Text>
               <Text style={{ fontWeight: '700', color: colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>{m.unit}</Text></Text>
-              {m.stock < m.reorderLevel ? <Pill kind="warn">Low</Pill> : null}
+              {materialStatus(m, usage[m.id]).low ? <Pill kind="warn">Low</Pill> : null}
             </View>
           ))}
       </Card>

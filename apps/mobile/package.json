@@ -10,7 +10,8 @@
     "build:dev": "eas build --profile development --platform all",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform all",
-    "submit:prod": "eas submit --profile production --platform all"
+    "submit:prod": "eas submit --profile production --platform all",
+    "test": "vitest run"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",

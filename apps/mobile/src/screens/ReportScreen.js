@@ -4,14 +4,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
 import { sendReport } from '../lib/db';
-import { todayKey } from '@siteflow/shared';
-import { STAGES } from '@siteflow/shared';
-import { Button, Choice, ErrorText, Field, H1, Muted, Notice, Row, Screen } from '../components/ui';
+import { STAGES, reportInput, todayKey, validate } from '@siteflow/shared';
+import { Button, Choice, ErrorText, ErrorView, Field, H1, Muted, Notice, Row, Screen } from '../components/ui';
 import { colors } from '../theme';
 
 export default function ReportScreen() {
-  const { user, profile } = useAuth();
-  const { cid, sid, site, presentCount } = useSite();
+  const { user, profile, can } = useAuth();
+  const { cid, sid, site, loading, error, presentCount } = useSite();
   const [text, setText] = useState('');
   const [stage, setStage] = useState(null);
   const [progress, setProgress] = useState('');
@@ -20,7 +19,9 @@ export default function ReportScreen() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (!site) return <Screen><Muted>Loading…</Muted></Screen>;
+  if (loading) return <Screen><Muted>Loading…</Muted></Screen>;
+  if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
+  if (!can('site.work')) return <Screen><H1>Daily report</H1><Muted>Your role can view this site but not send reports.</Muted></Screen>;
   if (site.lastReportDate === todayKey()) {
     return <Screen><H1>Daily report</H1><Notice>Today's report was sent at {site.lastReportTime}. The owner can see it now.</Notice></Screen>;
   }
@@ -38,19 +39,19 @@ export default function ReportScreen() {
 
   async function submit() {
     setErr('');
-    if (!text.trim()) return setErr('Describe the work done today before sending.');
+    const v = validate(reportInput, {
+      text, stage: stage || site.stage || STAGES[0], progress: progress === '' ? site.progress || 0 : progress, issues,
+    });
+    if (!v.ok) return setErr(v.error);
     if (presentCount === 0) return setErr('Mark attendance first so the report shows who was on site.');
-    const p = progress === '' ? site.progress || 0 : Number(progress);
-    if (!(p >= 0 && p <= 100)) return setErr('Progress must be between 0 and 100.');
     setBusy(true);
     try {
-      await sendReport(cid, sid, {
-        text: text.trim(), stage: stage || site.stage || STAGES[0], progress: p, issues: issues.trim(),
-        photoUris: photos, workersPresent: presentCount, uid: user.uid, name: profile.name,
-      });
+      const { photos: _none, ...fields } = v.data;
+      await sendReport(cid, sid, { ...fields, photoUris: photos, workersPresent: presentCount, uid: user.uid, name: profile.name });
       Alert.alert('Report saved', 'It goes to the owner right away, or as soon as you have signal.');
-    } catch {
-      setErr('Could not save the report. Try again.');
+    } catch (e) {
+      console.warn('Report not saved', e);
+      setErr('Could not save the report on this phone. Your text is still here. Try again.');
     } finally {
       setBusy(false);
     }

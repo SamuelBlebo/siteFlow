@@ -1,8 +1,71 @@
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { errorCode, friendlyError } from '@siteflow/shared';
 import { colors } from '../theme';
+import { dismiss, getSyncState, retry, subscribe } from '../lib/sync';
+import { discardFailedPhotos, retryFailedPhotos, subscribePhotos } from '../lib/uploadQueue';
 
 export function Screen({ children }) {
-  return <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">{children}</ScrollView>;
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
+      <SyncBanner />
+      {children}
+    </ScrollView>
+  );
+}
+
+// Offline, syncing and failed saves. Failed saves keep their data and can be retried.
+export function SyncBanner() {
+  const [st, setSt] = useState(getSyncState());
+  const [photos, setPhotos] = useState({ waiting: 0, failed: 0 });
+  useEffect(() => subscribe(setSt), []);
+  useEffect(() => subscribePhotos(setPhotos), []);
+  const waiting = st.pending + photos.waiting;
+  return (
+    <>
+      {!st.online && (
+        <View style={[s.banner, { backgroundColor: colors.warnbg }]} accessibilityRole="alert">
+          <Text style={{ color: colors.warn, fontWeight: '600' }}>
+            Offline. {waiting ? `${waiting} change${waiting === 1 ? '' : 's'} saved on this phone, waiting for signal.` : 'You can keep working; changes sync when signal returns.'}
+          </Text>
+        </View>
+      )}
+      {st.online && waiting > 0 && (
+        <View style={[s.banner, { backgroundColor: colors.sunk }]}>
+          <Text style={{ color: colors.ink }}>Syncing {waiting} change{waiting === 1 ? '' : 's'}…</Text>
+        </View>
+      )}
+      {st.failed.map((f) => (
+        <View key={f.id} style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
+          <Text style={{ color: colors.bad, fontWeight: '600' }}>{f.label} was not saved.</Text>
+          <Text style={{ color: colors.bad, marginTop: 2 }}>{f.message}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <Button title="Try again" onPress={() => retry(f.id)} style={{ flex: 1, paddingVertical: 10 }} />
+            <Button title="Dismiss" variant="ghost" onPress={() => dismiss(f.id)} style={{ flex: 1, paddingVertical: 10 }} />
+          </View>
+        </View>
+      ))}
+      {photos.failed > 0 && (
+        <View style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
+          <Text style={{ color: colors.bad, fontWeight: '600' }}>{photos.failed} photo{photos.failed === 1 ? '' : 's'} could not upload.</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <Button title="Try again" onPress={retryFailedPhotos} style={{ flex: 1, paddingVertical: 10 }} />
+            <Button title="Remove" variant="ghost" onPress={discardFailedPhotos} style={{ flex: 1, paddingVertical: 10 }} />
+          </View>
+        </View>
+      )}
+    </>
+  );
+}
+
+export function ErrorView({ error, what = 'this' }) {
+  const denied = errorCode(error) === 'permission-denied';
+  return (
+    <View style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
+      <Text style={{ color: colors.bad, fontWeight: '600' }}>{denied ? `You don't have access to ${what}.` : `Could not load ${what}.`}</Text>
+      <Text style={{ color: colors.bad, marginTop: 2 }}>{denied ? 'Ask your manager if you think you should.' : friendlyError(error)}</Text>
+    </View>
+  );
 }
 export const H1 = ({ children, style }) => <Text style={[s.h1, style]}>{children}</Text>;
 export const H2 = ({ children, style }) => <Text style={[s.h2, style]}>{children}</Text>;
@@ -77,6 +140,7 @@ export const s = StyleSheet.create({
   err: { backgroundColor: colors.badbg, color: colors.bad, padding: 12, borderRadius: 8, marginBottom: 12, fontWeight: '500' },
   notice: { backgroundColor: colors.okbg, padding: 12, borderRadius: 8, marginBottom: 12 },
   pill: { borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
+  banner: { padding: 12, borderRadius: 8, marginBottom: 12 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: colors.line, gap: 12 },
 });
