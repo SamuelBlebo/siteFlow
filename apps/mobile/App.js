@@ -17,6 +17,8 @@ import ReportScreen from './src/screens/ReportScreen';
 import MaterialsScreen from './src/screens/MaterialsScreen';
 import WorkersScreen from './src/screens/WorkersScreen';
 import NoAccessScreen from './src/screens/NoAccessScreen';
+import SetPasswordScreen from './src/screens/SetPasswordScreen';
+import AccountScreen from './src/screens/AccountScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -45,7 +47,7 @@ function SiteTabs({ route }) {
 }
 
 function Root() {
-  const { user, active, loading } = useAuth();
+  const { user, active, profile, loading } = useAuth();
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.steel} /></View>;
   }
@@ -55,9 +57,12 @@ function Root() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       ) : !active ? (
         <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'SiteFlow' }} />
+      ) : profile.mustChangePassword ? (
+        <Stack.Screen name="SetPassword" component={SetPasswordScreen} options={{ title: 'SiteFlow' }} />
       ) : (
         <>
           <Stack.Screen name="Sites" component={SitesScreen} options={{ title: 'Your sites' }} />
+          <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Your account' }} />
           <Stack.Screen name="Site" component={SiteTabs} options={({ route }) => ({ title: route.params.name })} />
         </>
       )}

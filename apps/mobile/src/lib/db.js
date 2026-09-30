@@ -12,6 +12,7 @@ const inc = (n) => firestore.FieldValue.increment(n);
 export const exists = (snap) => (typeof snap.exists === 'function' ? snap.exists() : snap.exists);
 export const toList = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
 export const userRef = (uid) => firestore().doc(paths.user(uid));
+export const companyRef = (cid) => firestore().doc(paths.company(cid));
 export const sitesCol = (cid) => firestore().collection(paths.sites(cid));
 export const siteRef = (cid, sid) => firestore().doc(paths.site(cid, sid));
 export const sub = (cid, sid, name) => firestore().collection(paths.sub(cid, sid, name));

@@ -7,14 +7,18 @@ import { Card, ErrorView, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function SitesScreen({ navigation }) {
-  const { cid, profile, can, signOut } = useAuth();
+  const { cid, profile, can } = useAuth();
   const all = can('sites.all');
   const [sites, setSites] = useState({});
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    navigation.setOptions({ headerRight: () => <Text onPress={signOut} style={{ color: '#fff', fontWeight: '600' }}>Sign out</Text> });
-  }, [navigation, signOut]);
+    navigation.setOptions({
+      headerRight: () => (
+        <Text onPress={() => navigation.navigate('Account')} accessibilityRole="button" style={{ color: '#fff', fontWeight: '600', padding: 8 }}>Account</Text>
+      ),
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!cid) return;

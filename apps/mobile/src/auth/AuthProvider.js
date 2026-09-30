@@ -15,12 +15,18 @@ export function AuthProvider({ children }) {
     let unsubProfile = () => {};
     const unsub = auth().onAuthStateChanged((u) => {
       unsubProfile();
+      let hadProfile = false;
       setUser(u);
       setError(null);
       if (!u) { setProfile(null); setLoading(false); return; }
       setLoading(true);
       unsubProfile = userRef(u.uid).onSnapshot(
-        (s) => { setProfile(exists(s) ? { id: s.id, ...s.data() } : null); setLoading(false); },
+        (s) => {
+          // Removed from the company while signed in: sign out
+          if (hadProfile && !exists(s) && !s.metadata?.fromCache) { auth().signOut(); return; }
+          hadProfile = exists(s);
+          setProfile(exists(s) ? { id: s.id, ...s.data() } : null); setLoading(false);
+        },
         (e) => { console.warn('Could not load profile', e); setError(e); setLoading(false); }
       );
     });

@@ -1,0 +1,25 @@
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { paths } from '@siteflow/shared';
+import { registerOps, track } from './sync';
+
+// Firebase needs a recent sign-in to change a password, so we confirm the current one first
+export async function changePassword(currentPassword, newPassword) {
+  const u = auth().currentUser;
+  if (!u?.email) throw Object.assign(new Error('Not signed in'), { code: 'unauthenticated' });
+  await u.reauthenticateWithCredential(auth.EmailAuthProvider.credential(u.email, currentPassword));
+  await u.updatePassword(newPassword);
+  await firestore().doc(paths.user(u.uid)).update({ mustChangePassword: false, updatedAt: firestore.FieldValue.serverTimestamp() });
+}
+
+export const resetPasswordEmail = (email) => auth().sendPasswordResetEmail(email);
+
+// Works offline like other writes; a rejection is kept and shown by the sync banner
+export function updateMyProfile(uid, input) {
+  const { name, phone } = input;
+  return track(firestore().doc(paths.user(uid)).update({ name, phone, updatedAt: firestore.FieldValue.serverTimestamp() }), {
+    label: 'Your details', op: 'updateMyProfile', args: [uid, input],
+  });
+}
+
+registerOps({ updateMyProfile });
