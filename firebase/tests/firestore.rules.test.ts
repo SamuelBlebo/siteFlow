@@ -108,27 +108,32 @@ describe('users and team', () => {
     await assertSucceeds(getDocs(query(collection(asRole('admin'), 'users'), where('companyId', '==', C1))));
     await assertFails(getDocs(query(collection(asRole('manager'), 'users'), where('companyId', '==', C1))));
   });
-  it('nobody changes their own role', async () => {
-    await assertFails(updateDoc(doc(asRole('supervisor'), paths.user(USERS.supervisor)), { role: 'manager' }));
+  it('people edit their own name and phone, nothing else', async () => {
+    const db = asRole('supervisor');
+    const me = doc(db, paths.user(USERS.supervisor));
+    await assertSucceeds(updateDoc(me, { name: 'Kofi Asante', phone: '0241234567', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(me, { name: 'K' }));
+    await assertFails(updateDoc(me, { role: 'manager' }));
+    await assertFails(updateDoc(me, { siteIds: [S1, S2] }));
+    await assertFails(updateDoc(me, { companyId: C2 }));
+    await assertFails(updateDoc(me, { active: true }));
+    await assertFails(updateDoc(me, { email: 'new@example.com' }));
     await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.admin)), { role: 'owner' }));
-    await assertFails(updateDoc(doc(asRole('supervisor'), paths.user(USERS.supervisor)), { siteIds: [S1, S2] }));
-    await assertFails(updateDoc(doc(asRole('supervisor'), paths.user(USERS.supervisor)), { companyId: C2 }));
   });
-  it('only the owner makes admins; nobody makes owners', async () => {
-    await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.viewer)), { role: 'admin' }));
-    await assertFails(updateDoc(doc(asRole('owner'), paths.user(USERS.viewer)), { role: 'owner' }));
-    await assertSucceeds(updateDoc(doc(asRole('owner'), paths.user(USERS.viewer)), { role: 'admin' }));
+  it('the must-change-password flag can be cleared but never set by the user', async () => {
+    await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.user(USERS.viewer)), { mustChangePassword: true }));
+    const me = doc(asRole('viewer'), paths.user(USERS.viewer));
+    await assertSucceeds(updateDoc(me, { mustChangePassword: false }));
+    await assertFails(updateDoc(me, { mustChangePassword: true }));
   });
-  it('admins cannot change other admins or the owner', async () => {
-    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), paths.user('admin2')), { companyId: C1, role: 'admin', name: 'A2', email: 'a2@x.com', siteIds: [] }));
-    await assertFails(updateDoc(doc(asRole('admin'), paths.user('admin2')), { role: 'viewer' }));
-    await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.owner)), { siteIds: [S1] }));
+  it("nobody edits someone else's profile from the app (team changes go through functions)", async () => {
+    await assertFails(updateDoc(doc(asRole('owner'), paths.user(USERS.viewer)), { role: 'admin' }));
+    await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.supervisor)), { siteIds: [S1, S2] }));
+    await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.viewer)), { active: false }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.user(USERS.viewer)), { name: 'Renamed by owner' }));
   });
-  it('admins assign sites and switch people off', async () => {
-    await assertSucceeds(updateDoc(doc(asRole('admin'), paths.user(USERS.supervisor)), { siteIds: [S1, S2] }));
-    await assertSucceeds(updateDoc(doc(asRole('admin'), paths.user(USERS.viewer)), { active: false }));
-    await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.viewer)), { email: 'hijack@x.com' }));
-    await assertFails(updateDoc(doc(asRole('manager'), paths.user(USERS.supervisor)), { siteIds: [S1, S2] }));
+  it('a switched-off user cannot edit their profile', async () => {
+    await assertFails(updateDoc(doc(as(OFF_USER), paths.user(OFF_USER)), { name: 'Still here' }));
   });
 });
 
@@ -138,6 +143,11 @@ describe('company', () => {
     await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { plan: 'enterprise' }));
     await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { modules: { portal: true } }));
     await assertFails(updateDoc(doc(asRole('admin'), paths.company(C1)), { name: 'Admin Renamed' }));
+  });
+  it('the owner edits company contact details', async () => {
+    await assertSucceeds(updateDoc(doc(asRole('owner'), paths.company(C1)), { name: 'Mensah Builders Ltd', phone: '0302123456', location: 'Accra', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { name: 'M' }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { ownerId: USERS.admin }));
   });
 });
 

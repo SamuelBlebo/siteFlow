@@ -40,23 +40,17 @@ service cloud.firestore {
     function sitePath(cid, sid) { return /databases/$(database)/documents/companies/$(cid)/sites/$(sid); }
 
     // ---------- users ----------
-    // Profiles are created only by Cloud Functions (createCompany, inviteMember).
+    // Profiles are created and changed only by Cloud Functions (createCompany, inviteMember,
+    // updateMember, setMemberActive, resetMemberPassword, removeMember), which check the role
+    // rules and write the audit trail. People may edit their own name and phone, and clear
+    // the "must change password" flag after setting a new password.
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || teamManager(resource.data.companyId));
       allow create, delete: if false;
-      // Team managers change another member's role and sites. Nobody edits the owner or
-      // themselves this way, only the owner can make or change admins, and nobody becomes owner.
-      allow update: if teamManager(resource.data.companyId)
-        && request.auth.uid != uid
-        && resource.data.role != 'owner'
-        && onlyChanges(['role', 'siteIds', 'active'])
-        && data().siteIds is list && data().siteIds.size() <= 200
-        && data().get('active', true) is bool
-        && (
-          (me().role == 'owner' && data().role in ['admin', 'manager', 'finance', 'supervisor', 'viewer'])
-          || (me().role == 'admin' && resource.data.role in ['manager', 'finance', 'supervisor', 'viewer']
-              && data().role in ['manager', 'finance', 'supervisor', 'viewer'])
-        );
+      allow update: if signedIn() && request.auth.uid == uid && member(resource.data.companyId)
+        && onlyChanges(['name', 'phone', 'mustChangePassword', 'updatedAt'])
+        && isText(data().name, 2, 100) && optText('phone', 20)
+        && data().get('mustChangePassword', false) == false;
     }
 
     // ---------- companies ----------
@@ -64,8 +58,8 @@ service cloud.firestore {
       allow read: if member(cid);
       // Created by the createCompany function. plan and modules are set by the server only.
       allow create, delete: if false;
-      allow update: if companySettings(cid) && onlyChanges(['name', 'notifications', 'updatedAt'])
-        && isText(data().name, 2, 100)
+      allow update: if companySettings(cid) && onlyChanges(['name', 'phone', 'location', 'notifications', 'updatedAt'])
+        && isText(data().name, 2, 100) && optText('phone', 20) && optText('location', 200)
         && (!('notifications' in data()) || data().notifications is map);
 
       match /equipment/{id} {
