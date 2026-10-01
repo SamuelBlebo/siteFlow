@@ -205,3 +205,6 @@ tr.row:hover td { background: var(--sunk); }
 .grid-att td.s-absent { color: var(--bad); font-weight: 600; background: var(--badbg); }
 .grid-att td.s-leave { color: var(--steel); font-weight: 600; }
 @media (max-width: 640px) { .list .it { flex-wrap: wrap; } .seg.att { width: 100%; } .seg.att button { flex: 1; } }
+
+/* materials */
+td.neg, .neg { color: var(--bad); }

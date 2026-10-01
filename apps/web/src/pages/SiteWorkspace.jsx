@@ -8,7 +8,7 @@ import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
 import LabourPanel from '../components/LabourPanel';
-import MaterialLogForm from '../components/MaterialLogForm';
+import MaterialsPanel from '../components/MaterialsPanel';
 import MaterialsTable from '../components/MaterialsTable';
 import { ErrorState, Loading } from '../components/States';
 
@@ -60,13 +60,7 @@ export default function SiteWorkspace() {
       )}
       {tab === 'report' && work && <ReportForm cid={cid} site={site} presentCount={d.presentCount} logs={d.logs} />}
       {tab === 'history' && <ReportHistory cid={cid} site={site} />}
-      {tab === 'materials' && (
-        <>
-          {work && <MaterialLogForm cid={cid} sid={sid} materials={d.materials} />}
-          <h3 className="sub">Stock</h3>
-          <MaterialsTable materials={d.materials} usage={d.usage} />
-        </>
-      )}
+      {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={d} canWork={work} />}
       {tab === 'workers' && <LabourPanel cid={cid} site={site} data={d} canWork={work} />}
     </section>
   );

@@ -3,7 +3,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { paths, reportDoc, reportId, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
+import { countDifference, paths, reportDoc, reportId, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
 import { resizePhoto } from './photos';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
@@ -57,7 +57,7 @@ export const updateSiteDetails = (cid, sid, details) => updateDoc(siteDoc(cid, s
 export const setSiteStatus = (cid, sid, status) => updateDoc(siteDoc(cid, sid), { status, updatedAt: serverTimestamp() });
 export const setBudget = (cid, sid, budget) => updateDoc(financeDoc(cid, sid), { budget, updatedAt: serverTimestamp() });
 
-export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, createdAt: serverTimestamp() });
+export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, active: true, createdAt: serverTimestamp() });
 
 // Worker details are visible to the site team; the daily rate goes to workerPay (finance roles only)
 export function addWorker(cid, sid, { name, trade, phone = '', dailyRate }, uid) {
@@ -73,15 +73,15 @@ export const setWorkerActive = (cid, sid, wid, active) => updateDoc(subDoc(cid, 
 export const setWorkerRate = (cid, sid, wid, dailyRate) =>
   setDoc(doc(db, paths.workerPay(cid, sid, wid)), { dailyRate, updatedAt: serverTimestamp() }, { merge: true });
 
-// Log entry and stock change go in one batch; the rules check they match.
+// Entry and stock change go in one batch; the rules check they match.
+// type: 'usage' | 'delivery' | 'adjustment' (stock count; qty is the signed difference).
 // A delivery cost (finance roles only) also records an expense and adds to spent.
-export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier = '', uid }) {
+export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier = '', ref = '', note = '', uid, name, date = todayKey() }) {
   const b = writeBatch(db);
-  const date = todayKey();
   const logRef = doc(sub(cid, sid, 'materialLogs'));
   b.set(logRef, {
     materialId: material.id, materialName: material.name, unit: material.unit,
-    type, qty, cost, supplier, date, createdBy: uid, createdAt: serverTimestamp(),
+    type, qty, cost, supplier, ref, note, date, createdBy: uid, createdByName: name, createdAt: serverTimestamp(),
   });
   b.update(subDoc(cid, sid, 'materials', material.id), { stock: increment(stockDelta({ type, qty })), lastLogId: logRef.id });
   if (type === 'delivery' && cost > 0) {
@@ -92,6 +92,26 @@ export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier 
     b.update(financeDoc(cid, sid), { spent: increment(cost), updatedAt: serverTimestamp() });
   }
   return b.commit();
+}
+
+// Stock count (site managers): records the difference between counted and recorded.
+// Returns null when the count matches the records (nothing to write).
+export function stockCount(cid, sid, { material, counted, note, uid, name }) {
+  const qty = countDifference(material.stock, counted);
+  if (qty === 0) return null;
+  return logMaterial(cid, sid, { material, type: 'adjustment', qty, note, uid, name });
+}
+
+export const updateMaterial = (cid, sid, id, { name, unit, reorderLevel, avgDaily }) =>
+  updateDoc(subDoc(cid, sid, 'materials', id), { name, unit, reorderLevel, avgDaily, updatedAt: serverTimestamp() });
+export const setMaterialActive = (cid, sid, id, active) => updateDoc(subDoc(cid, sid, 'materials', id), { active, updatedAt: serverTimestamp() });
+
+// Entries for a site, newest first, optionally for one material and from a date
+export function materialLogsQuery(cid, sid, { from = '', materialId = '' } = {}, n = 200) {
+  const c = [];
+  if (materialId) c.push(where('materialId', '==', materialId));
+  if (from) c.push(where('date', '>=', from));
+  return query(sub(cid, sid, 'materialLogs'), ...c, orderBy('date', 'desc'), limit(n));
 }
 
 export function addExpense(cid, sid, { category, note, amount, uid }) {

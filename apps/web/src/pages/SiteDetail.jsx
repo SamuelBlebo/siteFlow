@@ -3,19 +3,18 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteData } from '../lib/hooks';
 import {
-  addExpense, addMaterial, expensesQuery, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
+  addExpense, expensesQuery, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
 import { team } from '../lib/account';
 import {
-  EXPENSE_CATEGORIES, ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, UNITS, budgetInput, budgetRemaining, budgetUsedPct, cedi,
-  expenseInput, friendlyError, isSiteOpen, materialInput, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
+  EXPENSE_CATEGORIES, ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, budgetInput, budgetRemaining, budgetUsedPct, cedi,
+  expenseInput, friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
   validate, waPhone,
 } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import ReportHistory from '../components/ReportHistory';
-import MaterialsTable from '../components/MaterialsTable';
-import MaterialLogForm from '../components/MaterialLogForm';
+import MaterialsPanel from '../components/MaterialsPanel';
 import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import StatusPill from '../components/StatusPill';
@@ -60,13 +59,7 @@ export default function SiteDetail() {
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <OverviewTab site={site} data={data} />}
       {tab === 'reports' && <ReportHistory cid={cid} site={site} />}
-      {tab === 'materials' && (
-        <>
-          <MaterialsTable materials={data.materials} usage={data.usage} />
-          {work && <><h3 className="sub">Log usage or a delivery</h3><MaterialLogForm cid={cid} sid={sid} materials={data.materials} /></>}
-          {can('sites.manage') && <AddMaterialForm cid={cid} sid={sid} />}
-        </>
-      )}
+      {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'budget' && can('finance.view') && <BudgetTab cid={cid} sid={sid} site={site} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
@@ -237,44 +230,6 @@ function SettingsTab({ cid, sid, site }) {
         </>
       )}
     </>
-  );
-}
-
-function AddMaterialForm({ cid, sid }) {
-  const blank = { name: '', unit: UNITS[0], stock: '', reorderLevel: '', avgDaily: '' };
-  const [f, setF] = useState(blank);
-  const [msg, setMsg] = useState({ kind: '', text: '' });
-  const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  async function submit(e) {
-    e.preventDefault();
-    const v = validate(materialInput, { ...f, stock: f.stock || 0, reorderLevel: f.reorderLevel || 0, avgDaily: f.avgDaily || 0 });
-    if (!v.ok) return setMsg({ kind: 'err', text: v.error });
-    setBusy(true); setMsg({});
-    try {
-      const res = await save(addMaterial(cid, sid, v.data), `Material ${v.data.name}`);
-      setMsg({ kind: 'ok', text: savedText(res, v.data.name) });
-      setF(blank);
-    } catch (e2) {
-      setMsg({ kind: 'err', text: e2.message });
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <form className="form inline" onSubmit={submit}>
-      <h3>Add a material</h3>
-      {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
-      <div className="grid3">
-        <div className="field"><label htmlFor="am-n">Name</label><input id="am-n" value={f.name} onChange={set('name')} placeholder="e.g. Cement (50kg)" /></div>
-        <div className="field"><label htmlFor="am-u">Unit</label><select id="am-u" value={f.unit} onChange={set('unit')}>{UNITS.map((u) => <option key={u}>{u}</option>)}</select></div>
-        <div className="field"><label htmlFor="am-s">Opening stock</label><input id="am-s" type="number" min="0" value={f.stock} onChange={set('stock')} /></div>
-        <div className="field"><label htmlFor="am-r">Reorder when below</label><input id="am-r" type="number" min="0" value={f.reorderLevel} onChange={set('reorderLevel')} /></div>
-        <div className="field"><label htmlFor="am-a">Usual daily use</label><input id="am-a" type="number" min="0" value={f.avgDaily} onChange={set('avgDaily')} />
-          <p className="hint">Used to flag unusually high use.</p></div>
-      </div>
-      <button className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Add material'}</button>
-    </form>
   );
 }
 

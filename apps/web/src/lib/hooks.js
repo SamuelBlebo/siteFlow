@@ -56,6 +56,8 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
   return { materials, usage, present, finance };
 }
 
+const byName = (a, b) => (a.name || '').localeCompare(b.name || '');
+
 // Everything one site workspace needs. Pay is only loaded for roles that may see it.
 export function useSiteData(cid, sid, { withPay = false } = {}) {
   const materials = useQuery(() => cid && sid && sub(cid, sid, 'materials'), [cid, sid]);
@@ -64,9 +66,9 @@ export function useSiteData(cid, sid, { withPay = false } = {}) {
   const logs = useQuery(() => cid && sid && todayLogsQuery(cid, sid), [cid, sid]);
   const attendance = useDoc(() => cid && sid && attendanceDoc(cid, sid), [cid, sid]);
   const marks = attendance.data?.marks || {};
-  const byName = (a, b) => (a.name || '').localeCompare(b.name || '');
   return {
-    materials: materials.data,
+    materials: materials.data.filter((m) => m.active !== false).sort(byName),
+    allMaterials: [...materials.data].sort(byName),
     workers: workers.data.filter((w) => w.active !== false).sort(byName),
     allWorkers: [...workers.data].sort(byName),
     pay: Object.fromEntries(pay.data.map((p) => [p.id, p])),

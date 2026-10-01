@@ -49,7 +49,7 @@ describe('owner', () => {
     await save(addMaterial(cid, sid, { name: 'Cement', unit: 'bags', stock: 10, reorderLevel: 5, avgDaily: 4 }));
     cementId = (await getDocs(sub(cid, sid, 'materials'))).docs[0].id;
     const material = { id: cementId, name: 'Cement', unit: 'bags' };
-    await save(logMaterial(cid, sid, { material, type: 'delivery', qty: 40, cost: 3000, supplier: 'Ghacem', uid: cid }));
+    await save(logMaterial(cid, sid, { material, type: 'delivery', qty: 40, cost: 3000, supplier: 'Ghacem', uid: cid, name: 'Ama Mensah' }));
     await save(addExpense(cid, sid, { category: 'Transport', note: 'Truck', amount: 500, uid: cid }));
     expect((await getDoc(subDoc(cid, sid, 'materials', cementId))).data().stock).toBe(50);
     expect((await getDoc(financeDoc(cid, sid))).data().spent).toBe(3500);
@@ -82,13 +82,13 @@ describe('supervisor', () => {
   });
 
   it('logs usage; stock moves with it', async () => {
-    await save(logMaterial(cid, sid, { material: { id: cementId, name: 'Cement', unit: 'bags' }, type: 'usage', qty: 6, uid }));
+    await save(logMaterial(cid, sid, { material: { id: cementId, name: 'Cement', unit: 'bags' }, type: 'usage', qty: 6, uid, name: 'Kofi Asante' }));
     expect((await getDoc(subDoc(cid, sid, 'materials', cementId))).data().stock).toBe(44);
   });
 
   it('cannot record costs, and gets a friendly message instead of a raw error', async () => {
     const material = { id: cementId, name: 'Cement', unit: 'bags' };
-    const err = await save(logMaterial(cid, sid, { material, type: 'delivery', qty: 1, cost: 100, uid })).catch((e) => e);
+    const err = await save(logMaterial(cid, sid, { material, type: 'delivery', qty: 1, cost: 100, uid, name: 'Kofi Asante' })).catch((e) => e);
     expect(err).toBeInstanceOf(SaveError);
     expect(err.message).toMatch(/permission/i);
     expect(err.message).not.toMatch(/PERMISSION_DENIED|FirebaseError/);
@@ -114,7 +114,7 @@ describe('viewer', () => {
     const uid = (await as(`viewer-${run}@example.com`, viewerPw)).uid;
     expect((await getDoc(siteDoc(cid, sid))).data().name).toBe('Adenta house');
     const material = { id: cementId, name: 'Cement', unit: 'bags' };
-    await expect(save(logMaterial(cid, sid, { material, type: 'usage', qty: 1, uid }))).rejects.toBeInstanceOf(SaveError);
+    await expect(save(logMaterial(cid, sid, { material, type: 'usage', qty: 1, uid, name: 'Esi Viewer' }))).rejects.toBeInstanceOf(SaveError);
     await expect(save(addWorker(cid, sid, { name: 'Sneaky', trade: 'Mason' }, uid))).rejects.toBeInstanceOf(SaveError);
   });
 });
