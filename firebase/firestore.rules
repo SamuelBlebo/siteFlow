@@ -171,12 +171,14 @@ service cloud.firestore {
         // Worker names and trades are visible to the site team; pay is not.
         match /workers/{id} {
           function validWorker() {
-            return data().keys().hasOnly(['name', 'trade', 'active', 'createdBy', 'createdAt', 'updatedAt'])
-              && isText(data().name, 2, 100) && isText(data().trade, 1, 60) && data().active is bool;
+            return data().keys().hasOnly(['name', 'trade', 'phone', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+              && isText(data().name, 2, 100) && isText(data().trade, 1, 60) && optText('phone', 20) && data().active is bool;
           }
           allow read: if onSite(cid, sid);
-          allow create: if siteWork(cid, sid) && byMe() && validWorker();
-          allow update: if siteManager(cid) && validWorker();
+          allow create: if siteWork(cid, sid) && byMe() && validWorker() && data().active == true;
+          // The site team fixes names, trades and phones; switching a worker off is for site managers
+          allow update: if validWorker()
+            && (siteManager(cid) || (siteWork(cid, sid) && onlyChanges(['name', 'trade', 'phone', 'updatedAt'])));
           allow delete: if siteManager(cid);
         }
         match /workerPay/{id} {
@@ -188,13 +190,15 @@ service cloud.firestore {
           allow delete: if financeEdit(cid);
         }
 
-        // One doc per day: { date, present: { workerId: bool }, markedBy }
+        // One doc per day: { date, marks: { workerId: 'present' | 'late' | 'absent' | 'leave' }, markedBy }.
+        // Apps merge one worker at a time, so two phones marking different workers never clash.
         match /attendance/{date} {
           allow read: if onSite(cid, sid);
           allow create, update: if siteWork(cid, sid)
-            && data().keys().hasOnly(['date', 'present', 'markedBy', 'updatedAt'])
+            && data().keys().hasOnly(['date', 'marks', 'markedBy', 'updatedAt'])
             && data().date == date && isDateKey(date)
-            && data().present is map && data().present.size() <= 500
+            && data().marks is map && data().marks.size() <= 500
+            && data().marks.values().hasOnly(['present', 'late', 'absent', 'leave'])
             && data().markedBy == request.auth.uid;
           allow delete: if siteManager(cid);
         }

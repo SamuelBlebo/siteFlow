@@ -197,7 +197,7 @@ describe('site status, details and team', () => {
     const sup = asRole('supervisor');
     await assertSucceeds(getDoc(doc(sup, paths.site(C1, S1))));
     await assertFails(sendReport(sup, C1, S1, USERS.supervisor, 'supervisor user'));
-    await assertFails(setDoc(doc(sup, paths.attendance(C1, S1, today)), { date: today, present: {}, markedBy: USERS.supervisor }));
+    await assertFails(setDoc(doc(sup, paths.attendance(C1, S1, today)), { date: today, marks: {}, markedBy: USERS.supervisor }));
     await assertFails(logMaterial(sup, C1, S1, USERS.supervisor));
     await assertFails(setDoc(doc(sup, paths.subDoc(C1, S1, 'workers', 'late')), { name: 'Late Worker', trade: 'Mason', active: true, createdBy: USERS.supervisor }));
     await assertFails(updateDoc(doc(sup, paths.site(C1, S1)), { progress: 99, lastReportDate: today }));
@@ -296,24 +296,47 @@ describe('materials', () => {
 describe('workers and attendance', () => {
   it('supervisor adds workers but cannot put pay on them', async () => {
     const db = asRole('supervisor');
-    const w = { name: 'Ama Owusu', trade: 'Labourer', active: true, createdBy: USERS.supervisor, createdAt: serverTimestamp() };
+    const w = { name: 'Ama Owusu', trade: 'Labourer', phone: '0241112222', active: true, createdBy: USERS.supervisor, createdAt: serverTimestamp() };
     await assertSucceeds(setDoc(doc(db, paths.subDoc(C1, S1, 'workers', 'w2')), w));
     await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'workers', 'w3')), { ...w, dailyRate: 150 }));
-    await assertFails(updateDoc(doc(db, paths.subDoc(C1, S1, 'workers', 'w1')), { active: false }));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'workers', 'w4')), { ...w, active: false }));
   });
-  it('attendance marks merge per worker and carry no money', async () => {
+  it('supervisor fixes a name, trade or phone; only managers switch a worker off', async () => {
+    const db = asRole('supervisor');
+    const ref = doc(db, paths.subDoc(C1, S1, 'workers', 'w1'));
+    await assertSucceeds(updateDoc(ref, { name: 'Yaw Boateng Jnr', trade: 'Mason', phone: '0201234567', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { active: false }));
+    await assertFails(updateDoc(ref, { name: 'Y' }));
+    await assertFails(updateDoc(doc(asRole('viewer'), paths.subDoc(C1, S1, 'workers', 'w1')), { name: 'Viewer Edit' }));
+    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'workers', 'w1')), { active: false }));
+  });
+  it('attendance marks merge per worker', async () => {
     const db = asRole('supervisor');
     const ref = doc(db, paths.attendance(C1, S1, today));
-    await assertSucceeds(setDoc(ref, { date: today, present: { w1: true }, markedBy: USERS.supervisor, updatedAt: serverTimestamp() }, { merge: true }));
-    await assertSucceeds(setDoc(ref, { date: today, present: { w2: true }, markedBy: USERS.supervisor }, { merge: true }));
+    await assertSucceeds(setDoc(ref, { date: today, marks: { w1: 'present' }, markedBy: USERS.supervisor, updatedAt: serverTimestamp() }, { merge: true }));
+    await assertSucceeds(setDoc(doc(asRole('manager'), paths.attendance(C1, S1, today)), { date: today, marks: { w2: 'late', w3: 'leave' }, markedBy: USERS.manager }, { merge: true }));
+    await assertSucceeds(setDoc(ref, { date: today, marks: { w1: 'absent' }, markedBy: USERS.supervisor }, { merge: true }));
     await env.withSecurityRulesDisabled(async (ctx) => {
       const s = await getDoc(doc(ctx.firestore(), paths.attendance(C1, S1, today)));
-      expect(s.data()?.present).toEqual({ w1: true, w2: true });
+      expect(s.data()?.marks).toEqual({ w1: 'absent', w2: 'late', w3: 'leave' });
     });
-    await assertFails(setDoc(ref, { date: today, present: { w1: true }, markedBy: USERS.supervisor, wages: 150 }, { merge: true }));
-    await assertFails(setDoc(ref, { date: today, present: { w1: true }, markedBy: USERS.owner }, { merge: true }));
-    await assertFails(setDoc(doc(db, paths.attendance(C1, S1, '2026-06-16')), { date: today, present: {}, markedBy: USERS.supervisor }));
-    await assertFails(setDoc(doc(asRole('viewer'), paths.attendance(C1, S1, today)), { date: today, present: {}, markedBy: USERS.viewer }));
+  });
+  it('attendance only takes the four statuses and carries no money', async () => {
+    const db = asRole('supervisor');
+    const ref = doc(db, paths.attendance(C1, S1, today));
+    const ok = { date: today, marks: { w1: 'present' }, markedBy: USERS.supervisor };
+    await assertFails(setDoc(ref, { ...ok, marks: { w1: 'sick' } }, { merge: true }));
+    await assertFails(setDoc(ref, { ...ok, marks: { w1: true } }, { merge: true }));
+    await assertFails(setDoc(ref, { ...ok, wages: 150 }, { merge: true }));
+    await assertFails(setDoc(ref, { ...ok, markedBy: USERS.owner }, { merge: true }));
+    await assertFails(setDoc(doc(db, paths.attendance(C1, S1, '2026-06-16')), ok));
+    await assertFails(setDoc(doc(asRole('viewer'), paths.attendance(C1, S1, today)), { ...ok, markedBy: USERS.viewer }));
+    await assertFails(setDoc(doc(asRole('finance'), paths.attendance(C1, S1, today)), { ...ok, markedBy: USERS.finance }));
+    await assertSucceeds(setDoc(ref, ok, { merge: true }));
+  });
+  it('past days can be marked (with their own date)', async () => {
+    const past = '2026-06-10';
+    await assertSucceeds(setDoc(doc(asRole('supervisor'), paths.attendance(C1, S1, past)), { date: past, marks: { w1: 'late' }, markedBy: USERS.supervisor }, { merge: true }));
   });
 });
 
