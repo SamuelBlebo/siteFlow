@@ -30,14 +30,17 @@ function sendReport(db: Firestore, cid: string, sid: string, uid: string, name: 
 }
 
 // Writes a material log and the matching stock change in one batch, the way the apps do
-function logMaterial(db: Firestore, cid: string, sid: string, uid: string, o: { type?: 'usage' | 'delivery'; qty?: number; cost?: number; stockChange?: number } = {}) {
+// Seeded profiles are named '<role> user'
+const nameOf = (uid: string) => `${(Object.entries(USERS).find(([, id]) => id === uid)?.[0]) ?? 'someone'} user`;
+type LogOpts = { type?: 'usage' | 'delivery' | 'adjustment'; qty?: number; cost?: number; stockChange?: number; note?: string; name?: string; extra?: object };
+function logMaterial(db: Firestore, cid: string, sid: string, uid: string, o: LogOpts = {}) {
   const type = o.type ?? 'usage';
   const qty = o.qty ?? 5;
   const logRef = doc(collection(db, paths.sub(cid, sid, 'materialLogs')));
   const b = writeBatch(db);
   b.set(logRef, {
-    materialId: 'cement', materialName: 'Cement', unit: 'bags', type, qty, cost: o.cost ?? 0, supplier: '',
-    date: today, createdBy: uid, createdAt: serverTimestamp(),
+    materialId: 'cement', materialName: 'Cement', unit: 'bags', type, qty, cost: o.cost ?? 0, supplier: '', ref: '', note: o.note ?? '',
+    date: today, createdBy: uid, createdByName: o.name ?? nameOf(uid), createdAt: serverTimestamp(), ...o.extra,
   });
   b.update(doc(db, paths.subDoc(cid, sid, 'materials', 'cement')), {
     stock: increment(o.stockChange ?? (type === 'usage' ? -qty : qty)), lastLogId: logRef.id,
@@ -262,34 +265,60 @@ describe('finance', () => {
 });
 
 describe('materials', () => {
-  it('supervisor logs usage and stock moves by exactly that amount', async () => {
-    await assertSucceeds(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { qty: 5 }));
-    await assertSucceeds(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { type: 'delivery', qty: 20 }));
+  const cement = (db: Firestore) => doc(db, paths.subDoc(C1, S1, 'materials', 'cement'));
+  it('supervisor records usage and deliveries; stock moves by exactly that amount', async () => {
+    await assertSucceeds(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { qty: 5, note: 'Column casting' }));
+    await assertSucceeds(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { type: 'delivery', qty: 20, extra: { supplier: 'Ghacem', ref: 'WB-881' } }));
   });
-  it('stock cannot be set directly or moved by the wrong amount', async () => {
-    const db = asRole('supervisor');
-    await assertFails(updateDoc(doc(db, paths.subDoc(C1, S1, 'materials', 'cement')), { stock: 9999 }));
-    await assertFails(logMaterial(db, C1, S1, USERS.supervisor, { qty: 5, stockChange: +50 }));
-    await assertFails(logMaterial(db, C1, S1, 'someone-else', { qty: 5 }));
+  it('usage may take the balance below zero (flagged for a stock count, not refused)', async () => {
+    await assertSucceeds(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { qty: 80 }));
+  });
+  it('stock cannot be set directly or moved by the wrong amount, by anyone', async () => {
+    await assertFails(updateDoc(cement(asRole('supervisor')), { stock: 9999 }));
+    await assertFails(updateDoc(cement(asRole('manager')), { stock: 9999 }));
+    await assertFails(updateDoc(cement(asRole('owner')), { name: 'Cement 50kg', stock: 1 }));
+    await assertFails(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { qty: 5, stockChange: +50 }));
+    await assertFails(logMaterial(asRole('supervisor'), C1, S1, 'someone-else', { qty: 5 }));
+  });
+  it('entries carry the real author name and are never edited or deleted', async () => {
+    await assertFails(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { name: 'The Owner' }));
+    await assertSucceeds(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor));
+    let logs: string[] = [];
+    await env.withSecurityRulesDisabled(async (ctx) => { logs = (await getDocs(collection(ctx.firestore(), paths.sub(C1, S1, 'materialLogs')))).docs.map((d) => d.id); });
+    await assertFails(updateDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'materialLogs', logs[0])), { qty: 1 }));
+    await assertFails(deleteDoc(doc(asRole('owner'), paths.subDoc(C1, S1, 'materialLogs', logs[0]))));
   });
   it('a log cannot be written without its stock change', async () => {
     await assertFails(setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'materialLogs', 'lonely')), {
       materialId: 'cement', materialName: 'Cement', unit: 'bags', type: 'usage', qty: 1, cost: 0, supplier: '',
-      date: today, createdBy: USERS.supervisor,
+      date: today, createdBy: USERS.supervisor, createdByName: 'supervisor user',
     }));
   });
-  it('only finance roles record a delivery cost', async () => {
+  it('stock counts: site managers only, with a reason, by the counted difference', async () => {
+    await assertSucceeds(logMaterial(asRole('manager'), C1, S1, USERS.manager, { type: 'adjustment', qty: -7, note: 'Monthly count' }));
+    await assertFails(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { type: 'adjustment', qty: -7, note: 'Monthly count' }));
+    await assertFails(logMaterial(asRole('manager'), C1, S1, USERS.manager, { type: 'adjustment', qty: -7, note: '' }));
+    await assertFails(logMaterial(asRole('manager'), C1, S1, USERS.manager, { type: 'adjustment', qty: 0, note: 'No change' }));
+    await assertFails(logMaterial(asRole('manager'), C1, S1, USERS.manager, { type: 'adjustment', qty: -7, stockChange: +7, note: 'Wrong way' }));
+  });
+  it('only finance roles record a cost, and only on deliveries', async () => {
     await assertFails(logMaterial(asRole('supervisor'), C1, S1, USERS.supervisor, { type: 'delivery', qty: 10, cost: 500 }));
     await assertSucceeds(logMaterial(asRole('manager'), C1, S1, USERS.manager, { type: 'delivery', qty: 10, cost: 500 }));
+    await assertFails(logMaterial(asRole('manager'), C1, S1, USERS.manager, { type: 'usage', qty: 1, cost: 50 }));
   });
-  it('viewer cannot log and supervisor cannot log on other sites', async () => {
+  it('viewer cannot record and supervisor cannot record on other sites', async () => {
     await assertFails(logMaterial(asRole('viewer'), C1, S1, USERS.viewer));
     await assertFails(logMaterial(asRole('supervisor'), C1, S2, USERS.supervisor));
   });
-  it('only site managers set up materials', async () => {
+  it('only site managers set up, edit and archive materials; materials are never deleted', async () => {
     const m = { name: 'Sand', unit: 'trips', stock: 0, reorderLevel: 1, avgDaily: 1 };
     await assertFails(setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'materials', 'sand')), m));
+    await assertFails(setDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'materials', 'neg')), { ...m, stock: -1 }));
     await assertSucceeds(setDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'materials', 'sand')), m));
+    await assertSucceeds(updateDoc(cement(asRole('manager')), { name: 'Cement (50kg)', reorderLevel: 20, avgDaily: 8 }));
+    await assertSucceeds(updateDoc(cement(asRole('manager')), { active: false }));
+    await assertFails(updateDoc(cement(asRole('supervisor')), { active: true }));
+    await assertFails(deleteDoc(cement(asRole('owner'))));
   });
 });
 
