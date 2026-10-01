@@ -53,7 +53,7 @@ export function SyncBanner() {
       ))}
       {reportsFailed.map((r) => (
         <View key={r.id} style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
-          <Text style={{ color: colors.bad, fontWeight: '600' }}>Daily report for {r.siteName} ({r.date}) was not sent.</Text>
+          <Text style={{ color: colors.bad, fontWeight: '600' }}>{r.label || `Daily report for ${r.siteName} (${r.date})`} was not sent.</Text>
           <Text style={{ color: colors.bad, marginTop: 2 }}>{r.error} It is still saved on this phone.</Text>
           <Button title="Try again" onPress={() => retryReport(r.id)} style={{ marginTop: 8, paddingVertical: 10 }} />
         </View>

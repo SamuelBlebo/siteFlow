@@ -35,6 +35,11 @@ vi.mock('@react-native-firebase/storage', () => ({
 vi.mock('@react-native-firebase/firestore', () => {
   const doc = (path) => ({
     path,
+    set: async (data) => {
+      if (!net.online) throw { code: 'firestore/unavailable' };
+      if (server.failNextCommit) { const e = server.failNextCommit; server.failNextCommit = null; throw e; }
+      server.writes.push(['set', path]); server.docs.set(path, data);
+    },
     get: async () => {
       if (!net.online) throw { code: 'firestore/unavailable' };
       const d = server.docs.get(path);
@@ -43,6 +48,7 @@ vi.mock('@react-native-firebase/firestore', () => {
   });
   const fs = () => ({
     doc,
+    collection: (p) => ({ doc: () => ({ id: 'iss1', path: `${p}/iss1` }) }),
     batch: () => {
       const ops = [];
       return {
@@ -188,5 +194,48 @@ describe('report outbox', () => {
     await o.processOutbox();
     expect(o.getOutbox()[0]).toMatchObject({ status: 'failed', error: expect.stringMatching(/no longer on this phone/) });
     expect(server.docs.has(reportPath)).toBe(false);
+  });
+});
+
+describe('issues in the outbox', () => {
+  const issuePath = 'companies/c1/sites/s1/issues/iss1';
+  const issueInput = { title: 'Water pipe burst', description: '', priority: 'critical', category: 'Utilities', location: 'Store', dueDate: '' };
+  beforeEach(() => {
+    server.docs.set('users/u1', { name: 'Kofi Mensah' });
+    server.docs.set('companies/c1/sites/s1', { name: 'Adenta house' });
+  });
+  it('an issue with a photo is saved offline and sent when signal returns', async () => {
+    net.online = false;
+    const o = await fresh();
+    const item = await o.queueIssue({ cid: 'c1', site, uid: 'u1', name: 'Kofi', input: issueInput, photoUris: ['file:///cache/i.jpg'] });
+    expect(item).toMatchObject({ kind: 'issue', label: 'Issue "Water pipe burst"', status: 'waiting' });
+    await o.processOutbox();
+    expect(server.docs.has(issuePath)).toBe(false);
+    net.online = true;
+    await o.processOutbox();
+    expect(server.docs.get(issuePath)).toMatchObject({
+      companyId: 'c1', siteId: 's1', siteName: 'Adenta house', title: 'Water pipe burst', priority: 'critical', status: 'open',
+      assignedTo: null, photoCount: 1, createdBy: 'u1', createdByName: 'Kofi Mensah', commentCount: 0,
+    });
+    expect(server.docs.get(issuePath).photos[0]).toMatch(/issues\/iss1\/1\.jpg$/);
+    expect(o.getOutbox()[0].status).toBe('sent');
+    expect(files.size).toBe(0);
+  });
+  it('an issue already on the server is not written twice', async () => {
+    server.docs.set(issuePath, { title: 'already' });
+    const o = await fresh();
+    await o.queueIssue({ cid: 'c1', site, uid: 'u1', name: 'Kofi', input: issueInput });
+    await o.processOutbox();
+    expect(server.writes).toEqual([]);
+    expect(o.getOutbox()[0].status).toBe('sent');
+  });
+  it('a refused issue is kept with its own label for Try again', async () => {
+    server.failNextCommit = { code: 'firestore/permission-denied' };
+    const o = await fresh();
+    await o.queueIssue({ cid: 'c1', site, uid: 'u1', name: 'Kofi', input: issueInput });
+    await o.processOutbox();
+    expect(o.getOutbox()[0]).toMatchObject({ status: 'failed', label: 'Issue "Water pipe burst"' });
+    await o.retryReport(o.getOutbox()[0].id);
+    expect(o.getOutbox()[0].status).toBe('sent');
   });
 });

@@ -53,3 +53,19 @@ describe('material entries on mobile', () => {
     expect(sync.getSyncState().failed[0]).toMatchObject({ op: 'logMaterial', args: ['c1', 's1', { material, type: 'usage', qty: 2, name: 'Kofi' }] });
   });
 });
+
+describe('issue changes on mobile', () => {
+  it('resolving writes the change, the resolved time and a timeline note in one batch', async () => {
+    await db.updateIssue('c1', 's1', { id: 'i1', patch: { status: 'resolved', resolution: 'Pipe fixed', resolvedBy: 'u1', resolvedByName: 'Kofi' }, note: 'marked it resolved', uid: 'u1', name: 'Kofi' });
+    const [[upd, note]] = commits;
+    expect(upd).toEqual(['update', 'companies/c1/sites/s1/issues/i1', expect.objectContaining({ status: 'resolved', resolution: 'Pipe fixed', resolvedAt: 'ts', lastActivityAt: 'ts' })]);
+    expect(note[1]).toMatch(/^companies\/c1\/sites\/s1\/issues\/i1\/comments\//);
+    expect(note[2]).toMatchObject({ text: 'marked it resolved', kind: 'update', createdByName: 'Kofi' });
+  });
+  it('a comment adds one to the count', async () => {
+    await db.addComment('c1', 's1', { id: 'i1', text: 'Plumber on the way', uid: 'u1', name: 'Kofi' });
+    const [[c, upd]] = commits;
+    expect(c[2]).toMatchObject({ text: 'Plumber on the way', kind: 'comment' });
+    expect(upd[2]).toMatchObject({ commentCount: { inc: 1 } });
+  });
+});

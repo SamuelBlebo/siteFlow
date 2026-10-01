@@ -7,10 +7,10 @@ import storage from '@react-native-firebase/storage';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import {
-  REPORT_PHOTO_MAX_PX, REPORT_PHOTO_QUALITY, errorCode, friendlyError, isRetryable, paths, reportDoc, reportId, timeHM, todayKey,
+  REPORT_PHOTO_MAX_PX, REPORT_PHOTO_QUALITY, errorCode, friendlyError, isRetryable, issueDoc, paths, reportDoc, reportId, timeHM, todayKey,
 } from '@siteflow/shared';
 
-// Daily reports leave the phone through this outbox.
+// Daily reports and issues leave the phone through this outbox (item.kind 'report' or 'issue').
 //  1. Send: the report and its photos (resized, copied into the app's own storage, which the
 //     phone does not clear) are saved on the phone straight away. Works with no signal.
 //  2. When there is signal: photos upload (fixed names, so a retry reuses what already
@@ -74,6 +74,7 @@ export async function queueReport({ cid, site, uid, name, input, materials = [],
   const photos = [];
   for (const [i, uri] of photoUris.entries()) photos.push({ local: await keepPhoto(uri, `${rid}-${i + 1}.jpg`), url: null });
   const item = {
+    kind: 'report', label: `Daily report for ${site.name} (${date})`,
     id, rid, cid, sid: site.id, siteName: site.name, uid, name, date, time: timeHM(), input, materials, photos,
     status: 'waiting', attempts: 0, error: '', queuedAt: Date.now(),
   };
@@ -84,17 +85,32 @@ export async function queueReport({ cid, site, uid, name, input, materials = [],
   return item;
 }
 
-async function sendOne(item) {
-  const reportPath = paths.subDoc(item.cid, item.sid, 'reports', item.rid);
-  // Already on the server (an earlier attempt got through before the connection dropped)?
-  const already = await withTimeout(firestore().doc(reportPath).get({ source: 'server' }));
-  if (exists(already)) return;
+// Save an issue on the phone and start sending it. input: validated issueInput (without photos).
+// The issue id is made on the phone, so a retry writes the same issue instead of a second one.
+export async function queueIssue({ cid, site, uid, name, input, photoUris = [] }) {
+  await load();
+  const issueId = firestore().collection(paths.sub(cid, site.id, 'issues')).doc().id;
+  const photos = [];
+  for (const [i, uri] of photoUris.entries()) photos.push({ local: await keepPhoto(uri, `issue-${issueId}-${i + 1}.jpg`), url: null });
+  const item = {
+    kind: 'issue', label: `Issue "${input.title}"`,
+    id: `${site.id}/issue/${issueId}`, issueId, cid, sid: site.id, siteName: site.name, uid, name, date: todayKey(), input, photos,
+    status: 'waiting', attempts: 0, error: '', queuedAt: Date.now(),
+  };
+  items = [item, ...items];
+  await persist();
+  emit();
+  processOutbox().catch((e) => console.warn('Outbox run failed', e));
+  return item;
+}
 
+// Uploads an item's photos that aren't up yet (fixed names, so an earlier upload is reused)
+async function uploadPhotos(item, pathFor) {
   const photos = [...item.photos];
   for (const [i, p] of photos.entries()) {
     if (p.url) continue;
-    const ref = storage().ref(paths.photo(item.cid, item.sid, item.rid, `${i + 1}.jpg`));
-    let url = await ref.getDownloadURL().catch(() => null); // uploaded on an earlier attempt
+    const ref = storage().ref(pathFor(i));
+    let url = await ref.getDownloadURL().catch(() => null);
     if (!url) {
       const info = await FileSystem.getInfoAsync(p.local);
       if (!info.exists) throw Object.assign(new Error('Photo file missing'), { code: 'photo-missing' });
@@ -104,6 +120,34 @@ async function sendOne(item) {
     photos[i] = { ...p, url };
     await update(item.id, { photos }); // remember progress in case the app closes
   }
+  return photos.map((p) => p.url);
+}
+
+async function sendIssue(item) {
+  const issuePath = paths.subDoc(item.cid, item.sid, 'issues', item.issueId);
+  const already = await withTimeout(firestore().doc(issuePath).get({ source: 'server' }));
+  if (exists(already)) return;
+  const photos = await uploadPhotos(item, (i) => paths.issuePhoto(item.cid, item.sid, item.issueId, `${i + 1}.jpg`));
+  const profile = await withTimeout(firestore().doc(paths.user(item.uid)).get({ source: 'server' }));
+  const site = await withTimeout(firestore().doc(paths.site(item.cid, item.sid)).get({ source: 'server' }));
+  const now = firestore.FieldValue.serverTimestamp();
+  await withTimeout(firestore().doc(issuePath).set({
+    ...issueDoc(item.input, {
+      companyId: item.cid, siteId: item.sid, siteName: site.data()?.name || item.siteName, uid: item.uid,
+      name: profile.data()?.name || item.name, photos, date: item.date,
+    }),
+    createdAt: now, updatedAt: now, lastActivityAt: now,
+  }));
+}
+
+async function sendOne(item) {
+  if (item.kind === 'issue') return sendIssue(item);
+  const reportPath = paths.subDoc(item.cid, item.sid, 'reports', item.rid);
+  // Already on the server (an earlier attempt got through before the connection dropped)?
+  const already = await withTimeout(firestore().doc(reportPath).get({ source: 'server' }));
+  if (exists(already)) return;
+
+  const photoUrls = await uploadPhotos(item, (i) => paths.photo(item.cid, item.sid, item.rid, `${i + 1}.jpg`));
 
   // The rules check the author name against the profile, so use the current one
   const profile = await withTimeout(firestore().doc(paths.user(item.uid)).get({ source: 'server' }));
@@ -115,7 +159,7 @@ async function sendOne(item) {
   b.set(firestore().doc(reportPath), {
     ...reportDoc(item.input, {
       companyId: item.cid, siteId: item.sid, siteName: site.data()?.name || item.siteName, date: item.date, time: item.time,
-      uid: item.uid, name, photos: photos.map((p) => p.url), materials: item.materials, source: 'app',
+      uid: item.uid, name, photos: photoUrls, materials: item.materials, source: 'app',
     }),
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
@@ -154,7 +198,7 @@ async function runOutbox() {
       await update(item.id, {
         status: retry ? 'waiting' : 'failed',
         attempts: (item.attempts || 0) + 1,
-        error: missing ? 'A photo for this report is no longer on this phone. Delete the report and send it again.' : friendlyError(e),
+        error: missing ? 'A photo is no longer on this phone. Delete this and send it again.' : friendlyError(e),
       });
     }
   }

@@ -19,6 +19,8 @@ import WorkersScreen from './src/screens/WorkersScreen';
 import NoAccessScreen from './src/screens/NoAccessScreen';
 import SetPasswordScreen from './src/screens/SetPasswordScreen';
 import AccountScreen from './src/screens/AccountScreen';
+import IssuesScreen from './src/screens/IssuesScreen';
+import IssueScreen from './src/screens/IssueScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -39,6 +41,7 @@ function SiteTabs({ route }) {
       >
         <Tabs.Screen name="Today" component={TodayScreen} />
         {can('site.work') && <Tabs.Screen name="Report" component={ReportScreen} />}
+        <Tabs.Screen name="Issues" component={IssuesScreen} />
         <Tabs.Screen name="Materials" component={MaterialsScreen} />
         <Tabs.Screen name="Workers" component={WorkersScreen} />
       </Tabs.Navigator>
@@ -63,6 +66,7 @@ function Root() {
         <>
           <Stack.Screen name="Sites" component={SitesScreen} options={{ title: 'Your sites' }} />
           <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Your account' }} />
+          <Stack.Screen name="Issue" component={IssueScreen} options={{ title: 'Issue' }} />
           <Stack.Screen name="Site" component={SiteTabs} options={({ route }) => ({ title: route.params.name })} />
         </>
       )}

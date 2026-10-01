@@ -77,4 +77,27 @@ export function updateWorker(cid, sid, input) {
 export const reportRef = (cid, sid, rid) => firestore().doc(paths.subDoc(cid, sid, 'reports', rid));
 export const siteReportsQuery = (cid, sid, n = 10) => sub(cid, sid, 'reports').orderBy('date', 'desc').limit(n);
 
-registerOps({ logMaterial, markAttendance, addWorker, updateWorker });
+// Issues: new ones go through the outbox (queueIssue); changes and comments are tracked writes
+export const issueRef = (cid, sid, id) => firestore().doc(paths.subDoc(cid, sid, 'issues', id));
+export const siteIssuesQuery = (cid, sid, n = 100) => sub(cid, sid, 'issues').orderBy('date', 'desc').limit(n);
+export const commentsQuery = (cid, sid, id) => firestore().collection(paths.issueComments(cid, sid, id)).orderBy('createdAt');
+
+// A change to an issue (start, resolve), with a note in its timeline
+export function updateIssue(cid, sid, input) {
+  const { id, patch, note = '', uid, name } = input;
+  const b = firestore().batch();
+  const resolved = patch.status === 'resolved' ? { resolvedAt: now() } : {};
+  b.update(issueRef(cid, sid, id), { ...patch, ...resolved, updatedAt: now(), lastActivityAt: now() });
+  if (note) b.set(firestore().collection(paths.issueComments(cid, sid, id)).doc(), { text: note, kind: 'update', createdBy: uid, createdByName: name, createdAt: now() });
+  return track(b.commit(), { label: 'Issue update', op: 'updateIssue', args: [cid, sid, input] });
+}
+
+export function addComment(cid, sid, input) {
+  const { id, text, uid, name } = input;
+  const b = firestore().batch();
+  b.set(firestore().collection(paths.issueComments(cid, sid, id)).doc(), { text, kind: 'comment', createdBy: uid, createdByName: name, createdAt: now() });
+  b.update(issueRef(cid, sid, id), { commentCount: inc(1), lastActivityAt: now() });
+  return track(b.commit(), { label: 'Comment', op: 'addComment', args: [cid, sid, input] });
+}
+
+registerOps({ logMaterial, markAttendance, addWorker, updateWorker, updateIssue, addComment });
