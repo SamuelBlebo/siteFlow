@@ -111,6 +111,14 @@ Issues and comments are never deleted. Open critical and high issues appear in t
 - Web: Issues page (critical banner, filters), issue view with actions and timeline, Issues tab per site.
 - Mobile: report a problem through the outbox (works offline with photos), follow and resolve issues.
 
+## Progress
+Milestones per site (`sites/{sid}/milestones`): name, order, weight, planned start and finish, percent done.
+Project managers set them up (or start from the standard building stages); the site team updates the
+percentage. The site's overall progress is the weighted average of its milestones and is written in the same
+batch; without milestones it comes from daily reports. `scheduleStatus` compares done with planned (from
+milestone dates, else the site's planned dates): on track, ahead, behind (with weeks), finished. Behind
+programme and overdue milestones appear in the dashboard alerts for active sites.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
