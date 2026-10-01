@@ -1,23 +1,27 @@
 import { Linking, Pressable, Text, View } from 'react-native';
 import { useSite } from '../site/SiteContext';
+import { useOutbox } from '../lib/useOutbox';
+import { outboxKey } from '../lib/reportOutbox';
 import { useAuth } from '../auth/AuthProvider';
 import { SITE_STATUS_LABELS, longToday, materialStatus, plannedPct, prettyDate, todayKey, waPhone } from '@siteflow/shared';
 import { Button, Card, ErrorView, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function TodayScreen({ navigation }) {
-  const { profile } = useAuth();
-  const { site, loading, error, materials, usage, presentCount, canWork } = useSite();
+  const { profile, user } = useAuth();
+  const { sid, site, loading, error, materials, usage, presentCount, canWork } = useSite();
+  const outbox = useOutbox();
   if (loading) return <Screen><Muted>Loading site…</Muted></Screen>;
   if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
   const work = canWork;
 
-  const sent = site.lastReportDate === todayKey();
+  const queued = outbox.find((x) => x.id === outboxKey(sid, user.uid));
+  const sent = site.lastReportDate === todayKey() || !!queued;
   const used = Object.keys(usage).length > 0;
   const steps = [
     { tab: 'Workers', done: presentCount > 0, title: 'Mark attendance', note: presentCount ? `${presentCount} workers present` : 'Tick who came to site today' },
     { tab: 'Materials', done: used, title: 'Log materials used', note: used ? 'Usage logged today' : 'Record what was used today' },
-    { tab: 'Report', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
+    { tab: 'Report', done: sent, title: 'Send daily report', note: queued && queued.status !== 'sent' ? (queued.status === 'failed' ? 'Not sent. Open to try again' : 'Saved on phone, sends when there is signal') : sent ? `Sent at ${site.lastReportTime || queued?.time}` : 'Progress, photos and issues' },
   ].filter((st) => work || st.tab !== 'Report');
 
   return (

@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
+import { useOutbox } from '../lib/useOutbox';
+import { outboxKey } from '../lib/reportOutbox';
 import { exists, siteRef, sitesCol, toList } from '../lib/db';
 import { SITE_STATUS_LABELS, isSiteScoped, todayKey } from '@siteflow/shared';
 import { Card, ErrorView, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function SitesScreen({ navigation }) {
-  const { cid, profile, can, role } = useAuth();
+  const { cid, profile, can, role, user } = useAuth();
+  const outbox = useOutbox();
   const autoOpened = useRef(false);
   const all = can('sites.all');
   const [sites, setSites] = useState({});
@@ -55,6 +58,7 @@ export default function SitesScreen({ navigation }) {
       ) : (
         <Card>
           {list.map((site, i) => {
+            const onPhone = outbox.find((x) => x.id === outboxKey(site.id, user.uid) && x.status !== 'sent');
             const sent = site.lastReportDate === today;
             return (
               <Pressable key={site.id} onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name })}
@@ -63,9 +67,11 @@ export default function SitesScreen({ navigation }) {
                   <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{site.name}</Text>
                   <Muted>{site.location}</Muted>
                 </View>
-                {site.status === 'on_hold'
-                  ? <Pill kind="warn">{SITE_STATUS_LABELS.on_hold}</Pill>
-                  : <Pill kind={sent ? 'ok' : 'bad'}>{sent ? 'Report sent' : 'Report due'}</Pill>}
+                {onPhone
+                  ? <Pill kind={onPhone.status === 'failed' ? 'bad' : 'warn'}>{onPhone.status === 'failed' ? 'Report not sent' : 'Report on phone'}</Pill>
+                  : site.status === 'on_hold'
+                    ? <Pill kind="warn">{SITE_STATUS_LABELS.on_hold}</Pill>
+                    : <Pill kind={sent ? 'ok' : 'bad'}>{sent ? 'Report sent' : 'Report due'}</Pill>}
               </Pressable>
             );
           })}

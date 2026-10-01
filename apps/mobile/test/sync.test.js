@@ -1,4 +1,4 @@
-// Unit tests for the mobile sync tracker and photo queue, with the native modules mocked
+// Unit tests for the mobile sync tracker, with the native modules mocked
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const store = new Map();
@@ -32,7 +32,6 @@ vi.mock('@react-native-firebase/firestore', () => {
 });
 
 const { track, retry, dismiss, getSyncState, registerOps, startSync } = await import('../src/lib/sync');
-const queue = await import('../src/lib/uploadQueue');
 
 beforeEach(async () => {
   for (const f of getSyncState().failed) dismiss(f.id);
@@ -71,85 +70,5 @@ describe('sync tracker', () => {
     resolve();
     await new Promise((r) => setTimeout(r, 0));
     expect(getSyncState().pending).toBe(0);
-  });
-});
-
-describe('photo queue', () => {
-  const item = (n, uri = `file://p${n}.jpg`) => ({ cid: 'c1', sid: 's1', reportId: 'r1', uri, uid: 'u1', n });
-
-  it('waits while offline, then uploads', async () => {
-    net.online = false;
-    await queue.enqueuePhotos([item(1)]);
-    await queue.processQueue();
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toHaveLength(1);
-    net.online = true;
-    await queue.processQueue();
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toEqual([]);
-  });
-
-  it('uploads photos and attaches them to the report', async () => {
-    await queue.enqueuePhotos([item(1), item(2)]);
-    await queue.processQueue();
-    expect(reportUpdates).toHaveLength(2);
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toEqual([]);
-  });
-
-  it('a photo that cannot upload does not block the others', async () => {
-    badUris.set('file://gone.jpg', Object.assign(new Error('ENOENT: no such file'), { code: 'storage/file-not-found' }));
-    await queue.enqueuePhotos([item(1, 'file://gone.jpg'), item(2)]);
-    await queue.processQueue();
-    const q = JSON.parse(store.get('siteflow:photoQueue'));
-    expect(reportUpdates).toHaveLength(1);
-    expect(q).toHaveLength(1);
-    expect(q[0]).toMatchObject({ failed: true, error: 'The photo file is no longer on this phone.' });
-  });
-
-  it('connection problems are retried later, not given up', async () => {
-    badUris.set('file://flaky.jpg', { code: 'storage/unavailable' });
-    await queue.enqueuePhotos([item(1, 'file://flaky.jpg')]);
-    await queue.processQueue();
-    let q = JSON.parse(store.get('siteflow:photoQueue'));
-    expect(q[0]).toMatchObject({ failed: false, attempts: 1 });
-    badUris.clear();
-    await queue.processQueue();
-    q = JSON.parse(store.get('siteflow:photoQueue'));
-    expect(q).toEqual([]);
-  });
-
-  it('a retry after a half-finished upload reuses the file (no duplicate, no overwrite)', async () => {
-    net.online = false; // queue it without uploading
-    await queue.enqueuePhotos([item(1)]);
-    await queue.processQueue();
-    expect(reportUpdates).toHaveLength(0);
-    net.online = true;
-    const [queued] = JSON.parse(store.get('siteflow:photoQueue'));
-    uploaded.add(`companies/c1/sites/s1/reports/r1/${queued.id}.jpg`); // uploaded, but the report update never happened
-    badUris.set(queued.uri, new Error('should not upload again'));
-    await queue.processQueue();
-    expect(reportUpdates).toHaveLength(1);
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toEqual([]);
-  });
-
-  it('failed photos can be retried or removed', async () => {
-    badUris.set('file://denied.jpg', { code: 'storage/unauthorized' });
-    await queue.enqueuePhotos([item(1, 'file://denied.jpg')]);
-    await queue.processQueue();
-    badUris.clear();
-    await queue.retryFailedPhotos();
-    await new Promise((r) => setTimeout(r, 10));
-    await queue.processQueue();
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toEqual([]);
-    badUris.set('file://denied2.jpg', { code: 'storage/unauthorized' });
-    await queue.enqueuePhotos([item(2, 'file://denied2.jpg')]);
-    await queue.processQueue();
-    await queue.discardFailedPhotos();
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toEqual([]);
-  });
-
-  it('only uploads the signed-in user’s photos', async () => {
-    await queue.enqueuePhotos([{ ...item(1), uid: 'someone-else' }]);
-    await queue.processQueue();
-    expect(reportUpdates).toHaveLength(0);
-    expect(JSON.parse(store.get('siteflow:photoQueue'))).toHaveLength(1);
   });
 });

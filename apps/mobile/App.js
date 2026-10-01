@@ -7,7 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/auth/AuthProvider';
 import { SiteProvider } from './src/site/SiteContext';
-import { startUploadQueue } from './src/lib/uploadQueue';
+import { startOutbox } from './src/lib/reportOutbox';
 import { startSync } from './src/lib/sync';
 import { colors } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
@@ -71,7 +71,7 @@ function Root() {
 }
 
 export default function App() {
-  useEffect(() => startUploadQueue(), []);
+  useEffect(() => startOutbox(), []);
   useEffect(() => {
     let stop = () => {};
     startSync().then((unsub) => { stop = unsub; });

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { errorCode, friendlyError } from '@siteflow/shared';
 import { colors } from '../theme';
 import { dismiss, getSyncState, retry, subscribe } from '../lib/sync';
-import { discardFailedPhotos, retryFailedPhotos, subscribePhotos } from '../lib/uploadQueue';
+import { getOutbox, retryReport, subscribeOutbox } from '../lib/reportOutbox';
 
 export function Screen({ children }) {
   return (
@@ -17,10 +17,16 @@ export function Screen({ children }) {
 // Offline, syncing and failed saves. Failed saves keep their data and can be retried.
 export function SyncBanner() {
   const [st, setSt] = useState(getSyncState());
-  const [photos, setPhotos] = useState({ waiting: 0, failed: 0 });
+  const [outbox, setOutbox] = useState(getOutbox());
   useEffect(() => subscribe(setSt), []);
-  useEffect(() => subscribePhotos(setPhotos), []);
-  const waiting = st.pending + photos.waiting;
+  useEffect(() => {
+    let stop = () => {};
+    subscribeOutbox(setOutbox).then((un) => { stop = un; });
+    return () => stop();
+  }, []);
+  const reportsWaiting = outbox.filter((x) => x.status === 'waiting' || x.status === 'sending').length;
+  const reportsFailed = outbox.filter((x) => x.status === 'failed');
+  const waiting = st.pending + reportsWaiting;
   return (
     <>
       {!st.online && (
@@ -45,15 +51,13 @@ export function SyncBanner() {
           </View>
         </View>
       ))}
-      {photos.failed > 0 && (
-        <View style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
-          <Text style={{ color: colors.bad, fontWeight: '600' }}>{photos.failed} photo{photos.failed === 1 ? '' : 's'} could not upload.</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-            <Button title="Try again" onPress={retryFailedPhotos} style={{ flex: 1, paddingVertical: 10 }} />
-            <Button title="Remove" variant="ghost" onPress={discardFailedPhotos} style={{ flex: 1, paddingVertical: 10 }} />
-          </View>
+      {reportsFailed.map((r) => (
+        <View key={r.id} style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
+          <Text style={{ color: colors.bad, fontWeight: '600' }}>Daily report for {r.siteName} ({r.date}) was not sent.</Text>
+          <Text style={{ color: colors.bad, marginTop: 2 }}>{r.error} It is still saved on this phone.</Text>
+          <Button title="Try again" onPress={() => retryReport(r.id)} style={{ marginTop: 8, paddingVertical: 10 }} />
         </View>
-      )}
+      ))}
     </>
   );
 }
@@ -84,7 +88,7 @@ export function Button({ title, onPress, variant = 'solid', disabled, style }) {
 export function Field({ label, hint, style, ...props }) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={s.label}>{label}</Text>
+      {label ? <Text style={s.label}>{label}</Text> : null}
       <TextInput placeholderTextColor={colors.muted} style={[s.input, props.multiline && { minHeight: 90, textAlignVertical: 'top' }, style]} {...props} />
       {hint ? <Text style={s.hint}>{hint}</Text> : null}
     </View>

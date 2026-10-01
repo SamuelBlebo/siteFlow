@@ -1,6 +1,5 @@
 import firestore from '@react-native-firebase/firestore';
-import { paths, stockDelta, todayKey, timeHM } from '@siteflow/shared';
-import { enqueuePhotos } from './uploadQueue';
+import { paths, stockDelta, todayKey } from '@siteflow/shared';
 import { registerOps, track } from './sync';
 
 // Firestore keeps working offline on React Native Firebase: writes apply on the phone
@@ -63,23 +62,8 @@ export function addWorker(cid, sid, input) {
   return track(b.commit(), { label: `New worker ${name}`, op: 'addWorker', args: [cid, sid, input] });
 }
 
-// Report text saves now (works offline). Photos go into a queue and upload when online.
-export async function sendReport(cid, sid, input) {
-  const { text, stage, progress, issues, photoUris = [], workersPresent, uid, name } = input;
-  const date = input.date || todayKey();
-  const time = input.time || timeHM();
-  const reportId = input.reportId || sub(cid, sid, 'reports').doc().id;
-  const b = firestore().batch();
-  b.set(subRef(cid, sid, 'reports', reportId), {
-    date, time, text, stage, progress, issues, photos: [], photoCount: photoUris.length, source: 'app',
-    workersPresent, createdBy: uid, createdByName: name, createdAt: now(),
-  });
-  b.update(siteRef(cid, sid), { stage, progress, lastReportDate: date, lastReportTime: time });
-  track(b.commit(), {
-    label: `Daily report for ${date}`, op: 'sendReport',
-    args: [cid, sid, { ...input, date, time, reportId, photoUris: [] }], // photos are already queued; don't queue them twice
-  });
-  if (photoUris.length) await enqueuePhotos(photoUris.map((uri, i) => ({ cid, sid, reportId, uri, uid, n: i + 1 })));
-}
+// Daily reports are sent through the report outbox (reportOutbox.js), not here
+export const reportRef = (cid, sid, rid) => firestore().doc(paths.subDoc(cid, sid, 'reports', rid));
+export const siteReportsQuery = (cid, sid, n = 10) => sub(cid, sid, 'reports').orderBy('date', 'desc').limit(n);
 
-registerOps({ logMaterial, markAttendance, addWorker, sendReport });
+registerOps({ logMaterial, markAttendance, addWorker });
