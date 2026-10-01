@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ISSUE_CATEGORIES, ISSUE_PRIORITIES, ISSUE_PRIORITY_LABELS, ISSUE_STATUSES, ISSUE_STATUS_LABELS, filterIssues, sortIssues } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery } from '../lib/hooks';
@@ -14,7 +14,8 @@ export default function Issues() {
   const nav = useNavigate();
   const [status, setStatus] = useState('open');
   const [priority, setPriority] = useState('');
-  const [siteId, setSiteId] = useState('');
+  const [params] = useSearchParams();
+  const [siteId, setSiteId] = useState(params.get('site') || '');
   const [category, setCategory] = useState('');
   const [mine, setMine] = useState(false);
   const [q, setQ] = useState('');

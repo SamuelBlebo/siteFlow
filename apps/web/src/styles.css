@@ -261,3 +261,21 @@ tr.total td { border-top: 2px solid var(--ink); }
 .bars .bar span { display: block; height: 100%; background: var(--steel); }
 .bars .lbl { color: var(--muted); font-size: 13px; }
 .bars .val { text-align: right; font-size: 13px; }
+
+/* dashboard */
+.dash-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+.dash-grid.three { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .dash-grid, .dash-grid.three { grid-template-columns: 1fr; } }
+.alerts li.bad .kind { background: var(--bad); color: #fff; }
+.chip.on { background: var(--steel); color: var(--steel-ink); border-color: var(--steel); }
+button.chip { cursor: pointer; }
+.feed ul { list-style: none; padding: 0; margin: 0; }
+.feed li { padding: 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.feed li:first-child { border-top: 0; }
+.feed a { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meter { position: relative; }
+.plan-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); }
+.spark { list-style: none; padding: 0; margin: 8px 0; display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+.spark li { flex: 1; height: 100%; display: flex; align-items: flex-end; background: var(--sunk); border-radius: 2px; }
+.spark li span { display: block; width: 100%; background: var(--steel); border-radius: 2px; min-height: 1px; }
+.big { font: 600 36px/1.1 "Barlow Semi Condensed", Barlow, sans-serif; margin: 6px 0; }
