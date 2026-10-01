@@ -58,7 +58,12 @@ export interface Site {
 }
 
 // companies/{cid}/sites/{sid}/finance/summary. Finance roles only.
-export interface SiteFinance { budget: number; spent: number }
+// budget and budgetByCategory are set by site managers; spent, byCategory and expenseCount are
+// worked out by a Cloud Function from the expenses (no app can write them).
+export interface SiteFinance {
+  budget: number; spent: number; budgetByCategory?: Record<string, number>;
+  byCategory?: Record<string, number>; expenseCount?: number;
+}
 
 // stock only changes together with a materialLogs entry (lastLogId points at it); the rules check the two match
 // active: false = archived (no longer stocked; history kept)
@@ -111,7 +116,10 @@ export interface Issue {
 // kind 'comment' is typed by a person; 'update' records a change (status, assignment, priority)
 export interface IssueComment { id?: string; text: string; kind: 'comment' | 'update'; createdBy: string; createdByName: string; createdAt?: unknown }
 
-export interface Expense { id?: string; date: string; category: string; note: string; amount: number; createdBy: string }
+export interface Expense {
+  id?: string; date: string; category: string; note: string; amount: number; payee?: string; method?: string; ref?: string;
+  createdBy: string; createdByName?: string;
+}
 
 export interface ChangeOrder {
   id?: string; number: string; title: string; reason: string; amount: number; extraDays: number;

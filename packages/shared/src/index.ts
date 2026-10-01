@@ -11,6 +11,7 @@ export * from './format';
 export * from './logic/alerts';
 export * from './logic/materials';
 export * from './logic/budget';
+export * from './logic/finance';
 export * from './logic/schedule';
 export { MILESTONE_STATUSES, MILESTONE_STATUS_LABELS, PROGRESS_STEPS, overallProgress, scheduleStatus, SCHEDULE_LABELS, overdueMilestones, milestoneProgress, standardMilestones, progressSeries } from './logic/progress';
 export type { ScheduleState } from './logic/progress';

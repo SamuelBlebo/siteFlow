@@ -84,7 +84,17 @@ export const reportInput = z.object({
   photos: z.array(z.string()).max(REPORT_PHOTO_LIMIT, `Add up to ${REPORT_PHOTO_LIMIT} photos.`).default([]),
 });
 
-export const expenseInput = z.object({ category: z.string().min(1), note: z.string().trim().default(''), amount: positive('amount') });
+export const expenseInput = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick the date it was paid.'),
+  category: z.string().min(1, 'Choose a category.').max(60),
+  amount: positive('amount'),
+  note: z.string().trim().max(500).default(''),
+  payee: z.string().trim().max(120).default(''),
+  method: z.string().max(40).default(''),
+  ref: z.string().trim().max(60).default(''),
+});
+// Budget per category (site managers). Empty means no budget for that category.
+export const budgetLinesInput = z.record(z.string(), z.coerce.number({ invalid_type_error: 'Enter an amount.' }).min(0, 'Amounts cannot be negative.'));
 export const changeOrderInput = z.object({ title: z.string().trim().min(3, 'Describe the change.'), reason: z.enum(CO_REASONS as [string, ...string[]]), amount: positive('cost'), extraDays: z.coerce.number().int().min(0).default(0) });
 export const rfiInput = z.object({ question: z.string().trim().min(5, 'Enter the question.'), sentTo: z.string().trim().min(2, 'Who is it going to?'), dueDate: z.string().min(1, 'Pick a due date.') });
 export const incidentInput = z.object({ type: z.enum(INCIDENT_TYPES as [string, ...string[]]), severity: z.enum(['Low', 'Medium', 'High']), description: z.string().trim().min(5, 'Describe what happened.') });
