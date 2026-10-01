@@ -17,3 +17,4 @@ export * from './logic/wages';
 export * from './logic/messages';
 export * from './logic/sites';
 export * from './logic/reports';
+export * from './logic/issues';

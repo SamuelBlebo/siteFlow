@@ -124,6 +124,19 @@ export const memberUpdateInput = z.object({
 export const memberActiveInput = z.object({ uid: memberId, active: z.boolean() });
 export const memberRefInput = z.object({ uid: memberId });
 
+// Issues
+export const issueInput = z.object({
+  title: z.string().trim().min(3, 'Say what the problem is in a few words.').max(120, 'Keep the title under 120 characters.'),
+  description: z.string().trim().max(5000).optional().default(''),
+  priority: z.enum(['critical', 'high', 'medium', 'low'], { errorMap: () => ({ message: 'Choose how urgent it is.' }) }),
+  category: z.string().min(1, 'Choose what it is about.').max(60),
+  location: z.string().trim().max(120).optional().default(''),
+  dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date.').optional().default(''),
+  photos: z.array(z.string()).max(8, 'Add up to 8 photos.').default([]),
+});
+export const resolveInput = z.object({ resolution: z.string().trim().min(3, 'Say how it was fixed.').max(2000) });
+export const commentInput = z.object({ text: z.string().trim().min(1, 'Write a comment first.').max(2000, 'Keep comments under 2000 characters.') });
+
 // Small helper so forms get one friendly message instead of a zod error object
 export function validate<T extends z.ZodTypeAny>(schema: T, data: unknown):
   { ok: true; data: z.infer<T> } | { ok: false; error: string } {

@@ -86,6 +86,22 @@ export interface Report {
   materialsUsed?: { materialId: string; name: string; unit: string; qty: number }[];
   photos: string[]; photoCount?: number; createdBy: string; createdByName: string; source?: ReportSource;
 }
+// companies/{cid}/sites/{sid}/issues/{id}, with comments in issues/{id}/comments/{id}
+export type IssuePriority = 'critical' | 'high' | 'medium' | 'low';
+export type IssueStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export interface Issue {
+  id?: string; companyId: string; siteId: string; siteName: string;
+  title: string; description: string; priority: IssuePriority; category: string; location: string;
+  date: string; dueDate: string | null; status: IssueStatus;
+  assignedTo: string | null; assignedToName: string;
+  photos: string[]; photoCount: number;
+  resolution: string; resolvedBy: string | null; resolvedByName: string;
+  commentCount: number; createdBy: string; createdByName: string;
+  createdAt?: unknown; updatedAt?: unknown; lastActivityAt?: unknown; resolvedAt?: unknown;
+}
+// kind 'comment' is typed by a person; 'update' records a change (status, assignment, priority)
+export interface IssueComment { id?: string; text: string; kind: 'comment' | 'update'; createdBy: string; createdByName: string; createdAt?: unknown }
+
 export interface Expense { id?: string; date: string; category: string; note: string; amount: number; createdBy: string }
 
 export interface ChangeOrder {

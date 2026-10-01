@@ -4,13 +4,14 @@ import { todayKey } from '../dates';
 import { budgetUsedPct } from './budget';
 import { materialStatus } from './materials';
 import { isBehind, plannedPct, weeksBehind } from './schedule';
-import type { Alert, ChangeOrder, Company, Incident, Material, Rfi, Site, SiteFinance } from '../types';
+import type { Alert, ChangeOrder, Company, Incident, Issue, Material, Rfi, Site, SiteFinance } from '../types';
 
 export interface AlertContext {
   company?: Pick<Company, 'modules'> | null;   // when omitted, every module counts as on
   pendingChangeOrders?: ChangeOrder[];
   openRfis?: (Rfi & { overdue?: boolean })[];
   openIncidents?: Incident[];
+  openIssues?: Pick<Issue, 'title' | 'priority' | 'status' | 'assignedToName'>[];
   finance?: SiteFinance | null;                 // only passed for roles that can see money
   now?: Date;
 }
@@ -41,6 +42,12 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   if (on('changeorders')) for (const c of ctx.pendingChangeOrders ?? []) a.push({ kind: 'co', severity: 'warn', title: 'Change order awaiting approval', detail: `${c.number}: ${c.title}.`, tab: 'changeorders' });
   if (on('rfis')) for (const r of (ctx.openRfis ?? []).filter((x) => x.overdue)) a.push({ kind: 'rfi', severity: 'bad', title: `${r.number} is overdue`, detail: `${r.sentTo} has not answered. Due ${r.dueDate}.`, tab: 'rfis' });
   if (on('scheduling') && isBehind(site, now)) a.push({ kind: 'schedule', severity: 'warn', title: 'Behind programme', detail: `${site.progress}% done against ${plannedPct(site, now)}% planned, about ${weeksBehind(site, now)} weeks behind.`, tab: 'schedule' });
+  // Problems reported on site: critical ones first, high ones as warnings
+  for (const i of ctx.openIssues ?? []) {
+    if (i.status !== 'open' && i.status !== 'in_progress') continue;
+    if (i.priority === 'critical') a.push({ kind: 'issue', severity: 'bad', title: `Critical issue: ${i.title}`, detail: i.assignedToName ? `Assigned to ${i.assignedToName}.` : 'Not assigned to anyone yet.', tab: 'issues' });
+    else if (i.priority === 'high') a.push({ kind: 'issue', severity: 'warn', title: `High priority issue: ${i.title}`, detail: i.assignedToName ? `Assigned to ${i.assignedToName}.` : 'Not assigned to anyone yet.', tab: 'issues' });
+  }
   if (on('safety')) for (const i of ctx.openIncidents ?? []) a.push({ kind: 'safety', severity: 'warn', title: `Open safety incident: ${i.type.toLowerCase()}`, detail: i.description, tab: 'safety' });
 
   return a.sort((x, y) => (x.severity === 'bad' ? 0 : 1) - (y.severity === 'bad' ? 0 : 1));
