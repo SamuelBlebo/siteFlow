@@ -66,7 +66,11 @@ export interface ActivityItem { kind: 'report' | 'issue'; siteId: string; siteNa
 // Latest reports and issues across sites, newest first
 export function activityFeed(reports: (Pick<Report, 'siteId' | 'siteName' | 'createdByName' | 'text' | 'date' | 'time'> & { id: string; createdAt?: unknown })[],
   issues: (Pick<Issue, 'siteId' | 'siteName' | 'createdByName' | 'title' | 'priority' | 'date'> & { id: string; createdAt?: unknown })[], n = 12): ActivityItem[] {
-  const t = (v: unknown, fallback: string) => (v && typeof v === 'object' && 'seconds' in v ? (v as { seconds: number }).seconds * 1000 : Date.parse(`${fallback}T12:00:00`));
+  // Firestore timestamps: include the fraction of a second so items saved in the same second keep their order
+  const t = (v: unknown, fallback: string) => {
+    if (v && typeof v === 'object' && 'seconds' in v) { const x = v as { seconds: number; nanoseconds?: number }; return x.seconds * 1000 + (x.nanoseconds || 0) / 1e6; }
+    return Date.parse(`${fallback}T12:00:00`);
+  };
   return [
     ...reports.map((r) => ({ kind: 'report' as const, siteId: r.siteId, siteName: r.siteName, id: r.id, title: r.text, who: r.createdByName, at: t(r.createdAt, r.date) })),
     ...issues.map((i) => ({ kind: 'issue' as const, siteId: i.siteId, siteName: i.siteName, id: i.id, title: `${i.priority === 'critical' ? 'Critical: ' : ''}${i.title}`, who: i.createdByName, at: t(i.createdAt, i.date) })),

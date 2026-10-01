@@ -46,6 +46,13 @@ describe('issues and activity', () => {
       { date: '2026-05-01', status: 'closed', priority: 'low', resolvedAt: sec('2026-05-02') },
     ], '2026-06-05')).toEqual({ opened: 1, resolved: 1, open: 2, critical: 1 });
   });
+  it('items saved in the same second keep their order', () => {
+    const f = activityFeed(
+      [{ id: 'r1', siteId: 'a', siteName: 'A', createdByName: 'K', text: 'Report', date: '2026-06-15', time: '17:00', createdAt: { seconds: 100, nanoseconds: 1000 } }],
+      [{ id: 'i1', siteId: 'a', siteName: 'A', createdByName: 'K', title: 'Issue', priority: 'low', date: '2026-06-15', createdAt: { seconds: 100, nanoseconds: 900000 } }],
+    );
+    expect(f[0].kind).toBe('issue');
+  });
   it('latest reports and issues together, newest first', () => {
     const f = activityFeed(
       [{ id: 'r1', siteId: 'a', siteName: 'Adenta', createdByName: 'Kofi', text: 'Blockwork', date: '2026-06-14', time: '17:00', createdAt: sec('2026-06-14') }],
