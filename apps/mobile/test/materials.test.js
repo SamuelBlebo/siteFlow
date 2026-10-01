@@ -70,6 +70,16 @@ describe('issue changes on mobile', () => {
   });
 });
 
+describe('costed delivery on mobile', () => {
+  it('records the expense with its author and leaves the totals to the server', async () => {
+    await db.logMaterial('c1', 's1', { material, type: 'delivery', qty: 10, cost: 900, supplier: 'Ghacem', ref: 'WB-9', uid: 'u1', name: 'Efua', date: '2026-06-15' });
+    const [ops] = commits;
+    expect(ops.map((o) => o[1].split('/').slice(-2, -1)[0])).toEqual(['materialLogs', 'materials', 'expenses']);
+    expect(ops[2][2]).toMatchObject({ category: 'Materials', amount: 900, payee: 'Ghacem', ref: 'WB-9', createdByName: 'Efua' });
+    expect(ops.some((o) => o[1].endsWith('finance/summary'))).toBe(false);
+  });
+});
+
 describe('milestone progress on mobile', () => {
   it('sets the milestone, its status and dates, and the site overall in one batch', async () => {
     const all = [{ id: 'm1', name: 'Foundation', weight: 1, percentDone: 100 }, { id: 'm2', name: 'Blockwork', weight: 1, percentDone: 0 }];
