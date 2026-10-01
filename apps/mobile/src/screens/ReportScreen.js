@@ -22,7 +22,7 @@ const STATUS = {
 
 export default function ReportScreen() {
   const { user, profile } = useAuth();
-  const { cid, sid, site, loading, error, presentCount, canWork } = useSite();
+  const { cid, sid, site, loading, error, presentCount, canWork, milestones } = useSite();
   const outbox = useOutbox();
   const [onServer, setOnServer] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -43,7 +43,7 @@ export default function ReportScreen() {
   else if (!canWork) {
     top = <><H1>Daily report</H1><Muted>{site.status === 'closed' ? 'This site is closed, so no new reports can be sent.' : 'Your role can view this site but not send reports.'}</Muted></>;
   } else {
-    top = <ReportForm cid={cid} site={site} uid={user.uid} name={profile.name} presentCount={presentCount} logs={logs} draftKey={draftKey} />;
+    top = <ReportForm cid={cid} site={site} uid={user.uid} name={profile.name} presentCount={presentCount} logs={logs} draftKey={draftKey} fromMilestones={milestones.length > 0} />;
   }
 
   return (
@@ -54,7 +54,7 @@ export default function ReportScreen() {
   );
 }
 
-function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey }) {
+function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMilestones }) {
   const blank = { text: '', notes: '', issues: '', weather: '', stage: site.stage || STAGES[0], progress: String(site.progress || 0), workersPresent: '', photos: [] };
   const [f, setF] = useState(blank);
   const [err, setErr] = useState('');
@@ -87,7 +87,7 @@ function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey }) {
 
   async function submit() {
     setErr('');
-    const v = validate(reportInput, { ...f, workersPresent: workers, photos: f.photos });
+    const v = validate(reportInput, { ...f, workersPresent: workers, photos: f.photos, progress: fromMilestones ? site.progress || 0 : f.progress });
     if (!v.ok) return setErr(v.error);
     setBusy(true);
     try {
@@ -124,9 +124,11 @@ function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey }) {
       <Choice label="Weather" options={WEATHER} value={f.weather} onChange={(w) => set('weather')(f.weather === w ? '' : w)} />
       <Choice label="Current stage" options={[...new Set([...STAGES, f.stage])]} value={f.stage} onChange={set('stage')} />
 
-      <Text style={s.label}>Overall progress (%)</Text>
-      <Stepper value={f.progress} step={5} onMinus={() => nudge('progress', -5, 100)} onPlus={() => nudge('progress', 5, 100)} onChange={set('progress')}
-        hint={`Was ${site.progress || 0}%`} />
+      <Text style={s.label}>Overall progress</Text>
+      {fromMilestones
+        ? <Muted style={{ marginBottom: 14 }}>{site.progress || 0}%, from the milestones. Update them on the Today tab.</Muted>
+        : <Stepper value={f.progress} step={5} onMinus={() => nudge('progress', -5, 100)} onPlus={() => nudge('progress', 5, 100)} onChange={set('progress')}
+            hint={`Was ${site.progress || 0}%`} />}
 
       <Field label="Issues or delays" value={f.issues} onChangeText={set('issues')} multiline placeholder="Leave empty if none" />
 

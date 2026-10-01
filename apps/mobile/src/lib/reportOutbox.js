@@ -154,10 +154,14 @@ async function sendOne(item) {
   const name = profile.data()?.name || item.name;
   const site = await withTimeout(firestore().doc(paths.site(item.cid, item.sid)).get({ source: 'server' }));
   const last = site.data()?.lastReportDate;
+  // A site with milestones takes its progress from them, not from reports
+  const ms = await withTimeout(firestore().collection(paths.sub(item.cid, item.sid, 'milestones')).limit(1).get({ source: 'server' }));
+  const fromMilestones = !ms.empty;
+  const input = fromMilestones ? { ...item.input, progress: site.data()?.progress || 0 } : item.input;
 
   const b = firestore().batch();
   b.set(firestore().doc(reportPath), {
-    ...reportDoc(item.input, {
+    ...reportDoc(input, {
       companyId: item.cid, siteId: item.sid, siteName: site.data()?.name || item.siteName, date: item.date, time: item.time,
       uid: item.uid, name, photos: photoUrls, materials: item.materials, source: 'app',
     }),
@@ -166,7 +170,7 @@ async function sendOne(item) {
   // Only move the site forward: a report sent late never overwrites a newer one
   if (!last || item.date >= last) {
     b.update(firestore().doc(paths.site(item.cid, item.sid)), {
-      stage: item.input.stage, progress: item.input.progress, lastReportDate: item.date, lastReportTime: item.time,
+      stage: input.stage, ...(fromMilestones ? {} : { progress: input.progress }), lastReportDate: item.date, lastReportTime: item.time,
     });
   }
   await withTimeout(b.commit());

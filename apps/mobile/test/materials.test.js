@@ -69,3 +69,15 @@ describe('issue changes on mobile', () => {
     expect(upd[2]).toMatchObject({ commentCount: { inc: 1 } });
   });
 });
+
+describe('milestone progress on mobile', () => {
+  it('sets the milestone, its status and dates, and the site overall in one batch', async () => {
+    const all = [{ id: 'm1', name: 'Foundation', weight: 1, percentDone: 100 }, { id: 'm2', name: 'Blockwork', weight: 1, percentDone: 0 }];
+    await db.setMilestoneProgress('c1', 's1', { milestone: all[1], all, percentDone: 50, uid: 'u1', name: 'Kofi', today: '2026-06-15' });
+    const [[ms, site]] = commits;
+    expect(ms).toEqual(['update', 'companies/c1/sites/s1/milestones/m2', expect.objectContaining({
+      percentDone: 50, status: 'in_progress', actualStart: '2026-06-15', actualEnd: null, updatedBy: 'u1', updatedByName: 'Kofi',
+    })]);
+    expect(site).toEqual(['update', 'companies/c1/sites/s1', { progress: 75 }]);
+  });
+});

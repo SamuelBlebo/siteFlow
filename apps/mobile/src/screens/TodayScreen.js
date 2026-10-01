@@ -3,13 +3,18 @@ import { useSite } from '../site/SiteContext';
 import { useOutbox } from '../lib/useOutbox';
 import { outboxKey } from '../lib/reportOutbox';
 import { useAuth } from '../auth/AuthProvider';
-import { SITE_STATUS_LABELS, longToday, materialStatus, plannedPct, prettyDate, todayKey, waPhone } from '@siteflow/shared';
+import {
+  MILESTONE_STATUS_LABELS, PROGRESS_STEPS, SCHEDULE_LABELS, SITE_STATUS_LABELS, longToday, materialStatus, overdueMilestones, plannedPct, prettyDate,
+  scheduleStatus, todayKey, waPhone,
+} from '@siteflow/shared';
+import { useState } from 'react';
+import { setMilestoneProgress } from '../lib/db';
 import { Button, Card, ErrorView, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function TodayScreen({ navigation }) {
   const { profile, user } = useAuth();
-  const { sid, site, loading, error, materials, usage, presentCount, canWork } = useSite();
+  const { cid, sid, site, loading, error, materials, usage, presentCount, canWork, milestones } = useSite();
   const outbox = useOutbox();
   if (loading) return <Screen><Muted>Loading site…</Muted></Screen>;
   if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
@@ -44,6 +49,7 @@ export default function TodayScreen({ navigation }) {
           </View>
         </Pressable>
       ))}
+      <Progress cid={cid} sid={sid} site={site} milestones={milestones} canWork={work} />
       <H2>Site information</H2>
       <SiteInfo site={site} />
       <H2>Stock on site</H2>
@@ -87,6 +93,58 @@ function SiteInfo({ site }) {
           <Button title="WhatsApp" variant="ghost" onPress={() => Linking.openURL(`https://wa.me/${waPhone(site.foremanPhone)}`)} style={{ flex: 1 }} />
         </View>
       ) : null}
+    </>
+  );
+}
+
+// Where the job stands against the plan, and quick milestone updates
+function Progress({ cid, sid, site, milestones, canWork }) {
+  const { user, profile } = useAuth();
+  const [open, setOpen] = useState(null);
+  const st = scheduleStatus(site, milestones);
+  const overdue = new Set(overdueMilestones(milestones, todayKey()).map((m) => m.id));
+  const color = st.state === 'behind' ? colors.bad : st.state === 'no_plan' ? colors.muted : colors.ok;
+  return (
+    <>
+      <H2>Progress</H2>
+      <Card style={{ padding: 14, marginBottom: 8 }}>
+        <Text style={{ color: colors.ink, fontSize: 18, fontWeight: '700' }}>{st.actual}% done</Text>
+        <Text style={{ color, fontWeight: '600' }}>
+          {SCHEDULE_LABELS[st.state]}{st.planned != null && st.state !== 'finished' ? `: ${st.planned}% planned by today` : ''}{st.state === 'behind' && st.weeksBehind ? `, about ${st.weeksBehind} week${st.weeksBehind === 1 ? '' : 's'} behind` : ''}
+        </Text>
+      </Card>
+      {milestones.length ? (
+        <Card>
+          {milestones.map((m, i) => (
+            <View key={m.id} style={[s.row, i === 0 && { borderTopWidth: 0 }, { flexDirection: 'column', alignItems: 'stretch', gap: 6 }]}>
+              <Pressable onPress={() => canWork && setOpen(open === m.id ? null : m.id)} accessibilityRole={canWork ? 'button' : undefined}
+                accessibilityLabel={`${m.name}, ${m.percentDone}%${canWork ? '. Tap to update' : ''}`}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ flex: 1, color: colors.ink, fontWeight: '600' }}>{m.name}</Text>
+                  {overdue.has(m.id) ? <Pill kind="bad">Overdue</Pill> : <Muted>{MILESTONE_STATUS_LABELS[m.status]}</Muted>}
+                  <Text style={{ color: colors.ink, fontWeight: '700', width: 48, textAlign: 'right' }}>{m.percentDone}%</Text>
+                </View>
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.sunk, marginTop: 6 }}>
+                  <View style={{ height: 6, borderRadius: 3, width: `${m.percentDone}%`, backgroundColor: m.status === 'done' ? colors.ok : colors.steel }} />
+                </View>
+              </Pressable>
+              {open === m.id && (
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {PROGRESS_STEPS.map((p) => (
+                    <Pressable key={p} onPress={() => { setMilestoneProgress(cid, sid, { milestone: m, all: milestones, percentDone: p, uid: user.uid, name: profile.name }); setOpen(null); }}
+                      accessibilityRole="button" accessibilityState={{ selected: m.percentDone === p }}
+                      style={{ flex: 1, minHeight: 44, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+                        borderColor: m.percentDone === p ? colors.steel : colors.line, backgroundColor: m.percentDone === p ? colors.steel : colors.surface }}>
+                      <Text style={{ color: m.percentDone === p ? '#fff' : colors.ink, fontWeight: '600' }}>{p === 100 ? 'Done' : `${p}%`}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </Card>
+      ) : <Muted>No milestones set up. Progress comes from the daily reports.</Muted>}
+      {canWork && milestones.length ? <Muted style={{ fontSize: 13, marginTop: 4 }}>Tap a milestone to update it.</Muted> : null}
     </>
   );
 }

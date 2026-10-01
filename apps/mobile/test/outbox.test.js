@@ -48,7 +48,13 @@ vi.mock('@react-native-firebase/firestore', () => {
   });
   const fs = () => ({
     doc,
-    collection: (p) => ({ doc: () => ({ id: 'iss1', path: `${p}/iss1` }) }),
+    collection: (p) => ({
+      doc: () => ({ id: 'iss1', path: `${p}/iss1` }),
+      limit: () => ({ get: async () => {
+        if (!net.online) throw { code: 'firestore/unavailable' };
+        return { empty: ![...server.docs.keys()].some((k) => k.startsWith(`${p}/`)) };
+      } }),
+    }),
     batch: () => {
       const ops = [];
       return {
@@ -184,6 +190,16 @@ describe('report outbox', () => {
     await o.processOutbox();
     expect(server.docs.get('companies/c1/sites/s1')).toMatchObject({ progress: 80, stage: 'Roofing' });
     expect(server.docs.has(reportPath)).toBe(true);
+  });
+
+  it('a site with milestones keeps its progress: the report records it but does not change it', async () => {
+    server.docs.set('companies/c1/sites/s1', { name: 'Adenta house', lastReportDate: '2026-01-01', progress: 42, stage: 'Foundation' });
+    server.docs.set('companies/c1/sites/s1/milestones/m1', { name: 'Foundation', percentDone: 84 });
+    const o = await fresh();
+    await o.queueReport({ cid: 'c1', site, uid: 'u1', name: 'Kofi', input });
+    await o.processOutbox();
+    expect(server.docs.get(reportPath).progress).toBe(42);
+    expect(server.docs.get('companies/c1/sites/s1')).toMatchObject({ progress: 42, stage: 'Blockwork', lastReportDate: today });
   });
 
   it('a missing photo file fails clearly instead of sending an incomplete report', async () => {

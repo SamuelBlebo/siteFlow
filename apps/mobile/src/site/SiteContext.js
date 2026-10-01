@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { attendanceRef, exists, siteRef, sub, toList, todayLogsQuery } from '../lib/db';
+import { attendanceRef, exists, milestonesQuery, siteRef, sub, toList, todayLogsQuery } from '../lib/db';
 import { isSiteOpen, presentCount, usageByMaterial } from '@siteflow/shared';
 
 const SiteCtx = createContext(null);
@@ -14,6 +14,7 @@ export function SiteProvider({ sid, children }) {
   const [pay, setPay] = useState({});
   const [attendance, setAttendance] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [milestones, setMilestones] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function SiteProvider({ sid, children }) {
       sub(cid, sid, 'workers').onSnapshot((s) => setWorkers(toList(s).filter((w) => w.active !== false).sort((a, b) => a.name.localeCompare(b.name))), fail('workers')),
       attendanceRef(cid, sid).onSnapshot((s) => setAttendance(exists(s) ? s.data() : null), fail('attendance')),
       todayLogsQuery(cid, sid).onSnapshot((s) => setLogs(toList(s)), fail('material logs')),
+      milestonesQuery(cid, sid).onSnapshot((s) => setMilestones(toList(s)), fail('milestones')),
     ];
     if (withPay) unsubs.push(sub(cid, sid, 'workerPay').onSnapshot((s) => setPay(Object.fromEntries(toList(s).map((p) => [p.id, p]))), fail('pay')));
     return () => unsubs.forEach((u) => u());
@@ -36,7 +38,7 @@ export function SiteProvider({ sid, children }) {
       cid, sid, site, loading: site === undefined, error,
       // Daily site work needs the role and an open (not closed) site; the rules check both
       canWork: can('site.work') && isSiteOpen(site), materials, workers, pay: withPay ? pay : null,
-      attendance, marks, logs, usage: usageByMaterial(logs), presentCount: presentCount(marks),
+      attendance, marks, logs, milestones, usage: usageByMaterial(logs), presentCount: presentCount(marks),
     }}>
       {children}
     </SiteCtx.Provider>

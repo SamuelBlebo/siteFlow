@@ -1,5 +1,5 @@
 import firestore from '@react-native-firebase/firestore';
-import { paths, stockDelta, todayKey } from '@siteflow/shared';
+import { milestoneProgress, overallProgress, paths, stockDelta, todayKey } from '@siteflow/shared';
 import { registerOps, track } from './sync';
 
 // Firestore keeps working offline on React Native Firebase: writes apply on the phone
@@ -100,4 +100,16 @@ export function addComment(cid, sid, input) {
   return track(b.commit(), { label: 'Comment', op: 'addComment', args: [cid, sid, input] });
 }
 
-registerOps({ logMaterial, markAttendance, addWorker, updateWorker, updateIssue, addComment });
+// Milestones: the site team sets a milestone's percentage; the site's overall progress follows in the same batch
+export const milestonesQuery = (cid, sid) => sub(cid, sid, 'milestones').orderBy('order');
+export function setMilestoneProgress(cid, sid, input) {
+  const { milestone, all, percentDone, uid, name, today = todayKey() } = input;
+  const change = milestoneProgress(milestone, percentDone, today);
+  const b = firestore().batch();
+  b.update(subRef(cid, sid, 'milestones', milestone.id), { ...change, note: '', updatedBy: uid, updatedByName: name, updatedAt: now() });
+  const overall = overallProgress(all.map((m) => (m.id === milestone.id ? { ...m, ...change } : m)));
+  if (overall != null) b.update(siteRef(cid, sid), { progress: overall });
+  return track(b.commit(), { label: `${milestone.name} progress`, op: 'setMilestoneProgress', args: [cid, sid, { ...input, today }] });
+}
+
+registerOps({ logMaterial, markAttendance, addWorker, updateWorker, updateIssue, addComment, setMilestoneProgress });
