@@ -7,7 +7,7 @@ import { getDoc, getDocs, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../src/firebase';
 import {
-  addExpense, addMaterial, addWorker, attendanceDoc, createSite, financeDoc, logMaterial, markAttendance, newReportId,
+  addExpense, addMaterial, addWorker, attendanceDoc, createSite, financeDoc, logMaterial, markAttendance, myReportId,
   sendReport, siteDoc, sub, subDoc, uploadPhotos, userDoc,
 } from '../src/lib/db';
 import { save, SaveError } from '../src/lib/save';
@@ -100,14 +100,12 @@ describe('supervisor', () => {
   });
 
   it('sends the daily report with a photo', async () => {
-    const reportId = newReportId(cid, sid);
-    const photos = await uploadPhotos(cid, sid, reportId, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'site.jpg', { type: 'image/jpeg' })]);
-    await save(sendReport(cid, sid, reportId, {
-      text: 'Cast lintels', stage: 'Lintel level', progress: 35, issues: '', photos, workersPresent: 1, uid, name: 'Kofi Asante',
-    }));
-    const site = (await getDoc(siteDoc(cid, sid))).data();
-    expect(site).toMatchObject({ stage: 'Lintel level', progress: 35 });
-    expect((await getDoc(subDoc(cid, sid, 'reports', reportId))).data().photos).toHaveLength(1);
+    const rid = myReportId(uid);
+    const photos = await uploadPhotos(cid, sid, rid, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'site.jpg', { type: 'image/jpeg' })]);
+    const site = { id: sid, ...(await getDoc(siteDoc(cid, sid))).data() };
+    await save(sendReport(cid, site, { text: 'Cast lintels', stage: 'Lintel level', progress: 35, workersPresent: 1 }, { uid, name: 'Kofi Asante', photos }).done);
+    expect((await getDoc(siteDoc(cid, sid))).data()).toMatchObject({ stage: 'Lintel level', progress: 35 });
+    expect((await getDoc(subDoc(cid, sid, 'reports', rid))).data().photos).toHaveLength(1);
   });
 });
 

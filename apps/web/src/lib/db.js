@@ -1,9 +1,10 @@
 import {
-  collection, doc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
+  collection, collectionGroup, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { paths, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
+import { paths, reportDoc, reportId, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
+import { resizePhoto } from './photos';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
 export const userDoc = (uid) => doc(db, paths.user(uid));
@@ -16,7 +17,19 @@ export const subDoc = (cid, sid, name, id) => doc(db, paths.subDoc(cid, sid, nam
 export const financeDoc = (cid, sid) => doc(db, paths.finance(cid, sid));
 export const attendanceDoc = (cid, sid, date = todayKey()) => doc(db, paths.attendance(cid, sid, date));
 export const todayLogsQuery = (cid, sid) => query(sub(cid, sid, 'materialLogs'), where('date', '==', todayKey()));
-export const reportsQuery = (cid, sid) => query(sub(cid, sid, 'reports'), orderBy('createdAt', 'desc'), limit(30));
+// Reports for one site, newest first (from = oldest date to include)
+export const siteReportsQuery = (cid, sid, n = 30, from = '') =>
+  query(sub(cid, sid, 'reports'), ...(from ? [where('date', '>=', from)] : []), orderBy('date', 'desc'), limit(n));
+// Reports across the company (roles that see every site). Uses the collection-group indexes.
+export function companyReportsQuery(cid, { siteId = '', author = '', from = '', to = '' } = {}, n = 50) {
+  const c = [where('companyId', '==', cid)];
+  if (siteId) c.push(where('siteId', '==', siteId));
+  if (author) c.push(where('createdBy', '==', author));
+  if (from) c.push(where('date', '>=', from));
+  if (to) c.push(where('date', '<=', to));
+  return query(collectionGroup(db, 'reports'), ...c, orderBy('date', 'desc'), limit(n));
+}
+export const reportRef = (cid, sid, rid) => doc(db, paths.subDoc(cid, sid, 'reports', rid));
 export const expensesQuery = (cid, sid) => query(sub(cid, sid, 'expenses'), orderBy('createdAt', 'desc'), limit(50));
 export const teamQuery = (cid) => query(usersCol(), where('companyId', '==', cid));
 export const activityQuery = (cid, n = 20) => query(collection(db, paths.activity(cid)), orderBy('at', 'desc'), limit(n));
@@ -91,28 +104,36 @@ export function markAttendance(cid, sid, { workerId, present, uid }) {
   }, { merge: true });
 }
 
-// A new report id, so photos can be stored under it before the report is written
-export const newReportId = (cid, sid) => doc(sub(cid, sid, 'reports')).id;
-
-export async function uploadPhotos(cid, sid, reportId, files) {
+// Photos are resized on the device, then stored under the report's id
+export async function uploadPhotos(cid, sid, rid, files) {
   const urls = [];
-  for (const [i, f] of files.entries()) {
-    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const r = ref(storage, paths.photo(cid, sid, reportId, `${i + 1}-${Date.now()}.${ext}`));
-    await uploadBytes(r, f, { contentType: f.type });
+  for (const [i, original] of files.entries()) {
+    const f = await resizePhoto(original);
+    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const r = ref(storage, paths.photo(cid, sid, rid, `${i + 1}-${Date.now()}.${ext}`));
+    await uploadBytes(r, f, { contentType: f.type || 'image/jpeg' });
     urls.push(await getDownloadURL(r));
   }
   return urls;
 }
 
-export function sendReport(cid, sid, reportId, { text, stage, progress, issues, photos, workersPresent, uid, name }) {
+// Today's report for this person on this site (one per person per day)
+export const myReportId = (uid, date = todayKey()) => reportId(date, uid);
+
+// Writes the report and moves the site's stage/progress on, in one batch.
+// site: the site document (for its name and current last report date)
+export function sendReport(cid, site, input, { uid, name, photos = [], materials = [], date = todayKey(), time = timeHM() }) {
   const b = writeBatch(db);
-  const date = todayKey();
-  const time = timeHM();
-  b.set(subDoc(cid, sid, 'reports', reportId), {
-    date, time, text, stage, progress, issues, photos, workersPresent, source: 'web',
-    createdBy: uid, createdByName: name, createdAt: serverTimestamp(),
+  const rid = reportId(date, uid);
+  b.set(reportRef(cid, site.id, rid), {
+    ...reportDoc(input, { companyId: cid, siteId: site.id, siteName: site.name, date, time, uid, name, photos, materials, source: 'web' }),
+    createdAt: serverTimestamp(),
   });
-  b.update(siteDoc(cid, sid), { stage, progress, lastReportDate: date, lastReportTime: time });
-  return b.commit();
+  // Only move the site forward: an older report never overwrites a newer one
+  if (!site.lastReportDate || date >= site.lastReportDate) {
+    b.update(siteDoc(cid, site.id), { stage: input.stage, progress: input.progress, lastReportDate: date, lastReportTime: time });
+  }
+  return { id: rid, done: b.commit() };
 }
+
+export const reportExists = async (cid, sid, rid) => (await getDoc(reportRef(cid, sid, rid))).exists();

@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteData } from '../lib/hooks';
 import {
-  addExpense, addMaterial, expensesQuery, financeDoc, reportsQuery, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
+  addExpense, addMaterial, expensesQuery, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
 import { team } from '../lib/account';
@@ -13,7 +13,7 @@ import {
   validate, waPhone,
 } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
-import ReportCard from '../components/ReportCard';
+import ReportHistory from '../components/ReportHistory';
 import MaterialsTable from '../components/MaterialsTable';
 import MaterialLogForm from '../components/MaterialLogForm';
 import AttendanceList from '../components/AttendanceList';
@@ -60,7 +60,7 @@ export default function SiteDetail() {
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <OverviewTab site={site} data={data} />}
-      {tab === 'reports' && <ReportsTab cid={cid} sid={sid} />}
+      {tab === 'reports' && <ReportHistory cid={cid} site={site} />}
       {tab === 'materials' && (
         <>
           <MaterialsTable materials={data.materials} usage={data.usage} />
@@ -244,14 +244,6 @@ function SettingsTab({ cid, sid, site }) {
       )}
     </>
   );
-}
-
-function ReportsTab({ cid, sid }) {
-  const { data, loading, error } = useQuery(() => reportsQuery(cid, sid), [cid, sid]);
-  if (loading) return <Loading what="reports" />;
-  if (error) return <ErrorState error={error} what="reports" />;
-  if (!data.length) return <Empty title="No daily reports yet.">They appear here as soon as the site team sends one.</Empty>;
-  return data.map((r) => <ReportCard key={r.id} r={r} />);
 }
 
 function AddMaterialForm({ cid, sid }) {

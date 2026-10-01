@@ -6,7 +6,7 @@ import { httpsCallable } from 'firebase/functions';
 import { validate, siteDetailsInput, siteInput } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
-  createSite, financeDoc, newReportId, sendReport, setBudget, setSiteStatus, siteDoc, sitesCol, updateSiteDetails,
+  createSite, financeDoc, sendReport, setBudget, setSiteStatus, siteDoc, sitesCol, updateSiteDetails,
 } from '../src/lib/db';
 import { changePassword, team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
@@ -22,7 +22,10 @@ let cid, s1, s2;
 const as = async (who) => { await signOut(auth); return (await signInWithEmailAndPassword(auth, email(who), pw[who])).user; };
 const code = (p) => p.then(() => 'ok', (e) => e.code);
 const form = (schema, data) => { const v = validate(schema, data); if (!v.ok) throw new Error(v.error); return v.data; };
-const report = (uid, name) => ({ text: 'Blockwork to lintel level', stage: 'Blockwork', progress: 20, issues: '', photos: [], workersPresent: 3, uid, name });
+async function send(sid, uid, date) {
+  const site = { id: sid, ...(await getDoc(siteDoc(cid, sid))).data() };
+  return save(sendReport(cid, site, { text: 'Blockwork to lintel level', stage: 'Blockwork', progress: 20, workersPresent: 3 }, { uid, name: 'super person', date }).done);
+}
 
 async function invite(who, role, siteIds = []) {
   const r = await team.invite({ name: `${who} person`, email: email(who), role, siteIds });
@@ -126,18 +129,18 @@ describe('site status', () => {
     await as('manager');
     await save(setSiteStatus(cid, s1, 'on_hold'));
     const u = await as('super');
-    await save(sendReport(cid, s1, newReportId(cid, s1), report(u.uid, 'super person')));
+    await send(s1, u.uid, '2026-06-01');
 
     await as('manager');
     await save(setSiteStatus(cid, s1, 'closed'));
     await as('super');
-    await expect(save(sendReport(cid, s1, newReportId(cid, s1), report(u.uid, 'super person')))).rejects.toBeInstanceOf(SaveError);
+    await expect(send(s1, u.uid, '2026-06-02')).rejects.toBeInstanceOf(SaveError);
     expect((await getDoc(siteDoc(cid, s1))).data().status).toBe('closed'); // still readable
 
     await as('manager');
     await save(setSiteStatus(cid, s1, 'active'));
     await as('super');
-    await save(sendReport(cid, s1, newReportId(cid, s1), report(u.uid, 'super person')));
+    await send(s1, u.uid, '2026-06-03');
   });
 
   it('sites cannot be deleted, only closed', async () => {

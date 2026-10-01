@@ -69,6 +69,7 @@ export function useSiteData(cid, sid, { withPay = false } = {}) {
     workers: workers.data.filter((w) => w.active !== false),
     pay: Object.fromEntries(pay.data.map((p) => [p.id, p])),
     usage: usageByMaterial(logs.data),
+    logs: logs.data,
     present,
     presentCount: presentCount(present),
     loading: materials.loading || workers.loading || attendance.loading,

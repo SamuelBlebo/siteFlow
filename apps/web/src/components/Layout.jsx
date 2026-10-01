@@ -14,6 +14,7 @@ export default function Layout() {
           <nav className="nav">
             {can('sites.all') && <NavLink to="/" end>Dashboard</NavLink>}
             {can('sites.all') && <NavLink to="/sites">Sites</NavLink>}
+            {can('sites.all') && <NavLink to="/reports">Reports</NavLink>}
             <NavLink to="/work">Site work</NavLink>
             {can('team.manage') && <NavLink to="/team">Team</NavLink>}
             {can('company.settings') && <NavLink to="/company">Company</NavLink>}
