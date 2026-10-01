@@ -23,12 +23,12 @@ export const todayLogsQuery = (cid, sid) => sub(cid, sid, 'materialLogs').where(
 // Log entry and stock change in one batch (the rules check they match).
 // A delivery cost is only sent by finance roles; it also records an expense.
 export function logMaterial(cid, sid, input) {
-  const { material, type, qty, cost = 0, supplier = '', uid, date = todayKey() } = input;
+  const { material, type, qty, cost = 0, supplier = '', ref = '', note = '', uid, name, date = todayKey() } = input;
   const b = firestore().batch();
   const logRef = sub(cid, sid, 'materialLogs').doc();
   b.set(logRef, {
     materialId: material.id, materialName: material.name, unit: material.unit,
-    type, qty, cost, supplier, date, createdBy: uid, createdAt: now(),
+    type, qty, cost, supplier, ref, note, date, createdBy: uid, createdByName: name, createdAt: now(),
   });
   b.update(subRef(cid, sid, 'materials', material.id), { stock: inc(stockDelta({ type, qty })), lastLogId: logRef.id });
   if (type === 'delivery' && cost > 0) {

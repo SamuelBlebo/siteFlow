@@ -53,7 +53,7 @@ export default function TodayScreen({ navigation }) {
             <View key={m.id} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
               <Text style={{ flex: 1, color: colors.ink }}>{m.name}</Text>
               <Text style={{ fontWeight: '700', color: colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>{m.unit}</Text></Text>
-              {materialStatus(m, usage[m.id]).low ? <Pill kind="warn">Low</Pill> : null}
+              {m.stock < 0 ? <Pill kind="bad">Count needed</Pill> : materialStatus(m, usage[m.id]).low ? <Pill kind="warn">Low</Pill> : null}
             </View>
           ))}
       </Card>
