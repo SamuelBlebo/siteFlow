@@ -128,6 +128,15 @@ out from attendance can be recorded as a Labour expense. All calculations (varia
 overspend risk, monthly spend) are in `packages/shared/src/logic/finance.ts`.
 - Web: Budget tab per site, Finance page across sites. Mobile shows no money.
 
+## Dashboard
+For roles that see every site. Answers three questions with shared logic (`logic/dashboard.ts`, `siteAlerts`):
+- **What needs attention**: alerts ranked urgent first (critical issues, missing reports, stock, budget, delays),
+  filterable by kind, each with an action (remind on WhatsApp, open issue, materials, budget, progress).
+- **What is happening**: reports in, workers on site, open issues, latest reports and issues across sites.
+- **How each site is doing**: progress against the plan, report reliability over two weeks, issues, stock, budget.
+- Two-week analytics: workers reported per day, reports sent, issues reported and resolved.
+Mobile shows managers the top five items on the sites screen.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
