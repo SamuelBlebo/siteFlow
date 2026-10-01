@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, increment, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
+  collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, increment, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
   type Firestore,
 } from 'firebase/firestore';
-import { PERMISSIONS, ROLES, can, paths, type Permission, type Role } from '@siteflow/shared';
-import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, USERS, makeEnv, seed, site } from './setup';
+import { PERMISSIONS, ROLES, can, paths, reportDoc, reportId, type Permission, type Role } from '@siteflow/shared';
+import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, seed, site } from './setup';
 
 let env: RulesTestEnvironment;
 beforeAll(async () => { env = await makeEnv(); });
@@ -17,10 +17,17 @@ const asRole = (r: Role) => as(USERS[r]);
 const anon = () => env.unauthenticatedContext().firestore() as unknown as Firestore;
 const today = '2026-06-15';
 
-const report = (uid: string, name: string, extra: object = {}) => ({
-  date: today, time: '17:00', text: 'Cast lintels', stage: 'Blockwork', progress: 30, issues: '', photos: [],
-  workersPresent: 4, createdBy: uid, createdByName: name, createdAt: serverTimestamp(), ...extra,
+// A report exactly as the apps build it (reportDoc), at its fixed id {date}_{uid}
+const report = (cid: string, sid: string, uid: string, name: string, extra: object = {}) => ({
+  ...reportDoc(
+    { text: 'Cast lintels', stage: 'Blockwork', progress: 30, workersPresent: 4 },
+    { companyId: cid, siteId: sid, siteName: `Site ${sid}`, date: today, time: '17:00', uid, name, source: 'app' },
+  ),
+  createdAt: serverTimestamp(), ...extra,
 });
+function sendReport(db: Firestore, cid: string, sid: string, uid: string, name: string, extra: object = {}, id = reportId(today, uid)) {
+  return setDoc(doc(db, paths.subDoc(cid, sid, 'reports', id)), report(cid, sid, uid, name, extra));
+}
 
 // Writes a material log and the matching stock change in one batch, the way the apps do
 function logMaterial(db: Firestore, cid: string, sid: string, uid: string, o: { type?: 'usage' | 'delivery'; qty?: number; cost?: number; stockChange?: number } = {}) {
@@ -48,7 +55,7 @@ const probes: Partial<Record<Permission, (db: Firestore, r: Role) => Promise<unk
   'company.settings': (db) => updateDoc(doc(db, paths.company(C1)), { name: 'Renamed Builders' }),
   'sites.all': (db) => getDoc(doc(db, paths.site(C1, S2))),
   'sites.manage': (db) => setDoc(doc(db, paths.site(C1, 'new-site')), site('New site')),
-  'site.work': (db, r) => setDoc(doc(db, paths.subDoc(C1, S1, 'reports', `probe-${r}`)), report(USERS[r], `${r} user`)),
+  'site.work': (db, r) => sendReport(db, C1, S1, USERS[r], `${r} user`),
   'finance.view': (db) => getDoc(doc(db, paths.finance(C1, S1))),
   'finance.edit': (db, r) => setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', `probe-${r}`)), {
     date: today, category: 'Transport', note: '', amount: 200, createdBy: USERS[r], createdAt: serverTimestamp(),
@@ -79,7 +86,7 @@ describe('tenant isolation', () => {
       await assertFails(getDoc(doc(db, paths.site(C2, S9))));
       await assertFails(getDoc(doc(db, paths.finance(C2, S9))));
       await assertFails(getDocs(collection(db, paths.sub(C2, S9, 'reports'))));
-      await assertFails(setDoc(doc(db, paths.subDoc(C2, S9, 'reports', 'x')), report(USERS[role], `${role} user`)));
+      await assertFails(sendReport(db, C2, S9, USERS[role], `${role} user`));
       await assertFails(getDoc(doc(db, paths.user(OTHER_OWNER))));
     }
   });
@@ -189,16 +196,16 @@ describe('site status, details and team', () => {
     await close(S1);
     const sup = asRole('supervisor');
     await assertSucceeds(getDoc(doc(sup, paths.site(C1, S1))));
-    await assertFails(setDoc(doc(sup, paths.subDoc(C1, S1, 'reports', 'late')), report(USERS.supervisor, 'supervisor user')));
+    await assertFails(sendReport(sup, C1, S1, USERS.supervisor, 'supervisor user'));
     await assertFails(setDoc(doc(sup, paths.attendance(C1, S1, today)), { date: today, present: {}, markedBy: USERS.supervisor }));
     await assertFails(logMaterial(sup, C1, S1, USERS.supervisor));
     await assertFails(setDoc(doc(sup, paths.subDoc(C1, S1, 'workers', 'late')), { name: 'Late Worker', trade: 'Mason', active: true, createdBy: USERS.supervisor }));
     await assertFails(updateDoc(doc(sup, paths.site(C1, S1)), { progress: 99, lastReportDate: today }));
-    await assertFails(setDoc(doc(asRole('owner'), paths.subDoc(C1, S1, 'reports', 'owner-late')), report(USERS.owner, 'owner user')));
+    await assertFails(sendReport(asRole('owner'), C1, S1, USERS.owner, 'owner user'));
   });
   it('an on-hold site still takes reports', async () => {
     await close(S1, 'on_hold');
-    await assertSucceeds(setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'reports', 'hold')), report(USERS.supervisor, 'supervisor user')));
+    await assertSucceeds(sendReport(asRole('supervisor'), C1, S1, USERS.supervisor, 'supervisor user'));
   });
   it('site managers change status and can reopen a closed site', async () => {
     await close(S1);
@@ -311,26 +318,71 @@ describe('workers and attendance', () => {
 });
 
 describe('reports', () => {
-  it('supervisor sends a report on an assigned site', async () => {
-    await assertSucceeds(setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'reports', 'new')), report(USERS.supervisor, 'supervisor user')));
+  const sup = () => asRole('supervisor');
+  const me = USERS.supervisor;
+  const name = 'supervisor user';
+
+  it('a supervisor sends a report on an assigned site', async () => {
+    await assertSucceeds(sendReport(sup(), C1, S1, me, name));
   });
-  it('cannot fake the author, send elsewhere or send junk', async () => {
-    const db = asRole('supervisor');
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'a')), report(USERS.owner, 'owner user')));
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'b')), report(USERS.supervisor, 'The Owner')));
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S2, 'reports', 'c')), report(USERS.supervisor, 'supervisor user')));
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'd')), report(USERS.supervisor, 'supervisor user', { progress: 150 })));
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'e')), report(USERS.supervisor, 'supervisor user', { photos: Array(9).fill('x') })));
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'f')), report(USERS.supervisor, 'supervisor user', { spent: 1 })));
+  it('the id must be today\'s date and the author, so resends cannot duplicate', async () => {
+    await assertFails(sendReport(sup(), C1, S1, me, name, {}, 'random-id'));
+    await assertFails(sendReport(sup(), C1, S1, me, name, {}, reportId(today, USERS.owner)));
+    await assertFails(sendReport(sup(), C1, S1, me, name, {}, reportId('2026-06-14', me)));
   });
-  it('the author adds photo links only', async () => {
-    const db = asRole('supervisor');
-    await assertSucceeds(updateDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'r1')), { photos: ['https://example.com/a.jpg'] }));
-    await assertFails(updateDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'r1')), { text: 'Rewritten' }));
-    await assertFails(deleteDoc(doc(db, paths.subDoc(C1, S1, 'reports', 'r1'))));
+  it('a resend of the same report is refused, not duplicated', async () => {
+    await assertSucceeds(sendReport(sup(), C1, S1, me, name));
+    await assertFails(sendReport(sup(), C1, S1, me, name, { text: 'Second version' }));
+  });
+  it('cannot fake the author, company, site or name', async () => {
+    const db = sup();
+    await assertFails(sendReport(db, C1, S1, me, name, { createdBy: USERS.owner }));
+    await assertFails(sendReport(db, C1, S1, me, 'The Owner'));
+    await assertFails(sendReport(db, C1, S1, me, name, { companyId: C2 }));
+    await assertFails(sendReport(db, C1, S1, me, name, { siteId: S2 }));
+    await assertFails(sendReport(db, C1, S2, me, name));
+  });
+  it('fields are checked', async () => {
+    const db = sup();
+    for (const bad of [
+      { progress: 150 }, { photos: Array(9).fill('x') }, { spent: 1 }, { workersPresent: -1 }, { workersPresent: 2.5 },
+      { weather: 'Snow' }, { text: '' }, { source: 'whatsapp' }, { materialsUsed: 'lots' },
+    ]) {
+      await assertFails(sendReport(db, C1, S1, me, name, bad));
+    }
+    await assertSucceeds(sendReport(db, C1, S1, me, name, {
+      notes: 'Inspector visited', issues: 'Cement short', weather: 'Light rain',
+      materialsUsed: [{ materialId: 'cement', name: 'Cement', unit: 'bags', qty: 6 }],
+    }));
+  });
+  it('the author adds photo links only; nobody rewrites a report', async () => {
+    const db = sup();
+    const ref = doc(db, paths.subDoc(C1, S1, 'reports', SEEDED_REPORT));
+    await assertSucceeds(updateDoc(ref, { photos: ['https://example.com/a.jpg'], photoCount: 1 }));
+    await assertFails(updateDoc(ref, { text: 'Rewritten' }));
+    await assertFails(updateDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'reports', SEEDED_REPORT)), { text: 'Rewritten by manager' }));
+    await assertFails(deleteDoc(ref));
+    await assertSucceeds(deleteDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'reports', SEEDED_REPORT))));
   });
   it('viewer reads but cannot write', async () => {
     await assertSucceeds(getDocs(collection(asRole('viewer'), paths.sub(C1, S1, 'reports'))));
-    await assertFails(setDoc(doc(asRole('viewer'), paths.subDoc(C1, S1, 'reports', 'v')), report(USERS.viewer, 'viewer user')));
+    await assertFails(sendReport(asRole('viewer'), C1, S1, USERS.viewer, 'viewer user'));
+  });
+});
+
+describe('company-wide reports (collection group)', () => {
+  const companyReports = (db: Firestore, cid: string) => getDocs(query(collectionGroup(db, 'reports'), where('companyId', '==', cid)));
+  it('roles that see every site can list all company reports', async () => {
+    for (const r of ['owner', 'admin', 'manager', 'finance'] as const) {
+      const snap = await assertSucceeds(companyReports(asRole(r), C1));
+      expect(snap.docs.every((d) => d.data().companyId === C1)).toBe(true);
+      expect(snap.size).toBe(2);
+    }
+  });
+  it('site-scoped roles, other companies and unfiltered queries are refused', async () => {
+    await assertFails(companyReports(asRole('supervisor'), C1));
+    await assertFails(companyReports(asRole('viewer'), C1));
+    await assertFails(companyReports(as(OTHER_OWNER), C1));
+    await assertFails(getDocs(collectionGroup(asRole('owner'), 'reports')));
   });
 });

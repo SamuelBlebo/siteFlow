@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, setDoc, setLogLevel } from 'firebase/firestore';
-import { paths, type Role } from '@siteflow/shared';
+import { paths, reportDoc, reportId, type Role } from '@siteflow/shared';
 
 export const PROJECT_ID = 'demo-siteflow';
 // Denied writes are expected in these tests; don't flood the output with SDK warnings
@@ -21,6 +21,7 @@ export const USERS: Record<Role, string> = {
 };
 export const OTHER_OWNER = 'owner2';
 export const OFF_USER = 'off1';  // supervisor on s1, switched off
+export const SEEDED_REPORT = reportId('2026-06-01', 'super1'); // by the supervisor, on every site
 
 export async function makeEnv(): Promise<RulesTestEnvironment> {
   const [fsHost, fsPort] = (process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080').split(':');
@@ -57,10 +58,10 @@ export async function seed(env: RulesTestEnvironment) {
       await put(paths.subDoc(cid, sid, 'workers', 'w1'), { name: 'Yaw Boateng', trade: 'Mason', active: true, createdBy: USERS.owner });
       await put(paths.workerPay(cid, sid, 'w1'), { dailyRate: 150 });
       await put(paths.subDoc(cid, sid, 'expenses', 'e1'), { date: '2026-06-01', category: 'Materials', note: '', amount: 1000, createdBy: USERS.owner });
-      await put(paths.subDoc(cid, sid, 'reports', 'r1'), {
-        date: '2026-06-01', time: '17:00', text: 'Work', stage: 'Foundation', progress: 10, issues: '', photos: [],
-        workersPresent: 3, createdBy: USERS.supervisor, createdByName: 'supervisor user',
-      });
+      await put(paths.subDoc(cid, sid, 'reports', SEEDED_REPORT), reportDoc(
+        { text: 'Work', stage: 'Foundation', progress: 10, workersPresent: 3 },
+        { companyId: cid, siteId: sid, siteName: `Site ${sid}`, date: '2026-06-01', time: '17:00', uid: USERS.supervisor, name: 'supervisor user', source: 'app' },
+      ));
       await put(paths.subDoc(cid, sid, 'billing', 'b1'), { name: 'Stage 1', amount: 5000, status: 'upcoming', order: 1 });
     }
   });

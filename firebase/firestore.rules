@@ -59,6 +59,11 @@ service cloud.firestore {
         && data().get('mustChangePassword', false) == false;
     }
 
+    // Company-wide reports page: one collection-group query, filtered by companyId
+    match /{path=**}/reports/{rid} {
+      allow read: if signedIn() && allSites(resource.data.companyId);
+    }
+
     // ---------- companies ----------
     match /companies/{cid} {
       allow read: if member(cid);
@@ -194,20 +199,31 @@ service cloud.firestore {
           allow delete: if siteManager(cid);
         }
 
+        // One report per person per day: id = {date}_{uid} (reportId in shared). The document names its
+        // own company and site so the company-wide reports page can query all reports at once.
         match /reports/{id} {
+          function validReport() {
+            return data().keys().hasOnly(['companyId', 'siteId', 'siteName', 'date', 'time', 'text', 'notes', 'issues', 'weather',
+                                          'stage', 'progress', 'workersPresent', 'materialsUsed', 'photos', 'photoCount',
+                                          'createdBy', 'createdByName', 'source', 'createdAt'])
+              && data().companyId == cid && data().siteId == sid && isText(data().siteName, 1, 120)
+              && isDateKey(data().date) && id == data().date + '_' + request.auth.uid
+              && isText(data().time, 4, 5)
+              && isText(data().text, 1, 5000) && optText('notes', 5000) && optText('issues', 5000)
+              && (!('weather' in data()) || data().weather in ['', 'Sunny', 'Cloudy', 'Light rain', 'Heavy rain', 'Windy'])
+              && isText(data().stage, 1, 60) && isPct(data().progress)
+              && data().workersPresent is int && data().workersPresent >= 0 && data().workersPresent <= 2000
+              && (!('materialsUsed' in data()) || (data().materialsUsed is list && data().materialsUsed.size() <= 100))
+              && data().photos is list && data().photos.size() <= 8
+              && (!('photoCount' in data()) || (data().photoCount is int && data().photoCount >= 0 && data().photoCount <= 8))
+              && data().source in ['app', 'web']
+              && data().createdByName == me().name;
+          }
           allow read: if onSite(cid, sid);
-          allow create: if siteWork(cid, sid) && byMe()
-            && data().keys().hasOnly(['date', 'time', 'text', 'stage', 'progress', 'issues', 'photos', 'photoCount',
-                                      'workersPresent', 'createdBy', 'createdByName', 'source', 'createdAt'])
-            && isDateKey(data().date) && isText(data().text, 1, 5000) && isText(data().stage, 1, 60)
-            && isPct(data().progress) && optText('issues', 5000)
-            && data().photos is list && data().photos.size() <= 8
-            && data().workersPresent is int && data().workersPresent >= 0
-            && data().createdByName == me().name;
-          // The author adds photo links as they finish uploading
-          allow update: if siteManager(cid)
-            || (siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
-                && onlyChanges(['photos']) && data().photos is list && data().photos.size() <= 8);
+          allow create: if siteWork(cid, sid) && byMe() && validReport();
+          // Reports are a record: the author may only add photo links as they finish uploading
+          allow update: if siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
+            && onlyChanges(['photos', 'photoCount']) && data().photos is list && data().photos.size() <= 8;
           allow delete: if siteManager(cid);
         }
 
