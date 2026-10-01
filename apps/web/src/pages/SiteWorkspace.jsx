@@ -7,6 +7,7 @@ import { isSiteOpen, longToday, todayKey } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
+import SiteIssues from '../components/SiteIssues';
 import LabourPanel from '../components/LabourPanel';
 import MaterialsPanel from '../components/MaterialsPanel';
 import MaterialsTable from '../components/MaterialsTable';
@@ -33,8 +34,8 @@ export default function SiteWorkspace() {
     { key: 'report', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
   ];
   const tabs = work
-    ? [['today', 'Today'], ['report', 'Report'], ['materials', 'Materials'], ['workers', 'Workers'], ['history', 'History']]
-    : [['today', 'Today'], ['materials', 'Materials'], ['workers', 'Workers'], ['history', 'History']];
+    ? [['today', 'Today'], ['report', 'Report'], ['issues', 'Issues'], ['materials', 'Materials'], ['workers', 'Workers'], ['history', 'History']]
+    : [['today', 'Today'], ['issues', 'Issues'], ['materials', 'Materials'], ['workers', 'Workers'], ['history', 'History']];
 
   return (
     <section className="wrap narrow">
@@ -60,6 +61,7 @@ export default function SiteWorkspace() {
       )}
       {tab === 'report' && work && <ReportForm cid={cid} site={site} presentCount={d.presentCount} logs={d.logs} />}
       {tab === 'history' && <ReportHistory cid={cid} site={site} />}
+      {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={d} canWork={work} />}
       {tab === 'workers' && <LabourPanel cid={cid} site={site} data={d} canWork={work} />}
     </section>

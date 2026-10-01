@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteSignals } from '../lib/hooks';
-import { companyDoc, sitesCol } from '../lib/db';
+import { companyDoc, openIssuesQuery, sitesCol } from '../lib/db';
 import { budgetUsedPct, cedi, longToday, siteAlerts, todayKey } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
 import StatusPill from '../components/StatusPill';
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const money = can('finance.view');
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
   const { data: sites, loading, error } = useQuery(() => cid && sitesCol(cid), [cid]);
+  const { data: openIssues } = useQuery(() => cid && openIssuesQuery(cid), [cid]);
   const active = sites.filter((s) => s.status !== 'closed');
   const { materials, usage, present, finance } = useSiteSignals(cid, active.map((s) => s.id), { withFinance: money });
   const today = todayKey();
@@ -33,7 +34,9 @@ export default function Dashboard() {
     );
   }
 
-  const alerts = active.flatMap((s) => siteAlerts(s, materials[s.id], usage[s.id], { company, finance: money ? finance[s.id] : null })
+  const alerts = active.flatMap((s) => siteAlerts(s, materials[s.id], usage[s.id], {
+    company, finance: money ? finance[s.id] : null, openIssues: openIssues.filter((i) => i.siteId === s.id),
+  })
     .map((a) => ({ ...a, site: s })));
   const reporting = active.filter((s) => s.status === 'active');
   const reportsIn = reporting.filter((s) => s.lastReportDate === today).length;

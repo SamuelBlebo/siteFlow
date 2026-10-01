@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { waPhone } from '@siteflow/shared';
 
-const LABEL = { report: 'Report', usage: 'Usage', stock: 'Stock', budget: 'Budget', co: 'Change order', rfi: 'RFI', schedule: 'Programme', safety: 'Safety' };
+const LABEL = { report: 'Report', issue: 'Issue', usage: 'Usage', stock: 'Stock', budget: 'Budget', co: 'Change order', rfi: 'RFI', schedule: 'Programme', safety: 'Safety' };
 
 export default function AlertsPanel({ alerts }) {
   return (
@@ -15,7 +15,7 @@ export default function AlertsPanel({ alerts }) {
             <li key={i}>
               <span className={`kind k-${a.kind}`}>{LABEL[a.kind]}</span>
               <div className="body">
-                <b>{a.title}</b> at <Link to={`/sites/${a.site.id}`}>{a.site.name}</Link>
+                <b>{a.title}</b> at <Link to={`/sites/${a.site.id}${a.tab ? `?tab=${a.tab}` : ''}`}>{a.site.name}</Link>
                 <p className="muted">{a.detail}</p>
               </div>
               {a.kind === 'report' && a.site.foremanPhone && (

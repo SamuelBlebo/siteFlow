@@ -3,7 +3,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { countDifference, paths, reportDoc, reportId, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
+import { countDifference, issueDoc, paths, reportDoc, reportId, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
 import { resizePhoto } from './photos';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
@@ -162,3 +162,50 @@ export function sendReport(cid, site, input, { uid, name, photos = [], materials
 }
 
 export const reportExists = async (cid, sid, rid) => (await getDoc(reportRef(cid, sid, rid))).exists();
+
+// ---------- issues ----------
+export const issueRef = (cid, sid, id) => doc(db, paths.subDoc(cid, sid, 'issues', id));
+export const newIssueId = (cid, sid) => doc(sub(cid, sid, 'issues')).id;
+export const siteIssuesQuery = (cid, sid, n = 100) => query(sub(cid, sid, 'issues'), orderBy('date', 'desc'), limit(n));
+// Every open issue in the company (roles that see every site): one listener for the dashboard and Issues page
+export const openIssuesQuery = (cid) =>
+  query(collectionGroup(db, 'issues'), where('companyId', '==', cid), where('status', 'in', ['open', 'in_progress']));
+export const companyIssuesQuery = (cid, n = 200) =>
+  query(collectionGroup(db, 'issues'), where('companyId', '==', cid), orderBy('date', 'desc'), limit(n));
+export const commentsQuery = (cid, sid, id) => query(collection(db, paths.issueComments(cid, sid, id)), orderBy('createdAt'));
+
+export async function uploadIssuePhotos(cid, sid, issueId, files) {
+  const urls = [];
+  for (const [i, original] of files.entries()) {
+    const f = await resizePhoto(original);
+    const r = ref(storage, paths.issuePhoto(cid, sid, issueId, `${i + 1}-${Date.now()}.jpg`));
+    await uploadBytes(r, f, { contentType: f.type || 'image/jpeg' });
+    urls.push(await getDownloadURL(r));
+  }
+  return urls;
+}
+
+// input: validated issueInput. assignedTo only for site managers (the rules check).
+export function createIssue(cid, site, input, { id, uid, name, photos = [], assignedTo = null, assignedToName = '' }) {
+  const { photos: _p, ...fields } = input;
+  return setDoc(issueRef(cid, site.id, id), {
+    ...issueDoc(fields, { companyId: cid, siteId: site.id, siteName: site.name, uid, name, photos, assignedTo, assignedToName, date: todayKey() }),
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp(),
+  });
+}
+
+// A change to an issue (status, assignment, priority, details), with an optional note in the timeline
+export function updateIssue(cid, sid, id, patch, { note = '', uid, name } = {}) {
+  const b = writeBatch(db);
+  const resolved = patch.status === 'resolved' ? { resolvedAt: serverTimestamp() } : {};
+  b.update(issueRef(cid, sid, id), { ...patch, ...resolved, updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp() });
+  if (note) b.set(doc(collection(db, paths.issueComments(cid, sid, id))), { text: note, kind: 'update', createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
+  return b.commit();
+}
+
+export function addComment(cid, sid, id, text, { uid, name }) {
+  const b = writeBatch(db);
+  b.set(doc(collection(db, paths.issueComments(cid, sid, id))), { text, kind: 'comment', createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
+  b.update(issueRef(cid, sid, id), { commentCount: increment(1), lastActivityAt: serverTimestamp() });
+  return b.commit();
+}
