@@ -30,7 +30,8 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
       const used = usageToday[m.id] || 0;
       const st = materialStatus(m, used);
       if (st.highUse) a.push({ kind: 'usage', severity: 'bad', title: `High ${m.name} use`, detail: `${used} ${m.unit} used today against a usual ${m.avgDaily}.`, tab: 'materials' });
-      if (st.low) a.push({ kind: 'stock', severity: 'warn', title: `Low ${m.name} stock`, detail: `${m.stock} ${m.unit} left. Reorder level is ${m.reorderLevel}.`, tab: 'materials' });
+      if (st.negative) a.push({ kind: 'stock', severity: 'bad', title: `${m.name} below zero`, detail: `Records show ${m.stock} ${m.unit}. More was recorded as used than received. Do a stock count.`, tab: 'materials' });
+      else if (st.low) a.push({ kind: 'stock', severity: 'warn', title: `Low ${m.name} stock`, detail: `${m.stock} ${m.unit} left. Reorder level is ${m.reorderLevel}.`, tab: 'materials' });
     }
   }
   if (on('budget') && ctx.finance) {

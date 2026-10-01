@@ -61,10 +61,14 @@ export interface Site {
 export interface SiteFinance { budget: number; spent: number }
 
 // stock only changes together with a materialLogs entry (lastLogId points at it); the rules check the two match
-export interface Material { id: string; name: string; unit: string; stock: number; reorderLevel: number; avgDaily: number; lastLogId?: string }
+// active: false = archived (no longer stocked; history kept)
+export interface Material { id: string; name: string; unit: string; stock: number; reorderLevel: number; avgDaily: number; active?: boolean; lastLogId?: string }
+// delivery: received (+qty). usage: used (-qty). adjustment: a stock count, qty = counted minus recorded (+ or -).
+export type MaterialLogType = 'delivery' | 'usage' | 'adjustment';
 export interface MaterialLog {
   id?: string; materialId: string; materialName: string; unit: string;
-  type: 'usage' | 'delivery'; qty: number; cost: number; supplier: string; date: string; createdBy: string;
+  type: MaterialLogType; qty: number; cost: number; supplier: string; ref?: string; note?: string;
+  date: string; createdBy: string; createdByName?: string;
 }
 export interface Worker { id: string; name: string; trade: string; phone?: string; active: boolean; createdBy?: string }
 // companies/{cid}/sites/{sid}/workerPay/{workerId}. Finance roles only.

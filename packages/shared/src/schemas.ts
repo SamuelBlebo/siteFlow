@@ -39,19 +39,29 @@ export const budgetInput = z.object({ budget: positive('budget') });
 export const siteAssignInput = z.object({ sid: z.string().min(1), uid: z.string().min(1), assigned: z.boolean() });
 
 export const materialInput = z.object({
-  name: z.string().trim().min(1, 'Enter the material name.'),
-  unit: z.string().min(1),
+  name: z.string().trim().min(1, 'Enter the material name.').max(120),
+  unit: z.string().min(1, 'Choose a unit.').max(20),
   stock: money.default(0),
   reorderLevel: money.default(0),
   avgDaily: money.default(0),
 });
+// Editing a material. Stock is not here: it only changes through entries and stock counts.
+export const materialEditInput = materialInput.omit({ stock: true });
 
+// Received or used. Supplier and waybill only matter for deliveries; cost is for finance roles.
 export const materialLogInput = z.object({
-  materialId: z.string().min(1),
+  materialId: z.string().min(1, 'Choose a material.'),
   type: z.enum(['usage', 'delivery']),
   qty: positive('quantity'),
   cost: money.default(0),
-  supplier: z.string().trim().default(''),
+  supplier: z.string().trim().max(120).default(''),
+  ref: z.string().trim().max(60).default(''),
+  note: z.string().trim().max(500).default(''),
+});
+// A stock count: what is actually on site, and why it differs (site managers)
+export const stockCountInput = z.object({
+  counted: z.coerce.number({ invalid_type_error: 'Enter the quantity counted.' }).min(0, 'The count cannot be below zero.'),
+  note: z.string().trim().min(3, 'Say why the count differs, e.g. "Monthly count" or "Bags damaged by rain".').max(500),
 });
 
 export const workerInput = z.object({

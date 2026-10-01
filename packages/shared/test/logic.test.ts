@@ -22,9 +22,10 @@ describe('materials', () => {
     expect(stockDelta({ type: 'delivery', qty: 5 })).toBe(5);
   });
   it('flags low stock and high use (over 130%)', () => {
-    expect(materialStatus(cement, 13)).toEqual({ low: true, highUse: false });
-    expect(materialStatus(cement, 14)).toEqual({ low: true, highUse: true });
-    expect(materialStatus({ stock: 50, reorderLevel: 30, avgDaily: 0 }, 99)).toEqual({ low: false, highUse: false });
+    expect(materialStatus(cement, 13)).toEqual({ low: true, highUse: false, negative: false });
+    expect(materialStatus(cement, 14)).toEqual({ low: true, highUse: true, negative: false });
+    expect(materialStatus({ stock: 50, reorderLevel: 30, avgDaily: 0 }, 99)).toEqual({ low: false, highUse: false, negative: false });
+    expect(materialStatus({ stock: -2, reorderLevel: 0, avgDaily: 0 })).toMatchObject({ negative: true });
   });
 });
 
