@@ -85,6 +85,14 @@ weather, issues, notes, materials used that day and up to 8 photos (resized on t
 - **Web**: Reports page (every site, filters and search), report history per site (missing days highlighted),
   full report view with photo viewer.
 
+## Attendance
+One document per site per day (`attendance/{date}`) with a status per worker: **present**, **late**, **absent**
+or **leave**. Present and late count as a day worked and paid (`isWorked` in shared). Apps write one worker at a
+time (merged), so two people marking at once never overwrite each other.
+- Site team: mark today or a past day, "mark the rest present", add workers and fix their details.
+- Site managers switch workers off (their history stays). Finance sets daily rates (`workerPay`).
+- Web history: any period, grid per worker with totals, attendance CSV; finance also gets wages and a wage sheet CSV.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
