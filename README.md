@@ -75,6 +75,16 @@ dates, foreman, client, budget) and manage them from the Sites page: details, st
 - **Closed**: finished; records stay readable, but nobody can add reports, attendance, materials or photos
   (enforced in the rules). Sites are never deleted.
 
+## Daily reports
+One report per person per site per day (document id `{date}_{uid}`), built by `reportDoc` in shared so web
+and mobile store exactly the same thing. A report has work done, workers on site, stage and progress,
+weather, issues, notes, materials used that day and up to 8 photos (resized on the device).
+- **Mobile** sends through the report outbox (`apps/mobile/src/lib/reportOutbox.js`): saved on the phone first,
+  sent when there is signal, retried on connection problems, and shown as *Waiting for signal / Sending / Sent /
+  Not sent*. A report that can't be sent stays on the phone with Try again and Delete.
+- **Web**: Reports page (every site, filters and search), report history per site (missing days highlighted),
+  full report view with photo viewer.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
