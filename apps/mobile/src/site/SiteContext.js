@@ -22,7 +22,7 @@ export function SiteProvider({ sid, children }) {
     const unsubs = [
       siteRef(cid, sid).onSnapshot((s) => setSite(exists(s) ? { id: s.id, ...s.data() } : null), (e) => { fail('site')(e); setSite(null); }),
       sub(cid, sid, 'materials').onSnapshot((s) => setMaterials(toList(s)), fail('materials')),
-      sub(cid, sid, 'workers').onSnapshot((s) => setWorkers(toList(s).filter((w) => w.active !== false)), fail('workers')),
+      sub(cid, sid, 'workers').onSnapshot((s) => setWorkers(toList(s).filter((w) => w.active !== false).sort((a, b) => a.name.localeCompare(b.name))), fail('workers')),
       attendanceRef(cid, sid).onSnapshot((s) => setAttendance(exists(s) ? s.data() : null), fail('attendance')),
       todayLogsQuery(cid, sid).onSnapshot((s) => setLogs(toList(s)), fail('material logs')),
     ];
@@ -30,13 +30,13 @@ export function SiteProvider({ sid, children }) {
     return () => unsubs.forEach((u) => u());
   }, [cid, sid, withPay]);
 
-  const present = attendance?.present || {};
+  const marks = attendance?.marks || {};
   return (
     <SiteCtx.Provider value={{
       cid, sid, site, loading: site === undefined, error,
       // Daily site work needs the role and an open (not closed) site; the rules check both
       canWork: can('site.work') && isSiteOpen(site), materials, workers, pay: withPay ? pay : null,
-      attendance, present, usage: usageByMaterial(logs), presentCount: presentCount(present),
+      attendance, marks, usage: usageByMaterial(logs), presentCount: presentCount(marks),
     }}>
       {children}
     </SiteCtx.Provider>

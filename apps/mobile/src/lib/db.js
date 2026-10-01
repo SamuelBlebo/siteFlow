@@ -44,26 +44,37 @@ export function logMaterial(cid, sid, input) {
   });
 }
 
-// One worker at a time, merged, so two phones marking different workers never overwrite each other
+// Marks one or more workers for a day ({ workerId: 'present' | 'late' | 'absent' | 'leave' }).
+// Merged per worker, so two phones marking different workers never overwrite each other.
 export function markAttendance(cid, sid, input) {
-  const { workerId, workerName, present, uid, date = todayKey() } = input;
-  return track(attendanceRef(cid, sid, date).set({ date, present: { [workerId]: present }, markedBy: uid, updatedAt: now() }, { merge: true }), {
-    label: `Attendance for ${workerName || 'a worker'}`, op: 'markAttendance', args: [cid, sid, { ...input, date }],
+  const { marks, label = 'Attendance', uid, date = todayKey() } = input;
+  return track(attendanceRef(cid, sid, date).set({ date, marks, markedBy: uid, updatedAt: now() }, { merge: true }), {
+    label, op: 'markAttendance', args: [cid, sid, { ...input, date }],
   });
 }
+export const attendanceRangeQuery = (cid, sid, from, to) =>
+  sub(cid, sid, 'attendance').where('date', '>=', from).where('date', '<=', to).orderBy('date', 'desc');
 
 // Pay goes to workerPay, which only finance roles may write
 export function addWorker(cid, sid, input) {
-  const { name, trade, dailyRate = 0, uid } = input;
+  const { name, trade, phone = '', dailyRate = 0, uid } = input;
   const b = firestore().batch();
   const w = sub(cid, sid, 'workers').doc();
-  b.set(w, { name, trade, active: true, createdBy: uid, createdAt: now() });
+  b.set(w, { name, trade, phone, active: true, createdBy: uid, createdAt: now() });
   if (dailyRate > 0) b.set(firestore().doc(paths.workerPay(cid, sid, w.id)), { dailyRate, updatedAt: now() });
   return track(b.commit(), { label: `New worker ${name}`, op: 'addWorker', args: [cid, sid, input] });
+}
+
+// The site team can fix a worker's name, trade and phone
+export function updateWorker(cid, sid, input) {
+  const { id, name, trade, phone = '' } = input;
+  return track(subRef(cid, sid, 'workers', id).update({ name, trade, phone, updatedAt: now() }), {
+    label: `Changes to ${name}`, op: 'updateWorker', args: [cid, sid, input],
+  });
 }
 
 // Daily reports are sent through the report outbox (reportOutbox.js), not here
 export const reportRef = (cid, sid, rid) => firestore().doc(paths.subDoc(cid, sid, 'reports', rid));
 export const siteReportsQuery = (cid, sid, n = 10) => sub(cid, sid, 'reports').orderBy('date', 'desc').limit(n);
 
-registerOps({ logMaterial, markAttendance, addWorker });
+registerOps({ logMaterial, markAttendance, addWorker, updateWorker });
