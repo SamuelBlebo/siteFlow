@@ -77,8 +77,8 @@ describe('supervisor', () => {
 
   it('marks attendance per worker', async () => {
     const workers = (await getDocs(sub(cid, sid, 'workers'))).docs;
-    await save(markAttendance(cid, sid, { workerId: workers[0].id, present: true, uid }));
-    expect((await getDoc(attendanceDoc(cid, sid))).data().present).toEqual({ [workers[0].id]: true });
+    await save(markAttendance(cid, sid, { marks: { [workers[0].id]: 'present' }, uid }));
+    expect((await getDoc(attendanceDoc(cid, sid))).data().marks).toEqual({ [workers[0].id]: 'present' });
   });
 
   it('logs usage; stock moves with it', async () => {

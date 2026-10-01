@@ -60,13 +60,18 @@ export const setBudget = (cid, sid, budget) => updateDoc(financeDoc(cid, sid), {
 export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, createdAt: serverTimestamp() });
 
 // Worker details are visible to the site team; the daily rate goes to workerPay (finance roles only)
-export function addWorker(cid, sid, { name, trade, dailyRate }, uid) {
+export function addWorker(cid, sid, { name, trade, phone = '', dailyRate }, uid) {
   const b = writeBatch(db);
   const w = doc(sub(cid, sid, 'workers'));
-  b.set(w, { name, trade, active: true, createdBy: uid, createdAt: serverTimestamp() });
+  b.set(w, { name, trade, phone, active: true, createdBy: uid, createdAt: serverTimestamp() });
   if (dailyRate > 0) b.set(doc(db, paths.workerPay(cid, sid, w.id)), { dailyRate, updatedAt: serverTimestamp() });
   return b.commit();
 }
+export const updateWorker = (cid, sid, wid, { name, trade, phone = '' }) =>
+  updateDoc(subDoc(cid, sid, 'workers', wid), { name, trade, phone, updatedAt: serverTimestamp() });
+export const setWorkerActive = (cid, sid, wid, active) => updateDoc(subDoc(cid, sid, 'workers', wid), { active, updatedAt: serverTimestamp() });
+export const setWorkerRate = (cid, sid, wid, dailyRate) =>
+  setDoc(doc(db, paths.workerPay(cid, sid, wid)), { dailyRate, updatedAt: serverTimestamp() }, { merge: true });
 
 // Log entry and stock change go in one batch; the rules check they match.
 // A delivery cost (finance roles only) also records an expense and adds to spent.
@@ -96,13 +101,13 @@ export function addExpense(cid, sid, { category, note, amount, uid }) {
   return b.commit();
 }
 
-// Marks one worker. Merging per worker means two people marking at once don't overwrite each other.
-export function markAttendance(cid, sid, { workerId, present, uid }) {
-  const date = todayKey();
-  return setDoc(attendanceDoc(cid, sid, date), {
-    date, present: { [workerId]: present }, markedBy: uid, updatedAt: serverTimestamp(),
-  }, { merge: true });
+// Marks one or more workers for a day, e.g. { w1: 'present', w2: 'late' }. Merged per worker, so
+// two people marking at once don't overwrite each other.
+export function markAttendance(cid, sid, { marks, uid, date = todayKey() }) {
+  return setDoc(attendanceDoc(cid, sid, date), { date, marks, markedBy: uid, updatedAt: serverTimestamp() }, { merge: true });
 }
+export const attendanceRangeQuery = (cid, sid, from, to) =>
+  query(sub(cid, sid, 'attendance'), where('date', '>=', from), where('date', '<=', to), orderBy('date'));
 
 // Photos are resized on the device, then stored under the report's id
 export async function uploadPhotos(cid, sid, rid, files) {

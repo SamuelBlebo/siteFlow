@@ -48,7 +48,7 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
     siteIds.forEach((sid) => {
       unsubs.push(onSnapshot(sub(cid, sid, 'materials'), (s) => setMaterials((p) => ({ ...p, [sid]: toList(s) })), fail('materials')));
       unsubs.push(onSnapshot(todayLogsQuery(cid, sid), (s) => setUsage((p) => ({ ...p, [sid]: usageByMaterial(toList(s)) })), fail('usage')));
-      unsubs.push(onSnapshot(attendanceDoc(cid, sid), (s) => setPresent((p) => ({ ...p, [sid]: presentCount(s.data()?.present) })), fail('attendance')));
+      unsubs.push(onSnapshot(attendanceDoc(cid, sid), (s) => setPresent((p) => ({ ...p, [sid]: presentCount(s.data()?.marks) })), fail('attendance')));
       if (withFinance) unsubs.push(onSnapshot(financeDoc(cid, sid), (s) => setFinance((p) => ({ ...p, [sid]: s.data() || null })), fail('finance')));
     });
     return () => unsubs.forEach((u) => u());
@@ -59,19 +59,21 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
 // Everything one site workspace needs. Pay is only loaded for roles that may see it.
 export function useSiteData(cid, sid, { withPay = false } = {}) {
   const materials = useQuery(() => cid && sid && sub(cid, sid, 'materials'), [cid, sid]);
-  const workers = useQuery(() => cid && sid && sub(cid, sid, 'workers'), [cid, sid]);
+  const workers = useQuery(() => cid && sid && sub(cid, sid, 'workers'), [cid, sid]); // all, including switched off
   const pay = useQuery(() => withPay && cid && sid && sub(cid, sid, 'workerPay'), [cid, sid, withPay]);
   const logs = useQuery(() => cid && sid && todayLogsQuery(cid, sid), [cid, sid]);
   const attendance = useDoc(() => cid && sid && attendanceDoc(cid, sid), [cid, sid]);
-  const present = attendance.data?.present || {};
+  const marks = attendance.data?.marks || {};
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '');
   return {
     materials: materials.data,
-    workers: workers.data.filter((w) => w.active !== false),
+    workers: workers.data.filter((w) => w.active !== false).sort(byName),
+    allWorkers: [...workers.data].sort(byName),
     pay: Object.fromEntries(pay.data.map((p) => [p.id, p])),
     usage: usageByMaterial(logs.data),
     logs: logs.data,
-    present,
-    presentCount: presentCount(present),
+    marks,
+    presentCount: presentCount(marks),
     loading: materials.loading || workers.loading || attendance.loading,
     error: materials.error || workers.error || attendance.error || logs.error || pay.error,
   };

@@ -16,8 +16,7 @@ import Tabs from '../components/Tabs';
 import ReportHistory from '../components/ReportHistory';
 import MaterialsTable from '../components/MaterialsTable';
 import MaterialLogForm from '../components/MaterialLogForm';
-import AttendanceList from '../components/AttendanceList';
-import AddWorkerForm from '../components/AddWorkerForm';
+import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -68,12 +67,7 @@ export default function SiteDetail() {
           {can('sites.manage') && <AddMaterialForm cid={cid} sid={sid} />}
         </>
       )}
-      {tab === 'labour' && (
-        <>
-          <AttendanceList cid={cid} sid={sid} workers={data.workers} present={data.present} pay={data.pay} readOnly={!work} />
-          {work && <AddWorkerForm cid={cid} sid={sid} />}
-        </>
-      )}
+      {tab === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'budget' && can('finance.view') && <BudgetTab cid={cid} sid={sid} site={site} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
       {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} />}

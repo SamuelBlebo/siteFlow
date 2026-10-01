@@ -7,8 +7,7 @@ import { isSiteOpen, longToday, todayKey } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
-import AttendanceList from '../components/AttendanceList';
-import AddWorkerForm from '../components/AddWorkerForm';
+import LabourPanel from '../components/LabourPanel';
 import MaterialLogForm from '../components/MaterialLogForm';
 import MaterialsTable from '../components/MaterialsTable';
 import { ErrorState, Loading } from '../components/States';
@@ -68,12 +67,7 @@ export default function SiteWorkspace() {
           <MaterialsTable materials={d.materials} usage={d.usage} />
         </>
       )}
-      {tab === 'workers' && (
-        <>
-          <AttendanceList cid={cid} sid={sid} workers={d.workers} present={d.present} pay={d.pay} readOnly={!work} />
-          {work && <AddWorkerForm cid={cid} sid={sid} />}
-        </>
-      )}
+      {tab === 'workers' && <LabourPanel cid={cid} site={site} data={d} canWork={work} />}
     </section>
   );
 }
