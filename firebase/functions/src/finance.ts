@@ -12,6 +12,8 @@ export const recalcSiteSpending = onDocumentWritten('companies/{cid}/sites/{sid}
   const db = getFirestore();
   const snap = await db.collection(paths.sub(cid, sid, 'expenses')).get();
   const totals = expenseTotals(snap.docs.map((d) => d.data() as Expense));
-  await db.doc(paths.finance(cid, sid)).set({ ...totals, computedAt: FieldValue.serverTimestamp() }, { merge: true });
+  // mergeFields replaces these fields whole (a plain merge would keep categories that no longer have spending)
+  await db.doc(paths.finance(cid, sid)).set({ ...totals, computedAt: FieldValue.serverTimestamp() },
+    { mergeFields: ['spent', 'byCategory', 'expenseCount', 'computedAt'] });
   logger.info('Site spending recalculated', { cid, sid, spent: totals.spent, expenses: totals.expenseCount });
 });
