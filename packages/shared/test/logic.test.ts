@@ -95,10 +95,14 @@ describe('alerts', () => {
 
 describe('validation', () => {
   it('report', () => {
-    expect(validate(reportInput, { text: 'Cast lintels', stage: 'Foundation', progress: '45' })).toMatchObject({ ok: true, data: { progress: 45, issues: '', photos: [] } });
-    expect(validate(reportInput, { text: '', stage: 'x', progress: 1 })).toMatchObject({ ok: false });
-    expect(validate(reportInput, { text: 'abc', stage: 'x', progress: 101 })).toEqual({ ok: false, error: 'Progress must be between 0 and 100.' });
-    expect(validate(reportInput, { text: 'abc', stage: 'x', progress: 1, photos: Array(9).fill('p') })).toMatchObject({ ok: false });
+    const r = { stage: 'Foundation', workersPresent: '6' };
+    expect(validate(reportInput, { ...r, text: 'Cast lintels', progress: '45' })).toMatchObject({ ok: true, data: { progress: 45, workersPresent: 6, issues: '', notes: '', weather: '', photos: [] } });
+    expect(validate(reportInput, { ...r, text: '', progress: 1 })).toMatchObject({ ok: false });
+    expect(validate(reportInput, { ...r, text: 'abc', progress: 101 })).toEqual({ ok: false, error: 'Progress must be between 0 and 100.' });
+    expect(validate(reportInput, { ...r, text: 'abc', progress: 1, photos: Array(9).fill('p') })).toEqual({ ok: false, error: 'Add up to 8 photos.' });
+    expect(validate(reportInput, { ...r, text: 'abc', progress: 1, workersPresent: '2.5' })).toEqual({ ok: false, error: 'Enter a whole number of workers.' });
+    expect(validate(reportInput, { ...r, text: 'abc', progress: 1, weather: 'Snow' }).ok).toBe(false);
+    expect(validate(reportInput, { ...r, text: 'abc', progress: 1, weather: 'Heavy rain' }).ok).toBe(true);
   });
   it('site', () => {
     expect(validate(siteInput, { name: 'Adenta house', location: 'Accra', budget: '250000', stage: 'Foundation', foremanPhone: '0241234567' }).ok).toBe(true);

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CO_REASONS, INCIDENT_TYPES } from './constants';
 import { ROLES } from './permissions';
+import { REPORT_PHOTO_LIMIT, WEATHER } from './logic/reports';
 
 // Validation used by the forms (web and mobile) and again in Cloud Functions.
 const money = z.coerce.number({ invalid_type_error: 'Enter an amount.' }).nonnegative('Amount cannot be negative.');
@@ -61,11 +62,14 @@ export const workerInput = z.object({
 export const workerPayInput = z.object({ dailyRate: positive('daily rate') });
 
 export const reportInput = z.object({
-  text: z.string().trim().min(3, 'Describe the work done today before sending.'),
-  stage: z.string().min(1),
-  progress: z.coerce.number().min(0).max(100, 'Progress must be between 0 and 100.'),
-  issues: z.string().trim().default(''),
-  photos: z.array(z.string()).max(8, 'Add up to 8 photos.').default([]),
+  text: z.string().trim().min(3, 'Describe the work done today before sending.').max(5000, 'Keep the work description under 5000 characters.'),
+  notes: z.string().trim().max(5000).optional().default(''),
+  issues: z.string().trim().max(5000).optional().default(''),
+  weather: z.enum(['', ...WEATHER]).optional().default(''),
+  stage: z.string().min(1, 'Choose the current stage.'),
+  progress: z.coerce.number({ invalid_type_error: 'Enter the progress as a number.' }).min(0, 'Progress must be between 0 and 100.').max(100, 'Progress must be between 0 and 100.'),
+  workersPresent: z.coerce.number({ invalid_type_error: 'Enter how many workers were on site.' }).int('Enter a whole number of workers.').min(0).max(2000),
+  photos: z.array(z.string()).max(REPORT_PHOTO_LIMIT, `Add up to ${REPORT_PHOTO_LIMIT} photos.`).default([]),
 });
 
 export const expenseInput = z.object({ category: z.string().min(1), note: z.string().trim().default(''), amount: positive('amount') });

@@ -72,9 +72,13 @@ export interface WorkerPay { dailyRate: number; bankName?: string; accountLast4?
 // One doc per day. Each worker is its own map key, so two phones marking different workers never overwrite each other.
 export interface Attendance { date: string; present: Record<string, boolean>; markedBy: string }
 export type ReportSource = 'app' | 'web' | 'voice' | 'whatsapp';
+// companies/{cid}/sites/{sid}/reports/{date}_{uid}. companyId/siteId/siteName are stored so the
+// company-wide reports page can use one collection-group query.
 export interface Report {
-  id?: string; date: string; time: string; text: string; stage: string; progress: number; issues: string;
-  photos: string[]; photoCount?: number; workersPresent: number; createdBy: string; createdByName: string; source?: ReportSource;
+  id?: string; companyId: string; siteId: string; siteName: string; date: string; time: string;
+  text: string; notes?: string; issues: string; weather?: string; stage: string; progress: number; workersPresent: number;
+  materialsUsed?: { materialId: string; name: string; unit: string; qty: number }[];
+  photos: string[]; photoCount?: number; createdBy: string; createdByName: string; source?: ReportSource;
 }
 export interface Expense { id?: string; date: string; category: string; note: string; amount: number; createdBy: string }
 

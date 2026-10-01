@@ -15,3 +15,4 @@ export * from './logic/schedule';
 export * from './logic/wages';
 export * from './logic/messages';
 export * from './logic/sites';
+export * from './logic/reports';
