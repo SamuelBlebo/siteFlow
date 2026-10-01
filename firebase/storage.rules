@@ -29,6 +29,16 @@ service firebase.storage {
       allow delete: if siteManager(cid);
     }
 
+    // Issue photos: paths.issuePhoto(cid, sid, issueId, file)
+    match /companies/{cid}/sites/{sid}/issues/{issueId}/{file} {
+      allow read: if onSite(cid, sid);
+      allow create: if resource == null && siteWork(cid, sid)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update: if false;
+      allow delete: if siteManager(cid);
+    }
+
     // Anything else is closed until a feature needs it
     match /{all=**} {
       allow read, write: if false;

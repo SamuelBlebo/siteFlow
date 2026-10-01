@@ -53,6 +53,13 @@ describe('report photos', () => {
     await assertFails(upload(asRole('supervisor'), paths.photo(C1, S1, 'r1', 'late.jpg')));
     await assertSucceeds(getBytes(ref(asRole('supervisor'), paths.photo(C1, S1, 'r1', 'existing.jpg'))));
   });
+  it('issue photos: site workers on their sites, viewers read only', async () => {
+    await assertSucceeds(upload(asRole('supervisor'), paths.issuePhoto(C1, S1, 'i1', '1.jpg')));
+    await assertFails(upload(asRole('supervisor'), paths.issuePhoto(C1, S2, 'i1', '1.jpg')));
+    await assertFails(upload(asRole('viewer'), paths.issuePhoto(C1, S1, 'i1', '2.jpg')));
+    await assertSucceeds(getBytes(ref(asRole('viewer'), paths.issuePhoto(C1, S1, 'i1', '1.jpg'))));
+    await assertFails(upload(asRole('supervisor'), paths.issuePhoto(C1, S1, 'i1', '1.jpg')));
+  });
   it('everything outside report photos is closed', async () => {
     await assertFails(upload(asRole('owner'), `companies/${C1}/logo.png`, 'image/png'));
     await assertFails(upload(asRole('owner'), 'public/anything.jpg'));

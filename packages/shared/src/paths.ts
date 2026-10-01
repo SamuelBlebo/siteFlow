@@ -2,7 +2,7 @@
 // React Native Firebase (firestore().doc(path)) and the Admin SDK (db.doc(path)).
 // Never hand-type a path in an app: add it here.
 export type SiteCollection =
-  | 'materials' | 'materialLogs' | 'workers' | 'workerPay' | 'attendance' | 'reports' | 'expenses' | 'finance'
+  | 'materials' | 'materialLogs' | 'workers' | 'workerPay' | 'attendance' | 'reports' | 'issues' | 'expenses' | 'finance'
   | 'changeOrders' | 'rfis' | 'inspections' | 'punchItems' | 'subcontractors' | 'incidents'
   | 'toolboxTalks' | 'tasks' | 'drawings' | 'documents' | 'billing';
 
@@ -21,6 +21,8 @@ export const paths = {
   finance: (cid: string, sid: string) => `companies/${cid}/sites/${sid}/finance/summary`,
   workerPay: (cid: string, sid: string, workerId: string) => `companies/${cid}/sites/${sid}/workerPay/${workerId}`,
   attendance: (cid: string, sid: string, date: string) => `companies/${cid}/sites/${sid}/attendance/${date}`,
+  issueComments: (cid: string, sid: string, issueId: string) => `companies/${cid}/sites/${sid}/issues/${issueId}/comments`,
   // Storage
+  issuePhoto: (cid: string, sid: string, issueId: string, file: string) => `companies/${cid}/sites/${sid}/issues/${issueId}/${file}`,
   photo: (cid: string, sid: string, reportId: string, file: string) => `companies/${cid}/sites/${sid}/reports/${reportId}/${file}`,
 };

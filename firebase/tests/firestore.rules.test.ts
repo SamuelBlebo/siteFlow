@@ -4,7 +4,7 @@ import {
   collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, increment, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
   type Firestore,
 } from 'firebase/firestore';
-import { PERMISSIONS, ROLES, can, paths, reportDoc, reportId, type Permission, type Role } from '@siteflow/shared';
+import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, type Permission, type Role } from '@siteflow/shared';
 import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, seed, site } from './setup';
 
 let env: RulesTestEnvironment;
@@ -436,5 +436,92 @@ describe('company-wide reports (collection group)', () => {
     await assertFails(companyReports(asRole('viewer'), C1));
     await assertFails(companyReports(as(OTHER_OWNER), C1));
     await assertFails(getDocs(collectionGroup(asRole('owner'), 'reports')));
+  });
+});
+
+describe('issues', () => {
+  const ref = (db: Firestore, id: string, sid = S1) => doc(db, paths.subDoc(C1, sid, 'issues', id));
+  const issue = (uid: string, extra: object = {}, sid = S1) => ({
+    ...issueDoc({ title: 'Scaffold is unsafe', priority: 'critical', category: 'Safety', description: 'Loose boards on level 2' },
+      { companyId: C1, siteId: sid, siteName: `Site ${sid}`, uid, name: nameOf(uid), date: today }),
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp(), ...extra,
+  });
+  const seedIssue = (id: string, extra: object = {}) => env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), paths.subDoc(C1, S1, 'issues', id)), issue(USERS.supervisor, extra)));
+  const sup = () => asRole('supervisor');
+
+  it('a supervisor reports an issue on an assigned site', async () => {
+    await assertSucceeds(setDoc(ref(sup(), 'i1'), issue(USERS.supervisor)));
+  });
+  it('reports must be honest and start open and unassigned (unless a manager assigns)', async () => {
+    await assertFails(setDoc(ref(sup(), 'a'), issue(USERS.supervisor, { createdByName: 'The Owner' })));
+    await assertFails(setDoc(ref(sup(), 'b'), issue(USERS.owner)));
+    await assertFails(setDoc(ref(sup(), 'c'), issue(USERS.supervisor, { status: 'resolved', resolution: 'Done already' })));
+    await assertFails(setDoc(ref(sup(), 'd'), issue(USERS.supervisor, { assignedTo: USERS.supervisor, assignedToName: 'supervisor user' })));
+    await assertFails(setDoc(ref(sup(), 'e'), issue(USERS.supervisor, { priority: 'urgent' })));
+    await assertFails(setDoc(ref(sup(), 'f'), issue(USERS.supervisor, { companyId: C2 })));
+    await assertFails(setDoc(ref(sup(), 'g', S2), issue(USERS.supervisor, {}, S2)));
+    await assertFails(setDoc(ref(asRole('viewer'), 'h'), issue(USERS.viewer)));
+    await assertFails(setDoc(ref(asRole('finance'), 'i'), issue(USERS.finance)));
+  });
+  it('a manager reports and assigns, but only to someone in the company', async () => {
+    await assertSucceeds(setDoc(ref(asRole('manager'), 'm1'), issue(USERS.manager, { assignedTo: USERS.supervisor, assignedToName: 'supervisor user' })));
+    await assertFails(setDoc(ref(asRole('manager'), 'm2'), issue(USERS.manager, { assignedTo: OTHER_OWNER, assignedToName: 'Other owner' })));
+  });
+  it('managers assign and change priority; other supervisors cannot', async () => {
+    await seedIssue('x');
+    await assertSucceeds(updateDoc(ref(asRole('manager'), 'x'), { assignedTo: USERS.supervisor, assignedToName: 'supervisor user', priority: 'high' }));
+    await assertFails(updateDoc(ref(asRole('manager'), 'x'), { assignedTo: OTHER_OWNER }));
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), paths.user('super2')), { companyId: C1, role: 'supervisor', name: 'super2 user', email: 's2@x.com', siteIds: [S1] }));
+    await assertFails(updateDoc(ref(as('super2'), 'x'), { priority: 'low' }));
+    await assertFails(updateDoc(ref(as('super2'), 'x'), { assignedTo: 'super2', assignedToName: 'super2 user' }));
+  });
+  it('the assignee starts and resolves (with how it was fixed), but cannot close or re-prioritise', async () => {
+    await seedIssue('y', { assignedTo: USERS.supervisor, assignedToName: 'supervisor user', createdBy: USERS.manager, createdByName: 'manager user' });
+    const r = ref(sup(), 'y');
+    await assertFails(updateDoc(r, { priority: 'low' }));
+    await assertSucceeds(updateDoc(r, { status: 'in_progress', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(r, { status: 'resolved', resolvedBy: USERS.supervisor, resolvedByName: 'supervisor user' }));
+    await assertFails(updateDoc(r, { status: 'resolved', resolution: 'Boards nailed', resolvedBy: USERS.owner, resolvedByName: 'owner user' }));
+    await assertSucceeds(updateDoc(r, { status: 'resolved', resolution: 'Boards nailed down', resolvedBy: USERS.supervisor, resolvedByName: 'supervisor user', resolvedAt: serverTimestamp() }));
+    await assertFails(updateDoc(r, { status: 'closed' }));
+    await assertSucceeds(updateDoc(ref(asRole('manager'), 'y'), { status: 'closed' }));
+    await assertSucceeds(updateDoc(ref(asRole('manager'), 'y'), { status: 'open' }));
+  });
+  it('the reporter fixes the details only while it is open', async () => {
+    await seedIssue('z');
+    await assertSucceeds(updateDoc(ref(sup(), 'z'), { title: 'Scaffold unsafe on level 2', photos: ['https://x/p.jpg'], photoCount: 1 }));
+    await assertFails(updateDoc(ref(sup(), 'z'), { status: 'resolved', resolution: 'Fixed it myself', resolvedBy: USERS.supervisor, resolvedByName: 'supervisor user' }));
+    await assertFails(updateDoc(ref(sup(), 'z'), { createdBy: USERS.owner }));
+    await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.subDoc(C1, S1, 'issues', 'z')), { status: 'in_progress' }));
+    await assertFails(updateDoc(ref(sup(), 'z'), { title: 'Changed later' }));
+  });
+  it('the site team comments; comments are permanent and honest; the count moves by one', async () => {
+    await seedIssue('c1');
+    const db = sup();
+    const b = writeBatch(db);
+    const c = doc(collection(db, paths.issueComments(C1, S1, 'c1')));
+    b.set(c, { text: 'Boards delivered, fixing tomorrow', kind: 'comment', createdBy: USERS.supervisor, createdByName: 'supervisor user', createdAt: serverTimestamp() });
+    b.update(ref(db, 'c1'), { commentCount: increment(1), lastActivityAt: serverTimestamp() });
+    await assertSucceeds(b.commit());
+    await assertFails(updateDoc(ref(db, 'c1'), { commentCount: increment(5) }));
+    await assertFails(setDoc(doc(collection(db, paths.issueComments(C1, S1, 'c1'))), { text: 'Fake', kind: 'comment', createdBy: USERS.supervisor, createdByName: 'The Owner' }));
+    await assertFails(updateDoc(doc(db, paths.issueComments(C1, S1, 'c1'), c.id), { text: 'Edited' }));
+    await assertFails(deleteDoc(doc(asRole('owner'), paths.issueComments(C1, S1, 'c1'), c.id)));
+    await assertFails(setDoc(doc(collection(asRole('viewer'), paths.issueComments(C1, S1, 'c1'))), { text: 'Hi', kind: 'comment', createdBy: USERS.viewer, createdByName: 'viewer user' }));
+    await assertSucceeds(getDocs(collection(asRole('viewer'), paths.issueComments(C1, S1, 'c1'))));
+  });
+  it('issues are never deleted; closed sites take no new issues', async () => {
+    await seedIssue('d1');
+    await assertFails(deleteDoc(ref(asRole('owner'), 'd1')));
+    await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.site(C1, S1)), { status: 'closed' }));
+    await assertFails(setDoc(ref(sup(), 'late'), issue(USERS.supervisor)));
+  });
+  it('company-wide list for roles that see every site only', async () => {
+    await seedIssue('g1');
+    const q = (db: Firestore) => getDocs(query(collectionGroup(db, 'issues'), where('companyId', '==', C1), where('status', 'in', ['open', 'in_progress'])));
+    await assertSucceeds(q(asRole('owner')));
+    await assertSucceeds(q(asRole('finance')));
+    await assertFails(q(sup()));
+    await assertFails(q(as(OTHER_OWNER)));
   });
 });

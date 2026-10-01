@@ -65,6 +65,11 @@ service cloud.firestore {
       allow read: if signedIn() && allSites(resource.data.companyId);
     }
 
+    // Company-wide issues page: one collection-group query, filtered by companyId
+    match /{path=**}/issues/{iid} {
+      allow read: if signedIn() && allSites(resource.data.companyId);
+    }
+
     // ---------- companies ----------
     match /companies/{cid} {
       allow read: if member(cid);
@@ -238,6 +243,75 @@ service cloud.firestore {
           allow update: if siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
             && onlyChanges(['photos', 'photoCount']) && data().photos is list && data().photos.size() <= 8;
           allow delete: if siteManager(cid);
+        }
+
+        // Problems reported on site. Mirrors issueActions in shared:
+        //  site managers do anything; the assignee starts and resolves; the reporter edits details
+        //  while it is open; anyone doing site work comments. Issues are never deleted.
+        match /issues/{id} {
+          function issueKeys() {
+            return ['companyId', 'siteId', 'siteName', 'title', 'description', 'priority', 'category', 'location', 'date', 'dueDate',
+                    'status', 'assignedTo', 'assignedToName', 'photos', 'photoCount', 'resolution', 'resolvedBy', 'resolvedByName',
+                    'resolvedAt', 'commentCount', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'lastActivityAt'];
+          }
+          function validIssue() {
+            return data().keys().hasOnly(issueKeys())
+              && data().companyId == cid && data().siteId == sid && isText(data().siteName, 1, 120)
+              && isText(data().title, 3, 120) && optText('description', 5000) && optText('location', 120)
+              && data().priority in ['critical', 'high', 'medium', 'low'] && isText(data().category, 1, 60)
+              && isDateKey(data().date) && (data().dueDate == null || isDateKey(data().dueDate))
+              && data().status in ['open', 'in_progress', 'resolved', 'closed']
+              && (data().assignedTo == null || data().assignedTo is string) && optText('assignedToName', 100)
+              && data().photos is list && data().photos.size() <= 8 && data().photoCount is int
+              && optText('resolution', 2000) && data().commentCount is int && data().commentCount >= 0
+              && (data().status != 'resolved' || isText(data().resolution, 3, 2000));
+          }
+          function changed(keys) { return data().diff(resource.data).affectedKeys().hasAny(keys); }
+          function only(keys) { return data().diff(resource.data).affectedKeys().hasOnly(keys); }
+          // The person given the issue must belong to this company
+          function validAssignee() {
+            return data().assignedTo == null || get(/databases/$(database)/documents/users/$(data().assignedTo)).data.companyId == cid;
+          }
+          // Whoever marks it resolved is recorded as the resolver
+          function resolverIsMe() {
+            return !(changed(['status']) && data().status == 'resolved')
+              || (data().resolvedBy == request.auth.uid && data().resolvedByName == me().name);
+          }
+          function assigneeStep() {
+            return resource.data.assignedTo == request.auth.uid
+              && only(['status', 'resolution', 'resolvedBy', 'resolvedByName', 'resolvedAt', 'updatedAt', 'lastActivityAt'])
+              && ((resource.data.status == 'open' && data().status == 'in_progress')
+                  || (resource.data.status in ['open', 'in_progress'] && data().status == 'resolved'));
+          }
+          function reporterEdit() {
+            return resource.data.createdBy == request.auth.uid && resource.data.status == 'open'
+              && only(['title', 'description', 'location', 'category', 'photos', 'photoCount', 'updatedAt', 'lastActivityAt']);
+          }
+          function commentBump() {
+            return only(['commentCount', 'lastActivityAt']) && data().commentCount == resource.data.commentCount + 1;
+          }
+
+          allow read: if onSite(cid, sid);
+          allow create: if siteWork(cid, sid) && byMe() && validIssue()
+            && data().status == 'open' && data().commentCount == 0 && data().resolution == '' && data().resolvedBy == null
+            && data().createdByName == me().name
+            && (data().assignedTo == null || (siteManager(cid) && validAssignee()));
+          allow update: if siteWork(cid, sid) && validIssue()
+            && !changed(['companyId', 'siteId', 'siteName', 'date', 'createdBy', 'createdByName', 'createdAt'])
+            && (!changed(['assignedTo']) || validAssignee())
+            && resolverIsMe()
+            && (siteManager(cid) || assigneeStep() || reporterEdit() || commentBump());
+          allow delete: if false;
+
+          // Comments and change notes: permanent, by the site team
+          match /comments/{commentId} {
+            allow read: if onSite(cid, sid);
+            allow create: if siteWork(cid, sid) && byMe()
+              && data().keys().hasOnly(['text', 'kind', 'createdBy', 'createdByName', 'createdAt'])
+              && isText(data().text, 1, 2000) && data().kind in ['comment', 'update']
+              && data().createdByName == me().name;
+            allow update, delete: if false;
+          }
         }
 
         // Future modules. Money-bearing collections are finance-only.
