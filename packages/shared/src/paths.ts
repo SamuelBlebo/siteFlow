@@ -2,7 +2,7 @@
 // React Native Firebase (firestore().doc(path)) and the Admin SDK (db.doc(path)).
 // Never hand-type a path in an app: add it here.
 export type SiteCollection =
-  | 'materials' | 'materialLogs' | 'workers' | 'workerPay' | 'attendance' | 'reports' | 'issues' | 'expenses' | 'finance'
+  | 'materials' | 'materialLogs' | 'workers' | 'workerPay' | 'attendance' | 'reports' | 'issues' | 'milestones' | 'expenses' | 'finance'
   | 'changeOrders' | 'rfis' | 'inspections' | 'punchItems' | 'subcontractors' | 'incidents'
   | 'toolboxTalks' | 'tasks' | 'drawings' | 'documents' | 'billing';
 

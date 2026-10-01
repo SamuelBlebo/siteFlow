@@ -86,6 +86,15 @@ export interface Report {
   materialsUsed?: { materialId: string; name: string; unit: string; qty: number }[];
   photos: string[]; photoCount?: number; createdBy: string; createdByName: string; source?: ReportSource;
 }
+// companies/{cid}/sites/{sid}/milestones/{id}. weight is relative (equal when unset).
+export type MilestoneStatus = 'not_started' | 'in_progress' | 'done';
+export interface Milestone {
+  id?: string; name: string; order: number; weight?: number;
+  plannedStart?: string | null; plannedEnd?: string | null;
+  status: MilestoneStatus; percentDone: number; actualStart?: string | null; actualEnd?: string | null;
+  note?: string; updatedBy?: string; updatedByName?: string;
+}
+
 // companies/{cid}/sites/{sid}/issues/{id}, with comments in issues/{id}/comments/{id}
 export type IssuePriority = 'critical' | 'high' | 'medium' | 'low';
 export type IssueStatus = 'open' | 'in_progress' | 'resolved' | 'closed';

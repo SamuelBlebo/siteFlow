@@ -124,6 +124,19 @@ export const memberUpdateInput = z.object({
 export const memberActiveInput = z.object({ uid: memberId, active: z.boolean() });
 export const memberRefInput = z.object({ uid: memberId });
 
+// Milestones (set up by site managers; progress updated by the site team)
+const optDateKey = z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date.').optional().default('');
+export const milestoneInput = z.object({
+  name: z.string().trim().min(1, 'Name the milestone.').max(100),
+  weight: z.coerce.number({ invalid_type_error: 'Enter a number.' }).positive('Weight must be above zero.').max(1000).default(1),
+  plannedStart: optDateKey,
+  plannedEnd: optDateKey,
+}).refine((v) => !v.plannedStart || !v.plannedEnd || v.plannedEnd >= v.plannedStart, { message: 'The planned finish must be after the start.', path: ['plannedEnd'] });
+export const milestoneProgressInput = z.object({
+  percentDone: z.coerce.number({ invalid_type_error: 'Enter a percentage.' }).min(0, 'Between 0 and 100.').max(100, 'Between 0 and 100.'),
+  note: z.string().trim().max(500).optional().default(''),
+});
+
 // Issues
 export const issueInput = z.object({
   title: z.string().trim().min(3, 'Say what the problem is in a few words.').max(120, 'Keep the title under 120 characters.'),

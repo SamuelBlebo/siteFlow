@@ -3,14 +3,15 @@ import { isOn } from '../modules';
 import { todayKey } from '../dates';
 import { budgetUsedPct } from './budget';
 import { materialStatus } from './materials';
-import { isBehind, plannedPct, weeksBehind } from './schedule';
-import type { Alert, ChangeOrder, Company, Incident, Issue, Material, Rfi, Site, SiteFinance } from '../types';
+import { overdueMilestones, scheduleStatus } from './progress';
+import type { Alert, ChangeOrder, Company, Incident, Issue, Material, Milestone, Rfi, Site, SiteFinance } from '../types';
 
 export interface AlertContext {
   company?: Pick<Company, 'modules'> | null;   // when omitted, every module counts as on
   pendingChangeOrders?: ChangeOrder[];
   openRfis?: (Rfi & { overdue?: boolean })[];
   openIncidents?: Incident[];
+  milestones?: Pick<Milestone, 'name' | 'weight' | 'plannedStart' | 'plannedEnd' | 'percentDone' | 'status'>[];
   openIssues?: Pick<Issue, 'title' | 'priority' | 'status' | 'assignedToName'>[];
   finance?: SiteFinance | null;                 // only passed for roles that can see money
   now?: Date;
@@ -41,7 +42,12 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   }
   if (on('changeorders')) for (const c of ctx.pendingChangeOrders ?? []) a.push({ kind: 'co', severity: 'warn', title: 'Change order awaiting approval', detail: `${c.number}: ${c.title}.`, tab: 'changeorders' });
   if (on('rfis')) for (const r of (ctx.openRfis ?? []).filter((x) => x.overdue)) a.push({ kind: 'rfi', severity: 'bad', title: `${r.number} is overdue`, detail: `${r.sentTo} has not answered. Due ${r.dueDate}.`, tab: 'rfis' });
-  if (on('scheduling') && isBehind(site, now)) a.push({ kind: 'schedule', severity: 'warn', title: 'Behind programme', detail: `${site.progress}% done against ${plannedPct(site, now)}% planned, about ${weeksBehind(site, now)} weeks behind.`, tab: 'schedule' });
+  // Progress against the plan (core, for active sites)
+  if (site.status === 'active') {
+    const st = scheduleStatus(site, ctx.milestones ?? [], now);
+    if (st.state === 'behind') a.push({ kind: 'schedule', severity: 'warn', title: 'Behind programme', detail: `${st.actual}% done against ${st.planned}% planned${st.weeksBehind ? `, about ${st.weeksBehind} week${st.weeksBehind === 1 ? '' : 's'} behind` : ''}.`, tab: 'progress' });
+    for (const m of overdueMilestones(ctx.milestones ?? [], todayKey(now))) a.push({ kind: 'schedule', severity: 'warn', title: `${m.name} is overdue`, detail: `Planned to finish ${m.plannedEnd}, now ${m.percentDone || 0}% done.`, tab: 'progress' });
+  }
   // Problems reported on site: critical ones first, high ones as warnings
   for (const i of ctx.openIssues ?? []) {
     if (i.status !== 'open' && i.status !== 'in_progress') continue;
