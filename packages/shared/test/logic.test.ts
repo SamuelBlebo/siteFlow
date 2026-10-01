@@ -44,16 +44,17 @@ describe('budget', () => {
 describe('wages', () => {
   const workers = [{ id: 'a', name: 'Ama', trade: 'Mason', active: true }, { id: 'b', name: 'Yaw', trade: 'Labourer', active: true }];
   const pay = { a: { dailyRate: 150 }, b: { dailyRate: 80 } };
-  it('counts present workers', () => {
-    expect(presentCount({ a: true, b: false, c: true })).toBe(2);
+  it('counts workers who came (present or late)', () => {
+    expect(presentCount({ a: 'present', b: 'absent', c: 'late', d: 'leave' })).toBe(2);
     expect(presentCount(null)).toBe(0);
   });
-  it('daily wages use pay records and ignore missing rates', () => {
-    expect(dailyWages(workers, pay, { a: true, b: true })).toBe(230);
-    expect(dailyWages(workers, {}, { a: true })).toBe(0);
+  it('daily wages pay present and late, use pay records and ignore missing rates', () => {
+    expect(dailyWages(workers, pay, { a: 'present', b: 'late' })).toBe(230);
+    expect(dailyWages(workers, pay, { a: 'absent', b: 'leave' })).toBe(0);
+    expect(dailyWages(workers, {}, { a: 'present' })).toBe(0);
   });
   it('wage sheet over several days', () => {
-    const sheet = wageSheet(workers, pay, [{ present: { a: true, b: true } }, { present: { a: true } }]);
+    const sheet = wageSheet(workers, pay, [{ marks: { a: 'present', b: 'late' } }, { marks: { a: 'present', b: 'absent' } }]);
     expect(sheet.total).toBe(150 * 2 + 80);
     expect(sheet.rows.map((r) => r.days)).toEqual([2, 1]);
     expect(wageSheetCsv(sheet.rows).split('\n')).toHaveLength(3);

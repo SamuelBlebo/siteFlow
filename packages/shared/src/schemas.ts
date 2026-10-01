@@ -55,9 +55,11 @@ export const materialLogInput = z.object({
 });
 
 export const workerInput = z.object({
-  name: z.string().trim().min(2, 'Enter the worker’s name.'),
-  trade: z.string().min(1),
+  name: z.string().trim().min(2, 'Enter the worker’s name.').max(100),
+  trade: z.string().min(1, 'Choose a trade.').max(60),
+  phone,
 });
+export const attendanceStatusInput = z.enum(['present', 'late', 'absent', 'leave']);
 // Pay is stored separately (workerPay) and only finance roles can set it
 export const workerPayInput = z.object({ dailyRate: positive('daily rate') });
 

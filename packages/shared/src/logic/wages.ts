@@ -1,19 +1,17 @@
 import type { Attendance, Worker, WorkerPay } from '../types';
+import { isWorked, type Marks } from './attendance';
 
 export interface WageRow { workerId: string; name: string; trade: string; days: number; rate: number; total: number; bankName?: string; accountLast4?: string }
 
-export const presentCount = (present: Record<string, boolean> | null | undefined) =>
-  Object.values(present || {}).filter(Boolean).length;
-
-// Wages for one day. Workers without a pay record count as zero.
-export function dailyWages(workers: Pick<Worker, 'id'>[], pay: Record<string, Pick<WorkerPay, 'dailyRate'>>, present: Record<string, boolean> | null | undefined) {
-  return workers.filter((w) => present?.[w.id]).reduce((sum, w) => sum + (pay[w.id]?.dailyRate || 0), 0);
+// Wages for one day: present and late are paid; workers without a pay record count as zero
+export function dailyWages(workers: Pick<Worker, 'id'>[], pay: Record<string, Pick<WorkerPay, 'dailyRate'>>, marks: Marks | null | undefined) {
+  return workers.filter((w) => isWorked(marks?.[w.id])).reduce((sum, w) => sum + (pay[w.id]?.dailyRate || 0), 0);
 }
 
-// Build a wage sheet from a week (or fortnight) of attendance docs
-export function wageSheet(workers: Worker[], pay: Record<string, WorkerPay>, attendance: Pick<Attendance, 'present'>[]): { rows: WageRow[]; total: number } {
+// Wage sheet from a week (or fortnight) of attendance records
+export function wageSheet(workers: Worker[], pay: Record<string, WorkerPay>, attendance: Pick<Attendance, 'marks'>[]): { rows: WageRow[]; total: number } {
   const rows = workers.map((w) => {
-    const days = attendance.filter((a) => a.present?.[w.id]).length;
+    const days = attendance.filter((a) => isWorked(a.marks?.[w.id])).length;
     const p = pay[w.id];
     const rate = p?.dailyRate || 0;
     return { workerId: w.id, name: w.name, trade: w.trade, days, rate, total: days * rate, bankName: p?.bankName, accountLast4: p?.accountLast4 };

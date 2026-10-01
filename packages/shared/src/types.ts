@@ -66,11 +66,13 @@ export interface MaterialLog {
   id?: string; materialId: string; materialName: string; unit: string;
   type: 'usage' | 'delivery'; qty: number; cost: number; supplier: string; date: string; createdBy: string;
 }
-export interface Worker { id: string; name: string; trade: string; active: boolean; createdBy?: string }
+export interface Worker { id: string; name: string; trade: string; phone?: string; active: boolean; createdBy?: string }
 // companies/{cid}/sites/{sid}/workerPay/{workerId}. Finance roles only.
 export interface WorkerPay { dailyRate: number; bankName?: string; accountLast4?: string }
-// One doc per day. Each worker is its own map key, so two phones marking different workers never overwrite each other.
-export interface Attendance { date: string; present: Record<string, boolean>; markedBy: string }
+// companies/{cid}/sites/{sid}/attendance/{date}: one doc per day. Each worker is its own key in
+// marks, so two phones marking different workers never overwrite each other.
+export type AttendanceStatus = 'present' | 'late' | 'absent' | 'leave';
+export interface Attendance { date: string; marks: Record<string, AttendanceStatus>; markedBy: string }
 export type ReportSource = 'app' | 'web' | 'voice' | 'whatsapp';
 // companies/{cid}/sites/{sid}/reports/{date}_{uid}. companyId/siteId/siteName are stored so the
 // company-wide reports page can use one collection-group query.

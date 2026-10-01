@@ -12,6 +12,7 @@ export * from './logic/alerts';
 export * from './logic/materials';
 export * from './logic/budget';
 export * from './logic/schedule';
+export * from './logic/attendance';
 export * from './logic/wages';
 export * from './logic/messages';
 export * from './logic/sites';
