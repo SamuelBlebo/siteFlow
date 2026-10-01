@@ -525,3 +525,34 @@ describe('issues', () => {
     await assertFails(q(as(OTHER_OWNER)));
   });
 });
+
+describe('milestones and progress', () => {
+  const ms = (db: Firestore, id: string) => doc(db, paths.subDoc(C1, S1, 'milestones', id));
+  const base = { name: 'Foundation', order: 1, weight: 1, plannedStart: '2026-01-01', plannedEnd: '2026-02-01', status: 'not_started', percentDone: 0, actualStart: null, actualEnd: null, note: '' };
+  const seed = () => env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), paths.subDoc(C1, S1, 'milestones', 'm1')), base));
+
+  it('site managers set up milestones; the site team cannot', async () => {
+    await assertSucceeds(setDoc(ms(asRole('manager'), 'a'), base));
+    await assertFails(setDoc(ms(asRole('supervisor'), 'b'), base));
+    await assertFails(setDoc(ms(asRole('manager'), 'c'), { ...base, plannedEnd: 'soon' }));
+    await assertFails(setDoc(ms(asRole('manager'), 'd'), { ...base, status: 'done', percentDone: 50 }));
+    await assertFails(setDoc(ms(asRole('manager'), 'e'), { ...base, weight: 0 }));
+  });
+  it('the site team updates progress with their name, nothing else', async () => {
+    await seed();
+    const sup = ms(asRole('supervisor'), 'm1');
+    const step = { status: 'in_progress', percentDone: 40, actualStart: today, updatedBy: USERS.supervisor, updatedByName: 'supervisor user', updatedAt: serverTimestamp() };
+    await assertSucceeds(updateDoc(sup, step));
+    await assertFails(updateDoc(sup, { ...step, updatedByName: 'The Owner' }));
+    await assertFails(updateDoc(sup, { ...step, plannedEnd: '2027-01-01' }));
+    await assertFails(updateDoc(sup, { ...step, weight: 50 }));
+    await assertFails(updateDoc(sup, { ...step, status: 'done', percentDone: 90 }));
+    await assertFails(updateDoc(ms(asRole('viewer'), 'm1'), { ...step, updatedBy: USERS.viewer, updatedByName: 'viewer user' }));
+    await assertFails(deleteDoc(sup));
+    await assertSucceeds(deleteDoc(ms(asRole('manager'), 'm1')));
+  });
+  it('progress can be updated on a site that has no daily report yet', async () => {
+    await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.site(C1, S1)), { lastReportDate: null }));
+    await assertSucceeds(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { progress: 35 }));
+  });
+});

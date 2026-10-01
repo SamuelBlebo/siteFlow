@@ -115,7 +115,7 @@ service cloud.firestore {
           || (siteWork(cid, sid)
               && onlyChanges(['stage', 'progress', 'lastReportDate', 'lastReportTime'])
               && isPct(data().progress) && isText(data().stage, 1, 60)
-              && isDateKey(data().lastReportDate) && optText('lastReportTime', 5));
+              && (data().lastReportDate == null || isDateKey(data().lastReportDate)) && optText('lastReportTime', 5));
 
         // Money for this site: finance roles only. Budget is set by site managers.
         match /finance/{docId} {
@@ -243,6 +243,28 @@ service cloud.firestore {
           allow update: if siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
             && onlyChanges(['photos', 'photoCount']) && data().photos is list && data().photos.size() <= 8;
           allow delete: if siteManager(cid);
+        }
+
+        // Milestones: site managers set them up; the site team updates progress (with their name).
+        match /milestones/{id} {
+          function validMilestone() {
+            return data().keys().hasOnly(['name', 'order', 'weight', 'plannedStart', 'plannedEnd', 'status', 'percentDone',
+                                          'actualStart', 'actualEnd', 'note', 'updatedBy', 'updatedByName', 'createdAt', 'updatedAt'])
+              && isText(data().name, 1, 100) && data().order is int
+              && (!('weight' in data()) || (isNum(data().weight) && data().weight > 0 && data().weight <= 1000))
+              && optDate('plannedStart') && optDate('plannedEnd') && optDate('actualStart') && optDate('actualEnd')
+              && data().status in ['not_started', 'in_progress', 'done'] && isPct(data().percentDone)
+              && (data().status != 'done' || data().percentDone == 100)
+              && (data().status != 'not_started' || data().percentDone == 0)
+              && optText('note', 500);
+          }
+          allow read: if onSite(cid, sid);
+          allow create: if siteManager(cid) && validMilestone();
+          allow delete: if siteManager(cid);
+          allow update: if validMilestone() && (siteManager(cid)
+            || (siteWork(cid, sid)
+                && onlyChanges(['status', 'percentDone', 'actualStart', 'actualEnd', 'note', 'updatedBy', 'updatedByName', 'updatedAt'])
+                && data().updatedBy == request.auth.uid && data().updatedByName == me().name));
         }
 
         // Problems reported on site. Mirrors issueActions in shared:
