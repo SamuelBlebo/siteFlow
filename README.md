@@ -93,6 +93,15 @@ time (merged), so two people marking at once never overwrite each other.
 - Site managers switch workers off (their history stays). Finance sets daily rates (`workerPay`).
 - Web history: any period, grid per worker with totals, attendance CSV; finance also gets wages and a wage sheet CSV.
 
+## Materials
+Each material has a balance that only changes with an entry (`materialLogs`), checked by the rules in the
+same batch: **received** (supplier, waybill, cost for finance roles), **used** (what for) or a **stock count**
+(site managers, with a reason, recording the difference). Entries are never edited or deleted; materials are
+archived, not deleted. Usage may take the balance below zero (flagged as "count needed") so nothing recorded
+on site is refused.
+- Web: Stock (days left from the last 14 days of use), Record, History (totals, CSV), Set up.
+- Mobile: fast Used / Received entry, stock with days left, today's entries.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
