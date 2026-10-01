@@ -118,20 +118,22 @@ service cloud.firestore {
               && (data().lastReportDate == null || isDateKey(data().lastReportDate)) && optText('lastReportTime', 5));
 
         // Money for this site: finance roles only. Budget is set by site managers.
+        // Money for this site: finance roles only. Site managers set the budget (total and per category).
+        // spent, byCategory and expenseCount are written only by the recalcSiteSpending function.
         match /finance/{docId} {
+          function validBudget() {
+            return isAmount(data().budget)
+              && (!('budgetByCategory' in data()) || (data().budgetByCategory is map && data().budgetByCategory.size() <= 20));
+          }
           allow read: if financeView(cid);
           allow create: if siteManager(cid) && docId == 'summary'
-            && data().keys().hasOnly(['budget', 'spent', 'updatedAt'])
-            && isAmount(data().budget) && data().spent == 0;
-          allow update: if financeEdit(cid) && docId == 'summary'
-            && data().keys().hasOnly(['budget', 'spent', 'updatedAt'])
-            && isAmount(data().budget) && isAmount(data().spent)
-            && (data().budget == resource.data.budget || siteManager(cid));
-          allow delete: if siteManager(cid);
+            && data().keys().hasOnly(['budget', 'budgetByCategory', 'spent', 'updatedAt'])
+            && validBudget() && data().spent == 0;
+          allow update: if siteManager(cid) && docId == 'summary'
+            && onlyChanges(['budget', 'budgetByCategory', 'updatedAt']) && validBudget();
+          allow delete: if false;
         }
 
-        // Stock only changes together with a material entry written in the same batch (lastLogId),
-        // for every role. Corrections are stock counts (adjustments), never direct edits.
         match /materials/{id} {
           function validMaterial() {
             return data().keys().hasOnly(['name', 'unit', 'stock', 'reorderLevel', 'avgDaily', 'active', 'lastLogId', 'createdAt', 'updatedAt'])
@@ -173,13 +175,18 @@ service cloud.firestore {
           allow update, delete: if false;
         }
 
+        // Expenses: finance roles record, correct and delete them; totals follow on the server
         match /expenses/{id} {
+          function validExpense() {
+            return data().keys().hasOnly(['date', 'category', 'note', 'amount', 'payee', 'method', 'ref', 'createdBy', 'createdByName', 'createdAt', 'updatedAt'])
+              && isAmount(data().amount) && data().amount > 0 && data().amount <= 100000000
+              && isText(data().category, 1, 60) && optText('note', 500) && optText('payee', 120) && optText('method', 40) && optText('ref', 60)
+              && isDateKey(data().date);
+          }
           allow read: if financeView(cid);
-          allow create: if financeEdit(cid) && byMe()
-            && data().keys().hasOnly(['date', 'category', 'note', 'amount', 'createdBy', 'createdAt'])
-            && isAmount(data().amount) && data().amount > 0
-            && isText(data().category, 1, 60) && optText('note', 500) && isDateKey(data().date);
-          allow update, delete: if siteManager(cid);
+          allow create: if financeEdit(cid) && byMe() && validExpense() && data().createdByName == me().name;
+          allow update: if financeEdit(cid) && validExpense() && !data().diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdByName', 'createdAt']);
+          allow delete: if financeEdit(cid);
         }
 
         // Worker names and trades are visible to the site team; pay is not.

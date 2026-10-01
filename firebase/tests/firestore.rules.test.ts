@@ -61,7 +61,7 @@ const probes: Partial<Record<Permission, (db: Firestore, r: Role) => Promise<unk
   'site.work': (db, r) => sendReport(db, C1, S1, USERS[r], `${r} user`),
   'finance.view': (db) => getDoc(doc(db, paths.finance(C1, S1))),
   'finance.edit': (db, r) => setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', `probe-${r}`)), {
-    date: today, category: 'Transport', note: '', amount: 200, createdBy: USERS[r], createdAt: serverTimestamp(),
+    date: today, category: 'Transport', note: '', amount: 200, createdBy: USERS[r], createdByName: `${r} user`, createdAt: serverTimestamp(),
   }),
   'audit.view': (db) => getDocs(collection(db, paths.activity(C1))),
 };
@@ -234,6 +234,10 @@ describe('site status, details and team', () => {
 });
 
 describe('finance', () => {
+  const expense = (uid: string, extra: object = {}) => ({
+    date: today, category: 'Materials', note: 'Cement', amount: 300, payee: '', method: 'Cash', ref: '',
+    createdBy: uid, createdByName: nameOf(uid), createdAt: serverTimestamp(), ...extra,
+  });
   it('site roles cannot see budgets, spending, expenses or pay', async () => {
     for (const r of ['supervisor', 'viewer'] as const) {
       const db = asRole(r);
@@ -246,15 +250,33 @@ describe('finance', () => {
   it('site roles cannot change money', async () => {
     const db = asRole('supervisor');
     await assertFails(updateDoc(doc(db, paths.finance(C1, S1)), { spent: 0 }));
-    await assertFails(setDoc(doc(db, paths.workerPay(C1, S1, 'w1')), { dailyRate: 999 }));
-    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'x')), { date: today, category: 'Other', note: '', amount: 5, createdBy: USERS.supervisor }));
-  });
-  it('finance records spending but cannot change the budget', async () => {
-    const db = asRole('finance');
-    await assertSucceeds(updateDoc(doc(db, paths.finance(C1, S1)), { spent: increment(200) }));
     await assertFails(updateDoc(doc(db, paths.finance(C1, S1)), { budget: 1 }));
-    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: 200000 }));
-    await assertFails(updateDoc(doc(db, paths.finance(C1, S1)), { spent: -5 }));
+    await assertFails(setDoc(doc(db, paths.workerPay(C1, S1, 'w1')), { dailyRate: 999 }));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'x')), expense(USERS.supervisor)));
+  });
+  it('nobody writes spending totals from an app, not even the owner', async () => {
+    for (const r of ['owner', 'manager', 'finance'] as const) {
+      await assertFails(updateDoc(doc(asRole(r), paths.finance(C1, S1)), { spent: increment(200) }));
+      await assertFails(updateDoc(doc(asRole(r), paths.finance(C1, S1)), { byCategory: { Materials: 1 } }));
+    }
+  });
+  it('site managers set the budget, total and per category; finance cannot', async () => {
+    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: 200000, budgetByCategory: { Materials: 120000, Labour: 60000 } }));
+    await assertFails(updateDoc(doc(asRole('finance'), paths.finance(C1, S1)), { budget: 1 }));
+    await assertFails(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: -5 }));
+    await assertFails(deleteDoc(doc(asRole('owner'), paths.finance(C1, S1))));
+  });
+  it('finance records, corrects and deletes expenses under their own name', async () => {
+    const db = asRole('finance');
+    const ref = doc(db, paths.subDoc(C1, S1, 'expenses', 'f1'));
+    await assertSucceeds(setDoc(ref, expense(USERS.finance, { payee: 'Ghacem', method: 'Bank transfer', ref: 'INV-22' })));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f2')), expense(USERS.finance, { createdByName: 'The Owner' })));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f3')), expense(USERS.finance, { amount: 0 })));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f4')), expense(USERS.finance, { date: 'yesterday' })));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f5')), expense(USERS.finance, { approved: true })));
+    await assertSucceeds(updateDoc(ref, { amount: 450, note: 'Corrected amount', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { createdBy: USERS.owner }));
+    await assertSucceeds(deleteDoc(ref));
     await assertSucceeds(setDoc(doc(db, paths.workerPay(C1, S1, 'w1')), { dailyRate: 180, bankName: 'GCB', accountLast4: '1234' }));
   });
   it('new sites start with nothing spent', async () => {

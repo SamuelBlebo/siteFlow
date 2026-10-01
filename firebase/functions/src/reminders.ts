@@ -2,8 +2,8 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
-  TIMEZONE, isBehind, paths, reportReminderText, siteAlerts, todayKey, weeklyDigestText,
-  type Company, type Site, type SiteFinance, type UserProfile,
+  TIMEZONE, expenseTotals, isBehind, paths, reportReminderText, siteAlerts, todayKey, weekStart, weeklyDigestText,
+  type Company, type Expense, type Site, type SiteFinance, type UserProfile,
 } from '@siteflow/shared';
 import { EMAIL_KEY, WA_PHONE_ID, WA_TOKEN, sendEmail, sendWhatsApp } from './notify';
 
@@ -57,9 +57,13 @@ export const weeklyDigest = onSchedule(
         .docs.map((d) => ({ id: d.id, ...d.data() }) as Site);
       if (!sites.length) return;
       const finance = new Map<string, SiteFinance>();
+      const monday = weekStart();
+      let spentThisWeek = 0;
       for (const s of sites) {
         const f = await db.doc(paths.finance(company.id, s.id)).get();
         if (f.exists) finance.set(s.id, f.data() as SiteFinance);
+        const week = await db.collection(paths.sub(company.id, s.id, 'expenses')).where('date', '>=', monday).get();
+        spentThisWeek += expenseTotals(week.docs.map((d) => d.data() as Expense)).spent;
       }
 
       const topAlerts = sites.flatMap((s) => siteAlerts(s, [], {}, { company, finance: finance.get(s.id) }).map((a) => ({ ...a, siteName: s.name })))
@@ -68,7 +72,7 @@ export const weeklyDigest = onSchedule(
         companyName: company.name,
         weekEnding: new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
         totalBudget: sites.reduce((x, s) => x + (finance.get(s.id)?.budget || 0), 0),
-        spentThisWeek: 0, // TODO(stage 9): sum this week's expenses per site
+        spentThisWeek,
         sites: sites.map((s) => ({ name: s.name, progress: s.progress || 0, behind: isBehind(s) })),
         topAlerts,
         link: APP_URL,
