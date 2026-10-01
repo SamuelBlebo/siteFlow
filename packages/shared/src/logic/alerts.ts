@@ -2,6 +2,7 @@ import { BUDGET_WARN_PCT } from '../constants';
 import { isOn } from '../modules';
 import { todayKey } from '../dates';
 import { budgetUsedPct } from './budget';
+import { budgetVariance, siteFinanceSummary } from './finance';
 import { materialStatus } from './materials';
 import { overdueMilestones, scheduleStatus } from './progress';
 import type { Alert, ChangeOrder, Company, Incident, Issue, Material, Milestone, Rfi, Site, SiteFinance } from '../types';
@@ -13,7 +14,7 @@ export interface AlertContext {
   openIncidents?: Incident[];
   milestones?: Pick<Milestone, 'name' | 'weight' | 'plannedStart' | 'plannedEnd' | 'percentDone' | 'status'>[];
   openIssues?: Pick<Issue, 'title' | 'priority' | 'status' | 'assignedToName'>[];
-  finance?: SiteFinance | null;                 // only passed for roles that can see money
+  finance?: (SiteFinance & { budgetByCategory?: Record<string, number>; byCategory?: Record<string, number> }) | null;                 // only passed for roles that can see money
   now?: Date;
 }
 
@@ -37,6 +38,11 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
     }
   }
   if (on('budget') && ctx.finance) {
+    for (const r of budgetVariance(ctx.finance).rows.filter((x) => x.over)) {
+      a.push({ kind: 'budget', severity: 'warn', title: `${r.category} over budget`, detail: `${r.usedPct}% of the ${r.category.toLowerCase()} budget spent.`, tab: 'budget' });
+    }
+    const fs = siteFinanceSummary(ctx.finance, site.progress || 0);
+    if (fs.overspendRisk && fs.usedPct < BUDGET_WARN_PCT) a.push({ kind: 'budget', severity: 'warn', title: 'Spending ahead of progress', detail: `${fs.usedPct}% of the budget spent with ${site.progress || 0}% of the work done.`, tab: 'budget' });
     const used = budgetUsedPct(ctx.finance);
     if (used >= BUDGET_WARN_PCT) a.push({ kind: 'budget', severity: 'bad', title: 'Budget nearly used', detail: `${used}% of budget spent, work is ${site.progress || 0}% done.`, tab: 'budget' });
   }

@@ -70,3 +70,17 @@ describe('forms and CSV', () => {
     expect(lines[1]).toBe('"Adenta","2026-06-02","Labour","Wages week 22","Site crew","Cash","W22","4200"');
   });
 });
+
+describe('money alerts', () => {
+  const site = { id: 's', name: 'S', location: 'L', stage: 'x', progress: 20, status: 'active' as const, lastReportDate: '2026-06-15' };
+  const now = new Date('2026-06-15T10:00:00');
+  it('category overspend and spending ahead of progress', async () => {
+    const { siteAlerts } = await import('../src');
+    const a = siteAlerts(site, [], {}, { now, finance: { budget: 100000, spent: 50000, budgetByCategory: { Materials: 30000 }, byCategory: { Materials: 40000, Labour: 10000 } } });
+    expect(a.map((x) => x.title)).toEqual(['Materials over budget', 'Spending ahead of progress']);
+  });
+  it('nearly used budget still shows on its own', async () => {
+    const { siteAlerts } = await import('../src');
+    expect(siteAlerts(site, [], {}, { now, finance: { budget: 100, spent: 95 } }).map((x) => x.title)).toEqual(['Budget nearly used']);
+  });
+});
