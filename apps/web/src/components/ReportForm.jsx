@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc } from '../lib/hooks';
-import { myReportId, reportRef, sendReport, uploadPhotos } from '../lib/db';
+import { useDoc, useQuery } from '../lib/hooks';
+import { milestonesQuery, myReportId, reportRef, sendReport, uploadPhotos } from '../lib/db';
 import { save } from '../lib/save';
 import {
   REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, friendlyError, materialsUsed, reportInput, todayKey, validate,
@@ -19,6 +19,8 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
   const { user, profile } = useAuth();
   const key = draftKey(cid, site.id, user.uid);
   const { data: mine, loading } = useDoc(() => reportRef(cid, site.id, myReportId(user.uid)), [cid, site.id, user.uid]);
+  const { data: milestones } = useQuery(() => milestonesQuery(cid, site.id), [cid, site.id]);
+  const fromMilestones = milestones.length > 0;
   const blank = { text: '', notes: '', issues: '', weather: '', stage: site.stage || STAGES[0], progress: site.progress || 0, workersPresent: '' };
   const [f, setF] = useState(() => ({ ...blank, ...readDraft(key) }));
   const [files, setFiles] = useState([]);
@@ -48,7 +50,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
   async function submit(e) {
     e.preventDefault();
     setErr('');
-    const v = validate(reportInput, { ...f, workersPresent: workers });
+    const v = validate(reportInput, { ...f, workersPresent: workers, progress: fromMilestones ? site.progress || 0 : f.progress });
     if (!v.ok) return setErr(v.error);
     if (files.length && !navigator.onLine) return setErr('Photos need an internet connection. Remove them or send when you are back online.');
     setBusy(true);
@@ -63,7 +65,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
       return;
     }
     try {
-      const { done } = sendReport(cid, site, v.data, { uid: user.uid, name: profile.name, photos, materials });
+      const { done } = sendReport(cid, site, v.data, { uid: user.uid, name: profile.name, photos, materials, progressFromMilestones: fromMilestones });
       const res = await save(done, "Today's report");
       clearDraft(key);
       setQueued(res.queued);
@@ -96,8 +98,9 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
         </div>
         <div className="field">
           <label htmlFor="r-prog">Overall progress (%)</label>
-          <input id="r-prog" type="number" min="0" max="100" value={f.progress} onChange={set('progress')} />
-          <p className="hint">Was {site.progress || 0}%.</p>
+          {fromMilestones
+            ? <><input id="r-prog" value={`${site.progress || 0}%`} readOnly /><p className="hint">Worked out from the milestones. Update them under Progress.</p></>
+            : <><input id="r-prog" type="number" min="0" max="100" value={f.progress} onChange={set('progress')} /><p className="hint">Was {site.progress || 0}%.</p></>}
         </div>
       </div>
       <fieldset className="field"><legend>Weather</legend>

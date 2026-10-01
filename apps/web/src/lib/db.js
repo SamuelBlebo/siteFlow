@@ -3,7 +3,9 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { countDifference, issueDoc, paths, reportDoc, reportId, siteFields, stockDelta, todayKey, timeHM } from '@siteflow/shared';
+import {
+  countDifference, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, todayKey, timeHM,
+} from '@siteflow/shared';
 import { resizePhoto } from './photos';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
@@ -147,16 +149,18 @@ export const myReportId = (uid, date = todayKey()) => reportId(date, uid);
 
 // Writes the report and moves the site's stage/progress on, in one batch.
 // site: the site document (for its name and current last report date)
-export function sendReport(cid, site, input, { uid, name, photos = [], materials = [], date = todayKey(), time = timeHM() }) {
+// progressFromMilestones: the site has milestones, so its progress comes from them, not from reports
+export function sendReport(cid, site, input, { uid, name, photos = [], materials = [], date = todayKey(), time = timeHM(), progressFromMilestones = false }) {
   const b = writeBatch(db);
   const rid = reportId(date, uid);
+  if (progressFromMilestones) input = { ...input, progress: site.progress || 0 };
   b.set(reportRef(cid, site.id, rid), {
     ...reportDoc(input, { companyId: cid, siteId: site.id, siteName: site.name, date, time, uid, name, photos, materials, source: 'web' }),
     createdAt: serverTimestamp(),
   });
   // Only move the site forward: an older report never overwrites a newer one
   if (!site.lastReportDate || date >= site.lastReportDate) {
-    b.update(siteDoc(cid, site.id), { stage: input.stage, progress: input.progress, lastReportDate: date, lastReportTime: time });
+    b.update(siteDoc(cid, site.id), { stage: input.stage, ...(progressFromMilestones ? {} : { progress: input.progress }), lastReportDate: date, lastReportTime: time });
   }
   return { id: rid, done: b.commit() };
 }
@@ -207,5 +211,60 @@ export function addComment(cid, sid, id, text, { uid, name }) {
   const b = writeBatch(db);
   b.set(doc(collection(db, paths.issueComments(cid, sid, id))), { text, kind: 'comment', createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
   b.update(issueRef(cid, sid, id), { commentCount: increment(1), lastActivityAt: serverTimestamp() });
+  return b.commit();
+}
+
+// ---------- milestones and progress ----------
+export const milestonesQuery = (cid, sid) => query(sub(cid, sid, 'milestones'), orderBy('order'));
+const milestoneRef = (cid, sid, id) => doc(db, paths.subDoc(cid, sid, 'milestones', id));
+// The site's overall progress follows its milestones; written in the same batch as any milestone change
+const syncSiteProgress = (b, cid, sid, milestones) => {
+  const p = overallProgress(milestones);
+  if (p != null) b.update(siteDoc(cid, sid), { progress: p });
+};
+
+// Site team: set a milestone's percentage (status and actual dates follow)
+export function setMilestoneProgress(cid, sid, milestone, all, { percentDone, note = '', uid, name }) {
+  const change = milestoneProgress(milestone, percentDone, todayKey());
+  const b = writeBatch(db);
+  b.update(milestoneRef(cid, sid, milestone.id), { ...change, note, updatedBy: uid, updatedByName: name, updatedAt: serverTimestamp() });
+  syncSiteProgress(b, cid, sid, all.map((m) => (m.id === milestone.id ? { ...m, ...change } : m)));
+  return b.commit();
+}
+
+// Site managers: set-up (input: validated milestoneInput)
+const planFields = ({ name, weight, plannedStart, plannedEnd }) => ({ name, weight, plannedStart: plannedStart || null, plannedEnd: plannedEnd || null });
+export function addMilestone(cid, sid, input, all) {
+  const b = writeBatch(db);
+  const m = { ...planFields(input), order: all.reduce((x, y) => Math.max(x, y.order || 0), 0) + 1, status: 'not_started', percentDone: 0, actualStart: null, actualEnd: null, note: '' };
+  b.set(doc(sub(cid, sid, 'milestones')), { ...m, createdAt: serverTimestamp() });
+  syncSiteProgress(b, cid, sid, [...all, m]);
+  return b.commit();
+}
+export function updateMilestonePlan(cid, sid, id, input, all) {
+  const b = writeBatch(db);
+  b.update(milestoneRef(cid, sid, id), { ...planFields(input), updatedAt: serverTimestamp() });
+  syncSiteProgress(b, cid, sid, all.map((m) => (m.id === id ? { ...m, ...planFields(input) } : m)));
+  return b.commit();
+}
+export function deleteMilestone(cid, sid, id, all) {
+  const b = writeBatch(db);
+  b.delete(milestoneRef(cid, sid, id));
+  syncSiteProgress(b, cid, sid, all.filter((m) => m.id !== id));
+  return b.commit();
+}
+// Swap the order of two milestones
+export function swapMilestones(cid, sid, a, c) {
+  const b = writeBatch(db);
+  b.update(milestoneRef(cid, sid, a.id), { order: c.order, updatedAt: serverTimestamp() });
+  b.update(milestoneRef(cid, sid, c.id), { order: a.order, updatedAt: serverTimestamp() });
+  return b.commit();
+}
+// The usual building stages, spread over the site's planned dates
+export function addStandardMilestones(cid, site) {
+  const b = writeBatch(db);
+  const list = standardMilestones(site.planStart, site.planEnd).map((m) => ({ ...m, status: 'not_started', percentDone: 0, actualStart: null, actualEnd: null, note: '' }));
+  for (const m of list) b.set(doc(sub(cid, site.id, 'milestones')), { ...m, createdAt: serverTimestamp() });
+  syncSiteProgress(b, cid, site.id, list);
   return b.commit();
 }

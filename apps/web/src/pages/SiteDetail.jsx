@@ -16,6 +16,7 @@ import Tabs from '../components/Tabs';
 import ReportHistory from '../components/ReportHistory';
 import MaterialsPanel from '../components/MaterialsPanel';
 import SiteIssues from '../components/SiteIssues';
+import ProgressPanel from '../components/ProgressPanel';
 import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import StatusPill from '../components/StatusPill';
@@ -36,7 +37,7 @@ export default function SiteDetail() {
 
   const open = isSiteOpen(site);
   const work = can('site.work') && open;
-  const tabs = [['overview', 'Overview'], ['reports', 'Daily reports'], ['issues', 'Issues'], ['materials', 'Materials'], ['labour', 'Labour']];
+  const tabs = [['overview', 'Overview'], ['progress', 'Progress'], ['reports', 'Daily reports'], ['issues', 'Issues'], ['materials', 'Materials'], ['labour', 'Labour']];
   if (can('finance.view')) tabs.push(['budget', 'Budget']);
   tabs.push(['team', 'Team']);
   if (can('sites.manage')) tabs.push(['settings', 'Settings']);
@@ -61,6 +62,7 @@ export default function SiteDetail() {
       {tab === 'overview' && <OverviewTab site={site} data={data} />}
       {tab === 'reports' && <ReportHistory cid={cid} site={site} />}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
+      {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'budget' && can('finance.view') && <BudgetTab cid={cid} sid={sid} site={site} />}

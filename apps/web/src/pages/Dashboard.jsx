@@ -2,9 +2,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteSignals } from '../lib/hooks';
 import { companyDoc, openIssuesQuery, sitesCol } from '../lib/db';
-import { budgetUsedPct, cedi, longToday, siteAlerts, todayKey } from '@siteflow/shared';
+import { budgetUsedPct, cedi, longToday, scheduleStatus, siteAlerts, todayKey } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
 import StatusPill from '../components/StatusPill';
+import { ScheduleBadge } from '../components/ProgressPanel';
 import { Empty, ErrorState, Loading } from '../components/States';
 
 export default function Dashboard() {
@@ -15,7 +16,7 @@ export default function Dashboard() {
   const { data: sites, loading, error } = useQuery(() => cid && sitesCol(cid), [cid]);
   const { data: openIssues } = useQuery(() => cid && openIssuesQuery(cid), [cid]);
   const active = sites.filter((s) => s.status !== 'closed');
-  const { materials, usage, present, finance } = useSiteSignals(cid, active.map((s) => s.id), { withFinance: money });
+  const { materials, usage, present, finance, milestones } = useSiteSignals(cid, active.map((s) => s.id), { withFinance: money });
   const today = todayKey();
 
   if (loading) return <Loading what="sites" />;
@@ -35,7 +36,7 @@ export default function Dashboard() {
   }
 
   const alerts = active.flatMap((s) => siteAlerts(s, materials[s.id], usage[s.id], {
-    company, finance: money ? finance[s.id] : null, openIssues: openIssues.filter((i) => i.siteId === s.id),
+    company, finance: money ? finance[s.id] : null, openIssues: openIssues.filter((i) => i.siteId === s.id), milestones: milestones[s.id] || [],
   })
     .map((a) => ({ ...a, site: s })));
   const reporting = active.filter((s) => s.status === 'active');
@@ -66,7 +67,7 @@ export default function Dashboard() {
               <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
                 <td><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link> {s.status !== 'active' && <StatusPill status={s.status} />}<div className="muted small">{s.location}</div></td>
                 <td>{s.stage || '–'}</td>
-                <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small></td>
+                <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small> <ScheduleBadge st={scheduleStatus(s, milestones[s.id] || [])} /></td>
                 {money && (
                   <td>{f
                     ? <><div className={`meter ${p >= 90 ? 'hot' : ''}`}><span style={{ width: `${Math.min(p, 100)}%` }} /></div><small className="muted">{p}% of {cedi(f.budget)}</small></>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onSnapshot } from 'firebase/firestore';
-import { attendanceDoc, financeDoc, sub, todayLogsQuery } from './db';
+import { attendanceDoc, financeDoc, milestonesQuery, sub, todayLogsQuery } from './db';
 import { presentCount, usageByMaterial } from '@siteflow/shared';
 
 const toList = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -40,6 +40,7 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
   const [usage, setUsage] = useState({});
   const [present, setPresent] = useState({});
   const [finance, setFinance] = useState({});
+  const [milestones, setMilestones] = useState({});
   const key = siteIds.join(',');
   useEffect(() => {
     if (!cid || !siteIds.length) return;
@@ -49,11 +50,12 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
       unsubs.push(onSnapshot(sub(cid, sid, 'materials'), (s) => setMaterials((p) => ({ ...p, [sid]: toList(s) })), fail('materials')));
       unsubs.push(onSnapshot(todayLogsQuery(cid, sid), (s) => setUsage((p) => ({ ...p, [sid]: usageByMaterial(toList(s)) })), fail('usage')));
       unsubs.push(onSnapshot(attendanceDoc(cid, sid), (s) => setPresent((p) => ({ ...p, [sid]: presentCount(s.data()?.marks) })), fail('attendance')));
+      unsubs.push(onSnapshot(milestonesQuery(cid, sid), (s) => setMilestones((p) => ({ ...p, [sid]: toList(s) })), fail('milestones')));
       if (withFinance) unsubs.push(onSnapshot(financeDoc(cid, sid), (s) => setFinance((p) => ({ ...p, [sid]: s.data() || null })), fail('finance')));
     });
     return () => unsubs.forEach((u) => u());
   }, [cid, key, withFinance]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { materials, usage, present, finance };
+  return { materials, usage, present, finance, milestones };
 }
 
 const byName = (a, b) => (a.name || '').localeCompare(b.name || '');

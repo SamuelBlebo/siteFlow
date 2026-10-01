@@ -233,3 +233,22 @@ td.neg, .neg { color: var(--bad); }
 .timeline li { padding: 6px 0 6px 14px; position: relative; }
 .timeline li::before { content: ""; position: absolute; left: -6px; top: 13px; width: 10px; height: 10px; border-radius: 50%; background: var(--steel); }
 .timeline li.update::before { background: var(--line); }
+
+/* progress */
+.milestone { flex-wrap: wrap; }
+.milestone .grow { min-width: 240px; }
+.milestone .meter { display: block; }
+.ms-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.ms-actions .seg { margin: 0; }
+.ms-actions .seg button { padding: 4px 8px; font-size: 13px; }
+.chart { margin: 16px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { font-size: 11px; fill: var(--muted); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .today { stroke: var(--muted); stroke-dasharray: 4 4; }
+.chart .planned { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 4; }
+.chart .actual { fill: none; stroke: var(--steel); stroke-width: 2.5; }
+.chart .actual-dot { fill: var(--steel); }
+.chart figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; display: flex; gap: 8px; align-items: center; }
+.chart .key { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--muted); }
+.chart .key.actual { border-top: 3px solid var(--steel); }
