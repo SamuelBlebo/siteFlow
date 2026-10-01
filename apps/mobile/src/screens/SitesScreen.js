@@ -3,8 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useOutbox } from '../lib/useOutbox';
 import { outboxKey } from '../lib/reportOutbox';
-import { exists, siteRef, sitesCol, toList } from '../lib/db';
-import { SITE_STATUS_LABELS, isSiteScoped, todayKey } from '@siteflow/shared';
+import { exists, openIssuesQuery, siteRef, sitesCol, toList } from '../lib/db';
+import { ALERT_LABELS, SITE_STATUS_LABELS, isSiteScoped, rankAlerts, siteAlerts, todayKey } from '@siteflow/shared';
 import { Card, ErrorView, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
@@ -16,6 +16,7 @@ export default function SitesScreen({ navigation }) {
   const [sites, setSites] = useState({});
   const [error, setError] = useState(null);
   const [allLoaded, setAllLoaded] = useState(false);
+  const [openIssues, setOpenIssues] = useState([]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -38,6 +39,12 @@ export default function SitesScreen({ navigation }) {
     return () => unsubs.forEach((u) => u());
   }, [cid, all, profile.siteIds?.join(',')]);
 
+  // Managers: open issues across the company feed a short "needs attention" list
+  useEffect(() => {
+    if (!cid || !all) return;
+    return openIssuesQuery(cid).onSnapshot((q) => setOpenIssues(toList(q)), (e) => console.warn('Could not load issues', e));
+  }, [cid, all]);
+
   const list = Object.values(sites).filter((x) => x && x.status !== 'closed').sort((a, b) => a.name.localeCompare(b.name));
   const loaded = all ? allLoaded : (profile.siteIds || []).every((id) => id in sites);
 
@@ -53,6 +60,7 @@ export default function SitesScreen({ navigation }) {
     <Screen>
       <Muted style={{ marginBottom: 12 }}>Hi {profile.name?.split(' ')[0]}. Pick a site to work on.</Muted>
       {error ? <ErrorView error={error} what="your sites" /> : null}
+      {all && loaded ? <Attention sites={list} openIssues={openIssues} navigation={navigation} /> : null}
       {!loaded && !error ? <Muted>Loading sites…</Muted> : !list.length ? (
         <Card style={{ padding: 16 }}><Text style={{ color: colors.ink }}>You haven't been added to a site yet. Ask your manager to add you.</Text></Card>
       ) : (
@@ -78,5 +86,29 @@ export default function SitesScreen({ navigation }) {
         </Card>
       )}
     </Screen>
+  );
+}
+
+// Top things to act on across sites (managers): critical issues, missing reports, delays
+function Attention({ sites, openIssues, navigation }) {
+  const alerts = rankAlerts(sites.flatMap((site) => siteAlerts(site, [], {}, { openIssues: openIssues.filter((i) => i.siteId === site.id) }).map((a) => ({ ...a, site }))));
+  if (!alerts.length) return <Card style={{ padding: 14, marginBottom: 12 }}><Text style={{ color: colors.ok, fontWeight: '600' }}>Nothing needs your attention right now.</Text></Card>;
+  const top = alerts.slice(0, 5);
+  return (
+    <>
+      <Text style={{ fontWeight: '700', color: colors.ink, fontSize: 16, marginBottom: 6 }}>Needs your attention ({alerts.length})</Text>
+      <Card style={{ marginBottom: 14 }}>
+        {top.map((a, i) => (
+          <Pressable key={`${a.site.id}-${a.kind}-${i}`} onPress={() => navigation.navigate('Site', { sid: a.site.id, name: a.site.name })} accessibilityRole="button"
+            style={[s.row, i === 0 && { borderTopWidth: 0 }, a.severity === 'bad' && { borderLeftWidth: 4, borderLeftColor: colors.bad }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.ink, fontWeight: '600' }}>{a.title}</Text>
+              <Muted>{a.site.name} · {ALERT_LABELS[a.kind] || a.kind}</Muted>
+            </View>
+          </Pressable>
+        ))}
+      </Card>
+      {alerts.length > top.length ? <Muted style={{ marginTop: -8, marginBottom: 12 }}>{alerts.length - top.length} more on the web dashboard.</Muted> : null}
+    </>
   );
 }

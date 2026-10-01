@@ -79,6 +79,8 @@ export const siteReportsQuery = (cid, sid, n = 10) => sub(cid, sid, 'reports').o
 // Issues: new ones go through the outbox (queueIssue); changes and comments are tracked writes
 export const issueRef = (cid, sid, id) => firestore().doc(paths.subDoc(cid, sid, 'issues', id));
 export const siteIssuesQuery = (cid, sid, n = 100) => sub(cid, sid, 'issues').orderBy('date', 'desc').limit(n);
+// Every open issue in the company (roles that see every site)
+export const openIssuesQuery = (cid) => firestore().collectionGroup('issues').where('companyId', '==', cid).where('status', 'in', ['open', 'in_progress']);
 export const commentsQuery = (cid, sid, id) => firestore().collection(paths.issueComments(cid, sid, id)).orderBy('createdAt');
 
 // A change to an issue (start, resolve), with a note in its timeline
