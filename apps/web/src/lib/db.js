@@ -1,5 +1,5 @@
 import {
-  collection, collectionGroup, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
+  collection, collectionGroup, deleteDoc, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
@@ -32,7 +32,8 @@ export function companyReportsQuery(cid, { siteId = '', author = '', from = '', 
   return query(collectionGroup(db, 'reports'), ...c, orderBy('date', 'desc'), limit(n));
 }
 export const reportRef = (cid, sid, rid) => doc(db, paths.subDoc(cid, sid, 'reports', rid));
-export const expensesQuery = (cid, sid) => query(sub(cid, sid, 'expenses'), orderBy('createdAt', 'desc'), limit(50));
+export const expensesQuery = (cid, sid, from = '', n = 500) =>
+  query(sub(cid, sid, 'expenses'), ...(from ? [where('date', '>=', from)] : []), orderBy('date', 'desc'), limit(n));
 export const teamQuery = (cid) => query(usersCol(), where('companyId', '==', cid));
 export const activityQuery = (cid, n = 20) => query(collection(db, paths.activity(cid)), orderBy('at', 'desc'), limit(n));
 
@@ -50,14 +51,16 @@ export function createSite(cid, { budget, ...details }) {
   const b = writeBatch(db);
   const siteRef = doc(sitesCol(cid));
   b.set(siteRef, { ...siteFields(details), progress: 0, status: 'active', lastReportDate: null, createdAt: serverTimestamp() });
-  b.set(financeDoc(cid, siteRef.id), { budget, spent: 0, updatedAt: serverTimestamp() });
+  b.set(financeDoc(cid, siteRef.id), { budget, spent: 0, updatedAt: serverTimestamp() }); // spent is kept by the server from here on
   return { id: siteRef.id, done: b.commit() };
 }
 
 // input: validated siteDetailsInput
 export const updateSiteDetails = (cid, sid, details) => updateDoc(siteDoc(cid, sid), { ...siteFields(details), updatedAt: serverTimestamp() });
 export const setSiteStatus = (cid, sid, status) => updateDoc(siteDoc(cid, sid), { status, updatedAt: serverTimestamp() });
-export const setBudget = (cid, sid, budget) => updateDoc(financeDoc(cid, sid), { budget, updatedAt: serverTimestamp() });
+// Site managers: total budget and (optionally) budget per category
+export const setBudget = (cid, sid, budget, budgetByCategory) =>
+  updateDoc(financeDoc(cid, sid), { budget, ...(budgetByCategory ? { budgetByCategory } : {}), updatedAt: serverTimestamp() });
 
 export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, active: true, createdAt: serverTimestamp() });
 
@@ -77,7 +80,7 @@ export const setWorkerRate = (cid, sid, wid, dailyRate) =>
 
 // Entry and stock change go in one batch; the rules check they match.
 // type: 'usage' | 'delivery' | 'adjustment' (stock count; qty is the signed difference).
-// A delivery cost (finance roles only) also records an expense and adds to spent.
+// A delivery cost (finance roles only) also records an expense; the server then updates the spending totals.
 export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier = '', ref = '', note = '', uid, name, date = todayKey() }) {
   const b = writeBatch(db);
   const logRef = doc(sub(cid, sid, 'materialLogs'));
@@ -88,10 +91,9 @@ export function logMaterial(cid, sid, { material, type, qty, cost = 0, supplier 
   b.update(subDoc(cid, sid, 'materials', material.id), { stock: increment(stockDelta({ type, qty })), lastLogId: logRef.id });
   if (type === 'delivery' && cost > 0) {
     b.set(doc(sub(cid, sid, 'expenses')), {
-      date, category: 'Materials', amount: cost, createdBy: uid, createdAt: serverTimestamp(),
-      note: `${material.name}, ${qty} ${material.unit}${supplier ? ` from ${supplier}` : ''}`,
+      date, category: 'Materials', amount: cost, payee: supplier, method: '', ref, createdBy: uid, createdByName: name, createdAt: serverTimestamp(),
+      note: `${material.name}, ${qty} ${material.unit}`,
     });
-    b.update(financeDoc(cid, sid), { spent: increment(cost), updatedAt: serverTimestamp() });
   }
   return b.commit();
 }
@@ -116,12 +118,14 @@ export function materialLogsQuery(cid, sid, { from = '', materialId = '' } = {},
   return query(sub(cid, sid, 'materialLogs'), ...c, orderBy('date', 'desc'), limit(n));
 }
 
-export function addExpense(cid, sid, { category, note, amount, uid }) {
-  const b = writeBatch(db);
-  b.set(doc(sub(cid, sid, 'expenses')), { date: todayKey(), category, note, amount, createdBy: uid, createdAt: serverTimestamp() });
-  b.update(financeDoc(cid, sid), { spent: increment(amount), updatedAt: serverTimestamp() });
-  return b.commit();
-}
+// Expenses (finance roles). The recalcSiteSpending function keeps the totals right.
+export const addExpense = (cid, sid, input, { uid, name }) =>
+  setDoc(doc(sub(cid, sid, 'expenses')), { ...input, createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
+export const updateExpense = (cid, sid, id, input) => updateDoc(subDoc(cid, sid, 'expenses', id), { ...input, updatedAt: serverTimestamp() });
+export const deleteExpense = (cid, sid, id) => deleteDoc(subDoc(cid, sid, 'expenses', id));
+// Wages for a period, worked out from attendance, recorded as one Labour expense
+export const recordWages = (cid, sid, { from, to, amount, date = todayKey(), method = '' }, me) =>
+  addExpense(cid, sid, { date, category: 'Labour', amount, note: `Wages ${from} to ${to}`, payee: 'Site workers', method, ref: '' }, me);
 
 // Marks one or more workers for a day, e.g. { w1: 'present', w2: 'late' }. Merged per worker, so
 // two people marking at once don't overwrite each other.

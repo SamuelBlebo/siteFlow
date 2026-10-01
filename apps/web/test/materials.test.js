@@ -10,6 +10,7 @@ import {
 } from '../src/lib/db';
 import { changePassword, team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
+import { waitFor } from './wait';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -81,7 +82,7 @@ describe('stock counts', () => {
   it('a costed delivery by a manager also adds to spending', async () => {
     await as('manager');
     await entry('manager', { type: 'delivery', qty: 50, cost: 4500, supplier: 'Ghacem' });
-    expect((await getDoc(financeDoc(cid, sid))).data().spent).toBe(4500);
+    await waitFor(async () => (await getDoc(financeDoc(cid, sid))).data(), (f) => f.spent === 4500 && f.byCategory?.Materials === 4500);
   });
 });
 

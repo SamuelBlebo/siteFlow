@@ -11,6 +11,7 @@ import {
   sendReport, siteDoc, sub, subDoc, uploadPhotos, userDoc,
 } from '../src/lib/db';
 import { save, SaveError } from '../src/lib/save';
+import { waitFor } from './wait';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -50,9 +51,9 @@ describe('owner', () => {
     cementId = (await getDocs(sub(cid, sid, 'materials'))).docs[0].id;
     const material = { id: cementId, name: 'Cement', unit: 'bags' };
     await save(logMaterial(cid, sid, { material, type: 'delivery', qty: 40, cost: 3000, supplier: 'Ghacem', uid: cid, name: 'Ama Mensah' }));
-    await save(addExpense(cid, sid, { category: 'Transport', note: 'Truck', amount: 500, uid: cid }));
+    await save(addExpense(cid, sid, { date: '2026-06-01', category: 'Transport', note: 'Truck', amount: 500, payee: '', method: 'Cash', ref: '' }, { uid: cid, name: 'Ama Mensah' }));
     expect((await getDoc(subDoc(cid, sid, 'materials', cementId))).data().stock).toBe(50);
-    expect((await getDoc(financeDoc(cid, sid))).data().spent).toBe(3500);
+    await waitFor(async () => (await getDoc(financeDoc(cid, sid))).data(), (f) => f.spent === 3500); // worked out by the server
   });
 
   it('adds a worker with pay kept apart', async () => {

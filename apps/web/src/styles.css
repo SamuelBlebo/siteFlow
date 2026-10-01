@@ -252,3 +252,12 @@ td.neg, .neg { color: var(--bad); }
 .chart figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; display: flex; gap: 8px; align-items: center; }
 .chart .key { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--muted); }
 .chart .key.actual { border-top: 3px solid var(--steel); }
+
+/* finance */
+tr.total td { border-top: 2px solid var(--ink); }
+.bars { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.bars li { display: grid; grid-template-columns: 64px 1fr 120px; gap: 8px; align-items: center; }
+.bars .bar { background: var(--sunk); border-radius: 4px; height: 14px; overflow: hidden; }
+.bars .bar span { display: block; height: 100%; background: var(--steel); }
+.bars .lbl { color: var(--muted); font-size: 13px; }
+.bars .val { text-align: right; font-size: 13px; }

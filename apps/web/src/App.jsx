@@ -18,6 +18,7 @@ import Reports from './pages/Reports';
 import ReportDetail from './pages/ReportDetail';
 import Issues from './pages/Issues';
 import IssueDetail from './pages/IssueDetail';
+import Finance from './pages/Finance';
 import SiteDetail from './pages/SiteDetail';
 import Team from './pages/Team';
 import MySites from './pages/MySites';
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="reports/:sid/:rid" element={<ReportDetail />} />
           <Route path="issues" element={<Guard perm="sites.all"><Issues /></Guard>} />
           <Route path="issues/:sid/:id" element={<IssueDetail />} />
+          <Route path="finance" element={<Guard perm="finance.view"><Finance /></Guard>} />
           <Route path="sites/new" element={<Guard perm="sites.manage"><NewSite /></Guard>} />
           <Route path="sites/:sid" element={<Guard perm="sites.all"><SiteDetail /></Guard>} />
           <Route path="team" element={<Guard perm="team.manage"><Team /></Guard>} />

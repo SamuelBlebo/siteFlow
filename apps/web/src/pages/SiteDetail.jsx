@@ -3,13 +3,13 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteData } from '../lib/hooks';
 import {
-  addExpense, expensesQuery, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
+  financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
 import { team } from '../lib/account';
 import {
-  EXPENSE_CATEGORIES, ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, budgetInput, budgetRemaining, budgetUsedPct, cedi,
-  expenseInput, friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
+  ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, budgetInput, cedi,
+  friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
   validate, waPhone,
 } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
@@ -17,6 +17,7 @@ import ReportHistory from '../components/ReportHistory';
 import MaterialsPanel from '../components/MaterialsPanel';
 import SiteIssues from '../components/SiteIssues';
 import ProgressPanel from '../components/ProgressPanel';
+import BudgetPanel from '../components/BudgetPanel';
 import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import StatusPill from '../components/StatusPill';
@@ -65,7 +66,7 @@ export default function SiteDetail() {
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
-      {tab === 'budget' && can('finance.view') && <BudgetTab cid={cid} sid={sid} site={site} />}
+      {tab === 'budget' && can('finance.view') && <BudgetPanel cid={cid} site={site} data={data} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
       {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} />}
     </section>
@@ -232,67 +233,6 @@ function SettingsTab({ cid, sid, site }) {
             <button className="btn ghost">Save budget</button>
           </form>
         </>
-      )}
-    </>
-  );
-}
-
-function BudgetTab({ cid, sid, site }) {
-  const { user, can } = useAuth();
-  const { data: finance, loading: fLoading, error: fError } = useDoc(() => financeDoc(cid, sid), [cid, sid]);
-  const { data: expenses, loading, error } = useQuery(() => expensesQuery(cid, sid), [cid, sid]);
-  const [f, setF] = useState({ category: EXPENSE_CATEGORIES[0], note: '', amount: '' });
-  const [msg, setMsg] = useState({ kind: '', text: '' });
-  const [busy, setBusy] = useState(false);
-
-  if (fLoading) return <Loading what="budget" />;
-  if (fError) return <ErrorState error={fError} what="the budget" />;
-  if (!finance) return <Empty title="No budget set for this site.">A project manager can set one when editing the site.</Empty>;
-  const p = budgetUsedPct(finance);
-
-  async function submit(e) {
-    e.preventDefault();
-    const v = validate(expenseInput, f);
-    if (!v.ok) return setMsg({ kind: 'err', text: v.error });
-    setBusy(true); setMsg({});
-    try {
-      const res = await save(addExpense(cid, sid, { ...v.data, uid: user.uid }), 'Expense');
-      setMsg({ kind: 'ok', text: savedText(res, 'Expense') });
-      setF({ ...f, note: '', amount: '' });
-    } catch (e2) {
-      setMsg({ kind: 'err', text: e2.message });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <dl className="cols">
-        <div><dt>Budget</dt><dd>{cedi(finance.budget)}</dd></div>
-        <div><dt>Spent</dt><dd>{cedi(finance.spent)}</dd></div>
-        <div><dt>Remaining</dt><dd>{cedi(budgetRemaining(finance))}</dd></div>
-        <div><dt>Work done</dt><dd>{site.progress || 0}%</dd></div>
-      </dl>
-      {p >= 90 && <p className="err">{p}% of the budget is spent but only {site.progress || 0}% of the work is done.</p>}
-      {can('finance.edit') && (
-        <form className="form inline" onSubmit={submit}>
-          <h3>Record an expense</h3>
-          {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
-          <div className="grid3">
-            <div className="field"><label htmlFor="x-c">Category</label><select id="x-c" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></div>
-            <div className="field"><label htmlFor="x-n">Details</label><input id="x-n" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></div>
-            <div className="field"><label htmlFor="x-a">Amount (GH₵)</label><input id="x-a" type="number" min="0" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></div>
-          </div>
-          <button className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Save expense'}</button>
-        </form>
-      )}
-      <h3 className="sub">Recent expenses</h3>
-      {loading ? <Loading what="expenses" /> : error ? <ErrorState error={error} what="expenses" /> : !expenses.length ? <Empty title="No expenses recorded yet." /> : (
-        <div className="scroll"><table>
-          <thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Amount</th></tr></thead>
-          <tbody>{expenses.map((x) => <tr key={x.id}><td>{prettyDate(x.date)}</td><td>{x.category}</td><td>{x.note}</td><td>{cedi(x.amount)}</td></tr>)}</tbody>
-        </table></div>
       )}
     </>
   );
