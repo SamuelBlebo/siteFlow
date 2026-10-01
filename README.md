@@ -102,6 +102,15 @@ on site is refused.
 - Web: Stock (days left from the last 14 days of use), Record, History (totals, CSV), Set up.
 - Mobile: fast Used / Received entry, stock with days left, today's entries.
 
+## Issues
+Problems reported on site (`sites/{sid}/issues`, comments in `issues/{id}/comments`). Priority **critical / high /
+medium / low**, status **open → in progress → resolved → closed**. Who may do what is `issueActions` in shared and
+the same in the rules: site managers do anything (assign, prioritise, fix-by date, close, reopen); the assignee
+starts and resolves (saying how it was fixed); the reporter edits details while open; the site team comments.
+Issues and comments are never deleted. Open critical and high issues appear in the dashboard alerts.
+- Web: Issues page (critical banner, filters), issue view with actions and timeline, Issues tab per site.
+- Mobile: report a problem through the outbox (works offline with photos), follow and resolve issues.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
