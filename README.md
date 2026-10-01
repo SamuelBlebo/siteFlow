@@ -119,6 +119,15 @@ batch; without milestones it comes from daily reports. `scheduleStatus` compares
 milestone dates, else the site's planned dates): on track, ahead, behind (with weeks), finished. Behind
 programme and overdue milestones appear in the dashboard alerts for active sites.
 
+## Money
+Finance roles only. Each site's `finance/summary` holds the budget (total and per category, set by project
+managers) and the spending totals, which are worked out by the `recalcSiteSpending` Cloud Function from the
+site's expenses after every change: no app can write them. Expenses (date, category, amount, paid to, paid by,
+receipt) are recorded and corrected by finance roles; costed material deliveries add an expense; wages worked
+out from attendance can be recorded as a Labour expense. All calculations (variance, forecast at completion,
+overspend risk, monthly spend) are in `packages/shared/src/logic/finance.ts`.
+- Web: Budget tab per site, Finance page across sites. Mobile shows no money.
+
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
 - **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
