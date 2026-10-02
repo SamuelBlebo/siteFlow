@@ -111,3 +111,20 @@ describe('labour cost and summaries', () => {
     expect(siteFinanceSummary(await fin(), 20).overspendRisk).toBe(true);
   });
 });
+
+// Last, because it changes the running totals the tests above check
+describe('busy moments', () => {
+  it('expenses saved at the same moment are all counted, including a custom category', async () => {
+    const me = await as('finance');
+    const before = await fin();
+    await Promise.all([
+      save(addExpense(cid, sid, expense({ category: 'Equipment', amount: 300 }), me)),
+      save(addExpense(cid, sid, expense({ category: 'Permits', amount: 200 }), me)),
+      save(addExpense(cid, sid, expense({ category: 'Security', amount: 150 }), me)),
+      save(addExpense(cid, sid, expense({ category: 'Materials', amount: 50 }), me)),
+    ]);
+    const f = await until((x) => x.expenseCount === before.expenseCount + 4 && x.byCategory?.Security === 150 && x.byCategory?.Equipment === 300 && x.byCategory?.Permits === 200);
+    expect(f.spent).toBe(before.spent + 700);
+    expect(f.byCategory.Materials).toBe((before.byCategory.Materials || 0) + 50);
+  });
+});
