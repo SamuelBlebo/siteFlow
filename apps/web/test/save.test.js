@@ -1,13 +1,14 @@
 // The web app's save(): waits for the server when online, keeps working offline, never fails silently.
 // Pure logic (no emulator needed), but it runs with the rest of the web tests.
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dismiss, getState, save, savedText, SaveError } from '../src/lib/save';
 
 const later = (ms, fn) => new Promise((resolve, reject) => setTimeout(() => { try { resolve(fn()); } catch (e) { reject(e); } }, ms));
-const setOnline = (v) => Object.defineProperty(globalThis.navigator, 'onLine', { value: v, configurable: true });
+// Node 20 has no navigator (newer Node does), so the test provides one
+const setOnline = (v) => vi.stubGlobal('navigator', { onLine: v });
 const denied = () => Object.assign(new Error('7 PERMISSION_DENIED'), { code: 'permission-denied' });
 
-afterEach(() => { setOnline(undefined); for (const t of getState().toasts) dismiss(t.id); });
+afterEach(() => { vi.unstubAllGlobals(); for (const t of getState().toasts) dismiss(t.id); });
 
 describe('save', () => {
   it('online: resolves once the server confirms', async () => {
