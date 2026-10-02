@@ -181,13 +181,22 @@ so they can run while `npm run emulators`, or another project's emulators, are o
 | Deploy everything to production | `npm run deploy:prod` |
 | Deploy rules only | `npm run deploy:rules` |
 
+## Notifications
+WhatsApp and email alerts are sent only by Cloud Functions (`firebase/functions/src/deliver.ts`), never by the apps.
+The catalogue (who gets what, default channels, WhatsApp template wording) is `logic/notifications.ts` in shared:
+critical issue, issue given to you, daily report missing, material running low, daily report sent (off by default)
+and weekly summary. The owner switches each on or off per channel on the Company page. Each message is logged in
+`companies/{cid}/notifications` (Team page) with a fixed id so an event never messages someone twice; failures worth
+retrying are retried every 30 minutes. In the emulator nothing is sent (logged as "Not sent"). WhatsApp needs approved
+templates: see [docs/WHATSAPP_TEMPLATES.md](docs/WHATSAPP_TEMPLATES.md).
+
 ## Secrets for reminders
 ```bash
 firebase functions:secrets:set WHATSAPP_TOKEN --project prod     # Meta WhatsApp Cloud API
 firebase functions:secrets:set WHATSAPP_PHONE_ID --project prod
 firebase functions:secrets:set EMAIL_API_KEY --project prod      # Resend (or swap provider in notify.ts)
 ```
-WhatsApp messages that SiteFlow starts need a Meta-approved message template.
+WhatsApp messages that SiteFlow starts need Meta-approved templates: see docs/WHATSAPP_TEMPLATES.md.
 
 ## Mobile release
 ```bash
