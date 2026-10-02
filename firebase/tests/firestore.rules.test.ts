@@ -578,3 +578,19 @@ describe('milestones and progress', () => {
     await assertSucceeds(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { progress: 35 }));
   });
 });
+
+describe('notifications', () => {
+  it('the owner chooses notification channels; others cannot', async () => {
+    await assertSucceeds(updateDoc(doc(asRole('owner'), paths.company(C1)), { notifications: { critical_issue: { whatsapp: true, email: false } } }));
+    await assertFails(updateDoc(doc(asRole('admin'), paths.company(C1)), { notifications: { critical_issue: { whatsapp: false, email: false } } }));
+  });
+  it('the message log is read by owners and admins only and written by nobody', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), paths.notifications(C1), 'n1'), { kind: 'critical_issue', channel: 'email', status: 'sent', to: '…4567' }));
+    await assertSucceeds(getDocs(collection(asRole('owner'), paths.notifications(C1))));
+    await assertSucceeds(getDocs(collection(asRole('admin'), paths.notifications(C1))));
+    await assertFails(getDocs(collection(asRole('manager'), paths.notifications(C1))));
+    await assertFails(getDocs(collection(asRole('supervisor'), paths.notifications(C1))));
+    await assertFails(setDoc(doc(asRole('owner'), paths.notifications(C1), 'fake'), { kind: 'critical_issue', status: 'sent' }));
+    await assertFails(getDocs(collection(as(OTHER_OWNER), paths.notifications(C1))));
+  });
+});

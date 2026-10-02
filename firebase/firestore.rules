@@ -77,11 +77,16 @@ service cloud.firestore {
       allow create, delete: if false;
       allow update: if companySettings(cid) && onlyChanges(['name', 'phone', 'location', 'notifications', 'updatedAt'])
         && isText(data().name, 2, 100) && optText('phone', 20) && optText('location', 200)
-        && (!('notifications' in data()) || data().notifications is map);
+        && (!('notifications' in data()) || (data().notifications is map && data().notifications.size() <= 20));
 
       match /equipment/{id} {
         allow read: if member(cid);
         allow write: if siteManager(cid);
+      }
+      // Messages sent (WhatsApp, email): written by Cloud Functions only, read by owners and admins
+      match /notifications/{id} {
+        allow read: if teamManager(cid);
+        allow write: if false;
       }
       // Audit trail: written by Cloud Functions only
       match /activity/{id} {
