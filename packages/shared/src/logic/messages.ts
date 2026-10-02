@@ -1,10 +1,7 @@
 import { big } from '../format';
-import type { Alert, Site } from '../types';
+import type { Alert } from '../types';
 
-// Message text lives here so WhatsApp, email and in-app previews always match.
-export const reportReminderText = (site: Pick<Site, 'name' | 'foremanName'>) =>
-  `Hi ${(site.foremanName || 'there').split(' ')[0]}, today's daily report for ${site.name} hasn't come in yet. Please send it from the SiteFlow app or reply here with a voice note before 7pm. Thank you.`;
-
+// The weekly summary email. (WhatsApp messages use the templates in notifications.ts.)
 export interface DigestSite { name: string; progress: number; behind: boolean }
 export function weeklyDigestText(p: { companyName: string; weekEnding: string; totalBudget: number; spentThisWeek: number; sites: DigestSite[]; topAlerts: (Alert & { siteName: string })[]; saved?: number; link: string }) {
   return [
