@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "siteflow-dev-gh",
+    "dev": "siteflow-dev-gh",
+    "prod": "siteflow-prod-gh"
+  }
+}

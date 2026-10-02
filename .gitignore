@@ -11,6 +11,9 @@ apps/mobile/ios/
 .env
 .env.*
 !.env.example
+# function settings per project are not secret and are committed
+!firebase/functions/.env.siteflow-dev-gh
+!firebase/functions/.env.siteflow-prod-gh
 apps/mobile/google-services*.json
 apps/mobile/GoogleService-Info*.plist
 service-account*.json

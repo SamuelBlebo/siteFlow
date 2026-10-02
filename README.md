@@ -161,39 +161,53 @@ Sites often have no signal. Nothing a supervisor saves on the phone may be lost.
 - **Status:** a banner shows Offline, Syncing or Not saved, and tapping it opens the **Sync** screen (also under Account), which lists everything waiting or failed, with Send now, Try again and Remove. Signing out with unsent changes asks first.
 - **Drafts:** report and issue forms keep their text on the phone as it is typed.
 
+## Environments
+| | Development | Production |
+|---|---|---|
+| Firebase project | `siteflow-dev-gh` (alias `dev`) | `siteflow-prod-gh` (alias `prod`) |
+| Web config | `apps/web/.env.development` | `apps/web/.env.production` |
+| Mobile app id | `com.digitalprime.siteflow.dev` ("SiteFlow Dev") | `com.digitalprime.siteflow` |
+| Mobile config | `apps/mobile/google-services.dev.json`, `GoogleService-Info.dev.plist` | `...prod.json`, `...prod.plist` |
+| Function settings | `firebase/functions/.env.siteflow-dev-gh` | `firebase/functions/.env.siteflow-prod-gh` |
+| Used for | Building and testing, demo data | Real companies only |
+
+Never test or experiment on production. Config files are fetched, not hand-edited (they are public
+identifiers, kept out of git). Console setup for each project: `docs/ENVIRONMENTS.md`.
+
 ## First-time setup
 ```bash
-nvm use                                  # Node 20
-npm run setup                            # installs everything, including functions
-npm i -g firebase-tools eas-cli
-firebase login
-cp .firebaserc.example .firebaserc       # then put your real project ids in it
-cp apps/web/.env.example apps/web/.env.development
-cp apps/web/.env.example apps/web/.env.production
+nvm use                      # Node 20
+npm run setup                # installs everything, including functions
+npx firebase login           # an account with access to both projects
+npm run config:dev           # writes the web and mobile config for siteflow-dev-gh
+npm run config:prod          # same for siteflow-prod-gh (only if you release)
+npm run check:env            # checks every config file points at the right project
 ```
-Firebase console, for **each** project: enable Email/Password auth, Firestore, Storage, and the Blaze plan (needed for Functions).
-Add a Web app, an Android app and an iOS app to each project. App ids:
-- production: `com.digitalprime.siteflow`
-- development: `com.digitalprime.siteflow.dev`
 
 ## Everyday commands
 | Task | Command |
 |---|---|
-| Web app locally | `npm run dev:web` |
-| Mobile app locally (dev build on a phone) | `npm run dev:mobile` |
-| Local Firebase (no real data touched) | `npm run emulators`, with `VITE_USE_EMULATORS=true` |
+| Web app on the dev project | `npm run dev:web` |
+| Web app on the local emulators | `npm run emulators`, then `npm run dev:web` with `VITE_USE_EMULATORS=true` in `apps/web/.env.development.local` |
+| Mobile app (dev build on a phone, dev project) | `npm run dev:mobile` |
 | Type-check shared, functions and rule tests | `npm run typecheck` |
 | Shared logic tests | `npm run test:shared` |
 | Mobile logic tests | `npm test -w @siteflow/mobile` |
 | Security-rule tests (needs Java 21) | `npm run test:rules` |
+| Scheduled jobs (needs Java 21) | `npm run test:functions` |
 | Web data layer against the emulators (needs Java 21) | `npm run test:web` |
 | Everything | `npm test` |
+| Check environment config | `npm run check:env` |
+| Deploy everything to dev | `npm run deploy:dev` |
+| Deploy rules and indexes to dev | `npm run deploy:rules` |
+| Deploy everything to production (only when asked) | `npm run deploy:prod` |
 
 The emulator tests use their own ports (`firebase.test.json`) and temp folder (`scripts/test-emulators.mjs`),
-so they can run while `npm run emulators`, or another project's emulators, are open.
-| Deploy everything to dev | `npm run deploy:dev` |
-| Deploy everything to production | `npm run deploy:prod` |
-| Deploy rules only | `npm run deploy:rules` |
+so they can run while `npm run emulators`, or another project's emulators, are open. `npm run emulators`
+uses the offline demo project, so it never touches dev or production.
+
+A deploy builds the web app for the project it deploys to (`scripts/build-web.mjs`) and stops if the
+config file belongs to the other project.
 
 ## Notifications
 WhatsApp and email alerts are sent only by Cloud Functions (`firebase/functions/src/deliver.ts`), never by the apps.

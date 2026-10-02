@@ -1,6 +1,6 @@
 # Running SiteFlow in production
 
-Settings that live in Firebase and Google Cloud rather than in the code. Do these for **siteflow-prod**. Doing them for **siteflow-dev** too is a good rehearsal.
+Settings that live in Firebase and Google Cloud rather than in the code. Do these for **siteflow-prod-gh**. Doing them for **siteflow-dev-gh** too is a good rehearsal.
 
 Each step says where to do it. Nothing here is automatic: deploys and console changes are done by a person.
 
@@ -11,13 +11,13 @@ Each step says where to do it. Nothing here is automatic: deploys and console ch
 **Point-in-time recovery.** This keeps 7 days of every change, so data can be read back as it was at any minute.
 
 ```
-gcloud firestore databases update --database='(default)' --enable-pitr --project=siteflow-prod
+gcloud firestore databases update --database='(default)' --enable-pitr --project=siteflow-prod-gh
 ```
 
 **Daily backups, kept for 14 weeks:**
 
 ```
-gcloud firestore backups schedules create --database='(default)' --recurrence=daily --retention=14w --project=siteflow-prod
+gcloud firestore backups schedules create --database='(default)' --recurrence=daily --retention=14w --project=siteflow-prod-gh
 ```
 
 **Storage (photos):**
@@ -41,7 +41,7 @@ gcloud firestore backups schedules create --database='(default)' --recurrence=da
 Each entry in the message log has an `expireAt` field set 180 days ahead. Switch on the time-to-live policy so Firestore deletes old entries:
 
 ```
-gcloud firestore fields ttls update expireAt --collection-group=notifications --enable-ttl --project=siteflow-prod
+gcloud firestore fields ttls update expireAt --collection-group=notifications --enable-ttl --project=siteflow-prod-gh
 ```
 
 ### Indexes and rules
@@ -61,15 +61,15 @@ In the Firebase console, under Authentication > Settings:
 
 - **Email enumeration protection:** on. Sign-in errors then don't reveal whether an email has an account.
 - **Password policy:** require at least 8 characters, matching what the app asks for.
-- **Authorised domains:** only the production web domain, plus `siteflow-prod.firebaseapp.com`.
+- **Authorised domains:** only the production web domain, plus `siteflow-prod-gh.firebaseapp.com`.
 
 ### App Check (recommended)
 
 App Check blocks scripts that use a stolen login to call the team functions.
 
 1. Firebase console > App Check > the web app > reCAPTCHA Enterprise. Create a site key for the production domain.
-2. Put the key in `apps/web/.env.production` as `VITE_APPCHECK_SITE_KEY`. It's public, not a secret. Build and deploy the web app.
-3. Watch App Check > APIs > Cloud Functions for a few days. When the verified share is close to 100%, set `ENFORCE_APP_CHECK=true` in `firebase/functions/.env.siteflow-prod` and deploy the functions.
+2. Put the key in `apps/web/.env.production` as `VITE_APPCHECK_SITE_KEY` (`npm run config:prod` keeps it), and in CI as a `VITE_APPCHECK_SITE_KEY` variable. It's public, not a secret. Build and deploy the web app.
+3. Watch App Check > APIs > Cloud Functions for a few days. When the verified share is close to 100%, set `ENFORCE_APP_CHECK=true` in `firebase/functions/.env.siteflow-prod-gh` and deploy the functions.
 4. Leave Firestore and Storage enforcement **off** until the mobile app has App Check too (it needs the `@react-native-firebase/app-check` module and Play Integrity / App Attest).
 
 ### Secrets

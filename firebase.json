@@ -2,7 +2,7 @@
   "hosting": {
     "public": "apps/web/dist",
     "predeploy": [
-      "npm run build -w @siteflow/web"
+      "node scripts/build-web.mjs"
     ],
     "ignore": [
       "firebase.json",
