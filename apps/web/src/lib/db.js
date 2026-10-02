@@ -1,12 +1,11 @@
 import {
   collection, collectionGroup, deleteDoc, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db, getStorage } from '../firebase';
 import {
-  countDifference, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, todayKey, timeHM,
+  countDifference, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, thumbName, todayKey, timeHM,
 } from '@siteflow/shared';
-import { resizePhoto } from './photos';
+import { resizePhoto, thumbnail } from './photos';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
 export const userDoc = (uid) => doc(db, paths.user(uid));
@@ -135,18 +134,29 @@ export function markAttendance(cid, sid, { marks, uid, date = todayKey() }) {
 export const attendanceRangeQuery = (cid, sid, from, to) =>
   query(sub(cid, sid, 'attendance'), where('date', '>=', from), where('date', '<=', to), orderBy('date'));
 
-// Photos are resized on the device, then stored under the report's id
-export async function uploadPhotos(cid, sid, rid, files) {
-  const urls = [];
+// Photos are resized on the device, then stored with a small copy for lists (thumbName in shared).
+// Returns { photos, thumbs }: matching lists of links ('' where no small copy could be made).
+async function uploadWithThumbs(files, pathFor) {
+  const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+  const storage = await getStorage();
+  const photos = [];
+  const thumbs = [];
   for (const [i, original] of files.entries()) {
     const f = await resizePhoto(original);
-    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-    const r = ref(storage, paths.photo(cid, sid, rid, `${i + 1}-${Date.now()}.${ext}`));
+    const name = `${i + 1}-${Date.now()}.jpg`;
+    const r = ref(storage, pathFor(name));
     await uploadBytes(r, f, { contentType: f.type || 'image/jpeg' });
-    urls.push(await getDownloadURL(r));
+    photos.push(await getDownloadURL(r));
+    const t = await thumbnail(original);
+    if (t) {
+      const tr = ref(storage, pathFor(thumbName(name)));
+      await uploadBytes(tr, t, { contentType: 'image/jpeg' });
+      thumbs.push(await getDownloadURL(tr));
+    } else thumbs.push('');
   }
-  return urls;
+  return { photos, thumbs };
 }
+export const uploadPhotos = (cid, sid, rid, files) => uploadWithThumbs(files, (name) => paths.photo(cid, sid, rid, name));
 
 // Today's report for this person on this site (one per person per day)
 export const myReportId = (uid, date = todayKey()) => reportId(date, uid);
@@ -154,12 +164,12 @@ export const myReportId = (uid, date = todayKey()) => reportId(date, uid);
 // Writes the report and moves the site's stage/progress on, in one batch.
 // site: the site document (for its name and current last report date)
 // progressFromMilestones: the site has milestones, so its progress comes from them, not from reports
-export function sendReport(cid, site, input, { uid, name, photos = [], materials = [], date = todayKey(), time = timeHM(), progressFromMilestones = false }) {
+export function sendReport(cid, site, input, { uid, name, photos = [], thumbs = [], materials = [], date = todayKey(), time = timeHM(), progressFromMilestones = false }) {
   const b = writeBatch(db);
   const rid = reportId(date, uid);
   if (progressFromMilestones) input = { ...input, progress: site.progress || 0 };
   b.set(reportRef(cid, site.id, rid), {
-    ...reportDoc(input, { companyId: cid, siteId: site.id, siteName: site.name, date, time, uid, name, photos, materials, source: 'web' }),
+    ...reportDoc(input, { companyId: cid, siteId: site.id, siteName: site.name, date, time, uid, name, photos, thumbs, materials, source: 'web' }),
     createdAt: serverTimestamp(),
   });
   // Only move the site forward: an older report never overwrites a newer one
@@ -182,22 +192,13 @@ export const companyIssuesQuery = (cid, n = 200) =>
   query(collectionGroup(db, 'issues'), where('companyId', '==', cid), orderBy('date', 'desc'), limit(n));
 export const commentsQuery = (cid, sid, id) => query(collection(db, paths.issueComments(cid, sid, id)), orderBy('createdAt'));
 
-export async function uploadIssuePhotos(cid, sid, issueId, files) {
-  const urls = [];
-  for (const [i, original] of files.entries()) {
-    const f = await resizePhoto(original);
-    const r = ref(storage, paths.issuePhoto(cid, sid, issueId, `${i + 1}-${Date.now()}.jpg`));
-    await uploadBytes(r, f, { contentType: f.type || 'image/jpeg' });
-    urls.push(await getDownloadURL(r));
-  }
-  return urls;
-}
+export const uploadIssuePhotos = (cid, sid, issueId, files) => uploadWithThumbs(files, (name) => paths.issuePhoto(cid, sid, issueId, name));
 
 // input: validated issueInput. assignedTo only for site managers (the rules check).
-export function createIssue(cid, site, input, { id, uid, name, photos = [], assignedTo = null, assignedToName = '' }) {
+export function createIssue(cid, site, input, { id, uid, name, photos = [], thumbs = [], assignedTo = null, assignedToName = '' }) {
   const { photos: _p, ...fields } = input;
   return setDoc(issueRef(cid, site.id, id), {
-    ...issueDoc(fields, { companyId: cid, siteId: site.id, siteName: site.name, uid, name, photos, assignedTo, assignedToName, date: todayKey() }),
+    ...issueDoc(fields, { companyId: cid, siteId: site.id, siteName: site.name, uid, name, photos, thumbs, assignedTo, assignedToName, date: todayKey() }),
     createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp(),
   });
 }

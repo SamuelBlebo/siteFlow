@@ -37,9 +37,9 @@ export default function IssueForm({ cid, sites, onDone }) {
     if (files.length && !navigator.onLine) return setErr('Photos need an internet connection. Remove them or try again when you are back online.');
     setBusy(true); setErr('');
     const id = newIssueId(cid, site.id);
-    let photos = [];
+    let up = { photos: [], thumbs: [] };
     try {
-      if (files.length) photos = await uploadIssuePhotos(cid, site.id, id, files);
+      if (files.length) up = await uploadIssuePhotos(cid, site.id, id, files);
     } catch (e2) {
       console.error('Issue photo upload failed', e2);
       setErr(`Photos could not be uploaded. ${friendlyError(e2)} The issue has not been reported yet.`);
@@ -48,7 +48,7 @@ export default function IssueForm({ cid, sites, onDone }) {
     }
     try {
       const who = people.find((m) => m.id === f.assignedTo);
-      await save(createIssue(cid, site, v.data, { id, uid: user.uid, name: profile.name, photos, assignedTo: who?.id || null, assignedToName: who?.name || '' }), 'Issue');
+      await save(createIssue(cid, site, v.data, { id, uid: user.uid, name: profile.name, ...up, assignedTo: who?.id || null, assignedToName: who?.name || '' }), 'Issue');
       setF(blank); setFiles([]);
       onDone?.({ id, siteId: site.id });
     } catch (e2) {

@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
@@ -5,24 +6,26 @@ import { useAuth } from './auth/AuthProvider';
 import Layout from './components/Layout';
 import Toaster from './components/Toaster';
 import { ErrorState, Loading } from './components/States';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import FinishSetup from './pages/FinishSetup';
-import SetPassword from './pages/SetPassword';
-import Account from './pages/Account';
-import Company from './pages/Company';
-import Dashboard from './pages/Dashboard';
-import NewSite from './pages/NewSite';
-import Sites from './pages/Sites';
-import Reports from './pages/Reports';
-import ReportDetail from './pages/ReportDetail';
-import Issues from './pages/Issues';
-import IssueDetail from './pages/IssueDetail';
-import Finance from './pages/Finance';
-import SiteDetail from './pages/SiteDetail';
-import Team from './pages/Team';
-import MySites from './pages/MySites';
-import SiteWorkspace from './pages/SiteWorkspace';
+
+// Each page is its own download, fetched the first time it is opened
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const FinishSetup = lazy(() => import('./pages/FinishSetup'));
+const SetPassword = lazy(() => import('./pages/SetPassword'));
+const Account = lazy(() => import('./pages/Account'));
+const Company = lazy(() => import('./pages/Company'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const NewSite = lazy(() => import('./pages/NewSite'));
+const Sites = lazy(() => import('./pages/Sites'));
+const Reports = lazy(() => import('./pages/Reports'));
+const ReportDetail = lazy(() => import('./pages/ReportDetail'));
+const Issues = lazy(() => import('./pages/Issues'));
+const IssueDetail = lazy(() => import('./pages/IssueDetail'));
+const Finance = lazy(() => import('./pages/Finance'));
+const SiteDetail = lazy(() => import('./pages/SiteDetail'));
+const Team = lazy(() => import('./pages/Team'));
+const MySites = lazy(() => import('./pages/MySites'));
+const SiteWorkspace = lazy(() => import('./pages/SiteWorkspace'));
 
 // Signed in, with an active profile, and (optionally) a permission.
 // Hiding a page is only convenience: the security rules enforce the same permissions.
@@ -54,6 +57,7 @@ function Home() {
 export default function App() {
   return (
     <>
+      <Suspense fallback={<Loading />}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -75,6 +79,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
       <Toaster />
     </>
   );

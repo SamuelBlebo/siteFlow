@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
-// Thumbnails that open a full-screen viewer (arrow keys to move, Esc to close)
-export default function PhotoViewer({ photos, label = 'Site photo' }) {
+// Thumbnails that open a full-screen viewer (arrow keys to move, Esc to close). thumbs: small
+// copies shown in the row (the full photo only downloads when opened); older records have none.
+export default function PhotoViewer({ photos, thumbs = [], label = 'Site photo' }) {
   const [open, setOpen] = useState(-1);
   useEffect(() => {
     if (open < 0) return;
@@ -20,7 +21,7 @@ export default function PhotoViewer({ photos, label = 'Site photo' }) {
       <div className="thumbs">
         {photos.map((u, i) => (
           <button key={u} type="button" className="thumb" onClick={() => setOpen(i)} aria-label={`Open photo ${i + 1} of ${photos.length}`}>
-            <img src={u} alt={`${label} ${i + 1}`} loading="lazy" />
+            <img src={thumbs[i] || u} alt={`${label} ${i + 1}`} loading="lazy" decoding="async" width="110" height="82" />
           </button>
         ))}
       </div>

@@ -7,7 +7,7 @@ import storage from '@react-native-firebase/storage';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import {
-  REPORT_PHOTO_MAX_PX, REPORT_PHOTO_QUALITY, errorCode, friendlyError, isRetryable, issueDoc, paths, reportDoc, reportId, timeHM, todayKey,
+  PHOTO_THUMB_PX, PHOTO_THUMB_QUALITY, REPORT_PHOTO_MAX_PX, REPORT_PHOTO_QUALITY, errorCode, friendlyError, isRetryable, issueDoc, paths, reportDoc, reportId, thumbName, timeHM, todayKey,
 } from '@siteflow/shared';
 
 // Daily reports and issues leave the phone through this outbox (item.kind 'report' or 'issue').
@@ -50,15 +50,29 @@ export async function subscribeOutbox(fn) {
 export const getOutbox = () => items;
 export const outboxKey = (sid, uid, date = todayKey()) => `${sid}/${reportId(date, uid)}`;
 
-// Resize and keep a private copy of each photo, so clearing the camera cache can't lose it
+// Shrinks so the long edge is at most maxPx (portrait photos too). Null if it can't.
+async function shrink(uri, size, maxPx, quality) {
+  const resize = size?.width && size?.height
+    ? (size.width >= size.height ? { width: Math.min(maxPx, size.width) } : { height: Math.min(maxPx, size.height) })
+    : { width: maxPx };
+  return ImageManipulator.manipulateAsync(uri, [{ resize }], { compress: quality, format: ImageManipulator.SaveFormat.JPEG }).catch(() => null);
+}
+
+// Resize and keep a private copy of each photo (so clearing the camera cache can't lose it),
+// plus a small copy for lists, so the office's report list doesn't download every full photo
 async function keepPhoto(uri, name) {
   await FileSystem.makeDirectoryAsync(DIR, { intermediates: true }).catch(() => {});
-  const small = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: REPORT_PHOTO_MAX_PX } }], {
-    compress: REPORT_PHOTO_QUALITY, format: ImageManipulator.SaveFormat.JPEG,
-  }).catch(() => ({ uri }));
-  const to = `${DIR}${name}`;
-  await FileSystem.copyAsync({ from: small.uri, to });
-  return to;
+  const size = await ImageManipulator.manipulateAsync(uri, []).catch(() => null);
+  const small = (await shrink(uri, size, REPORT_PHOTO_MAX_PX, REPORT_PHOTO_QUALITY)) || { uri };
+  const local = `${DIR}${name}`;
+  await FileSystem.copyAsync({ from: small.uri, to: local });
+  const thumb = await shrink(uri, size, PHOTO_THUMB_PX, PHOTO_THUMB_QUALITY);
+  let thumbLocal = null;
+  if (thumb) {
+    thumbLocal = `${DIR}${thumbName(name)}`;
+    await FileSystem.copyAsync({ from: thumb.uri, to: thumbLocal }).catch(() => { thumbLocal = null; });
+  }
+  return { local, thumbLocal, url: null, thumb: null };
 }
 
 // Save a report on the phone and start sending it. input: validated reportInput.
@@ -72,7 +86,7 @@ export async function queueReport({ cid, site, uid, name, input, materials = [],
   }
   const rid = reportId(date, uid);
   const photos = [];
-  for (const [i, uri] of photoUris.entries()) photos.push({ local: await keepPhoto(uri, `${rid}-${i + 1}.jpg`), url: null });
+  for (const [i, uri] of photoUris.entries()) photos.push(await keepPhoto(uri, `${rid}-${i + 1}.jpg`));
   const item = {
     kind: 'report', label: `Daily report for ${site.name} (${date})`,
     id, rid, cid, sid: site.id, siteName: site.name, uid, name, date, time: timeHM(), input, materials, photos,
@@ -91,7 +105,7 @@ export async function queueIssue({ cid, site, uid, name, input, photoUris = [] }
   await load();
   const issueId = firestore().collection(paths.sub(cid, site.id, 'issues')).doc().id;
   const photos = [];
-  for (const [i, uri] of photoUris.entries()) photos.push({ local: await keepPhoto(uri, `issue-${issueId}-${i + 1}.jpg`), url: null });
+  for (const [i, uri] of photoUris.entries()) photos.push(await keepPhoto(uri, `issue-${issueId}-${i + 1}.jpg`));
   const item = {
     kind: 'issue', label: `Issue "${input.title}"`,
     id: `${site.id}/issue/${issueId}`, issueId, cid, sid: site.id, siteName: site.name, uid, name, date: todayKey(), input, photos,
@@ -104,37 +118,50 @@ export async function queueIssue({ cid, site, uid, name, input, photoUris = [] }
   return item;
 }
 
-// Uploads an item's photos that aren't up yet (fixed names, so an earlier upload is reused)
+// Uploads a file unless it is already there (fixed names, so an earlier upload is reused)
+async function uploadOnce(path, local) {
+  const ref = storage().ref(path);
+  const url = await ref.getDownloadURL().catch(() => null);
+  if (url) return url;
+  await withTimeout(ref.putFile(local, { contentType: 'image/jpeg' }));
+  return withTimeout(ref.getDownloadURL());
+}
+
+// Uploads an item's photos (and their small copies) that aren't up yet.
+// Returns matching lists of links: { urls, thumbs } ('' where there is no small copy).
 async function uploadPhotos(item, pathFor) {
   const photos = [...item.photos];
   for (const [i, p] of photos.entries()) {
-    if (p.url) continue;
-    const ref = storage().ref(pathFor(i));
-    let url = await ref.getDownloadURL().catch(() => null);
+    let { url, thumb } = p;
     if (!url) {
       const info = await FileSystem.getInfoAsync(p.local);
       if (!info.exists) throw Object.assign(new Error('Photo file missing'), { code: 'photo-missing' });
-      await withTimeout(ref.putFile(p.local, { contentType: 'image/jpeg' }));
-      url = await withTimeout(ref.getDownloadURL());
+      url = await uploadOnce(pathFor(i), p.local);
     }
-    photos[i] = { ...p, url };
-    await update(item.id, { photos }); // remember progress in case the app closes
+    // The small copy is a nice-to-have: if its file is gone, the list shows the full photo instead
+    if (!thumb && p.thumbLocal && (await FileSystem.getInfoAsync(p.thumbLocal)).exists) {
+      thumb = await uploadOnce(thumbName(pathFor(i)), p.thumbLocal);
+    }
+    if (url !== p.url || thumb !== p.thumb) {
+      photos[i] = { ...p, url, thumb: thumb || null };
+      await update(item.id, { photos }); // remember progress in case the app closes
+    }
   }
-  return photos.map((p) => p.url);
+  return { urls: photos.map((p) => p.url), thumbs: photos.map((p) => p.thumb || '') };
 }
 
 async function sendIssue(item) {
   const issuePath = paths.subDoc(item.cid, item.sid, 'issues', item.issueId);
   const already = await withTimeout(firestore().doc(issuePath).get({ source: 'server' }));
   if (exists(already)) return;
-  const photos = await uploadPhotos(item, (i) => paths.issuePhoto(item.cid, item.sid, item.issueId, `${i + 1}.jpg`));
+  const { urls: photos, thumbs } = await uploadPhotos(item, (i) => paths.issuePhoto(item.cid, item.sid, item.issueId, `${i + 1}.jpg`));
   const profile = await withTimeout(firestore().doc(paths.user(item.uid)).get({ source: 'server' }));
   const site = await withTimeout(firestore().doc(paths.site(item.cid, item.sid)).get({ source: 'server' }));
   const now = firestore.FieldValue.serverTimestamp();
   await withTimeout(firestore().doc(issuePath).set({
     ...issueDoc(item.input, {
       companyId: item.cid, siteId: item.sid, siteName: site.data()?.name || item.siteName, uid: item.uid,
-      name: profile.data()?.name || item.name, photos, date: item.date,
+      name: profile.data()?.name || item.name, photos, thumbs, date: item.date,
     }),
     createdAt: now, updatedAt: now, lastActivityAt: now,
   }));
@@ -147,7 +174,7 @@ async function sendOne(item) {
   const already = await withTimeout(firestore().doc(reportPath).get({ source: 'server' }));
   if (exists(already)) return;
 
-  const photoUrls = await uploadPhotos(item, (i) => paths.photo(item.cid, item.sid, item.rid, `${i + 1}.jpg`));
+  const { urls: photoUrls, thumbs } = await uploadPhotos(item, (i) => paths.photo(item.cid, item.sid, item.rid, `${i + 1}.jpg`));
 
   // The rules check the author name against the profile, so use the current one
   const profile = await withTimeout(firestore().doc(paths.user(item.uid)).get({ source: 'server' }));
@@ -163,7 +190,7 @@ async function sendOne(item) {
   b.set(firestore().doc(reportPath), {
     ...reportDoc(input, {
       companyId: item.cid, siteId: item.sid, siteName: site.data()?.name || item.siteName, date: item.date, time: item.time,
-      uid: item.uid, name, photos: photoUrls, materials: item.materials, source: 'app',
+      uid: item.uid, name, photos: photoUrls, thumbs, materials: item.materials, source: 'app',
     }),
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
@@ -177,14 +204,16 @@ async function sendOne(item) {
 }
 
 async function removePhotos(item) {
-  for (const p of item.photos || []) await FileSystem.deleteAsync(p.local, { idempotent: true }).catch(() => {});
+  for (const p of item.photos || []) {
+    for (const file of [p.local, p.thumbLocal].filter(Boolean)) await FileSystem.deleteAsync(file, { idempotent: true }).catch(() => {});
+  }
 }
 
 // Photo files no report or issue on the phone refers to any more (the app closed between
 // copying a photo and saving the item, or a deleted item). Only this app's own folder is touched.
 export async function cleanPhotos() {
   await load();
-  const keep = new Set(items.flatMap((x) => (x.status === 'sent' ? [] : (x.photos || []).map((p) => p.local))));
+  const keep = new Set(items.flatMap((x) => (x.status === 'sent' ? [] : (x.photos || []).flatMap((p) => [p.local, p.thumbLocal].filter(Boolean)))));
   const names = await FileSystem.readDirectoryAsync(DIR).catch(() => []);
   let removed = 0;
   for (const n of names) {

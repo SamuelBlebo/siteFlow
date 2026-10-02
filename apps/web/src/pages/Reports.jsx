@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { filterReports, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery, useTitle } from '../lib/hooks';
+import { usePagedQuery, useQuery, useTitle } from '../lib/hooks';
 import { companyReportsQuery, sitesCol } from '../lib/db';
 import { ReportRow } from '../components/ReportCard';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -21,15 +21,14 @@ export default function Reports() {
   const [author, setAuthor] = useState('');
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [photosOnly, setPhotosOnly] = useState(false);
-  const [n, setN] = useState(PAGE);
   const from = range === 'all' ? '' : daysAgo(Number(range) - 1);
   // Site and date range are filtered in the query; the rest on the loaded reports
-  const { data, loading, error } = useQuery(() => cid && companyReportsQuery(cid, { siteId, from }, n), [cid, siteId, from, n]);
+  const { data, loading, loadingMore, error, hasMore, more } = usePagedQuery(() => cid && companyReportsQuery(cid, { siteId, from }, PAGE), [cid, siteId, from], PAGE);
 
   const authors = useMemo(() => [...new Map(data.map((r) => [r.createdBy, r.createdByName])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [data]);
   const shown = filterReports(data, { q, author, withIssues: issuesOnly, withPhotos: photosOnly });
   const withIssues = data.filter((r) => (r.issues || '').trim()).length;
-  const reset = (fn) => (e) => { fn(e.target.value); setN(PAGE); };
+  const reset = (fn) => (e) => fn(e.target.value);
 
   return (
     <section className="wrap">
@@ -62,7 +61,7 @@ export default function Reports() {
         <>
           <p className="hint">{shown.length} of {data.length} report{data.length === 1 ? '' : 's'} shown.</p>
           {!shown.length ? <Empty title="No reports match these filters." /> : <ul className="list">{shown.map((r) => <ReportRow key={`${r.siteId}/${r.id}`} r={r} showSite={!siteId} />)}</ul>}
-          {data.length >= n && <button type="button" className="btn ghost mt-sm" disabled={loading} onClick={() => setN(n + PAGE)}>{loading ? 'Loading…' : 'Show more'}</button>}
+          {hasMore && <button type="button" className="btn ghost mt-sm" disabled={loadingMore} onClick={more}>{loadingMore ? 'Loading…' : 'Show more'}</button>}
         </>
       )}
     </section>

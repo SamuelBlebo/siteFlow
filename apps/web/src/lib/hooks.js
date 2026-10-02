@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { onSnapshot } from 'firebase/firestore';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getDocs, onSnapshot, query, startAfter } from 'firebase/firestore';
 import { attendanceDoc, financeDoc, milestonesQuery, sub, todayLogsQuery } from './db';
 import { presentCount, usageByMaterial } from '@siteflow/shared';
 
@@ -17,6 +17,58 @@ export function useQuery(makeQuery, deps) {
     return onSnapshot(q, (s) => { setData(toList(s)); setLoading(false); }, (e) => { console.error(e); setError(e); setLoading(false); });
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   return { data, loading, error };
+}
+
+// A long list read a page at a time. makeQuery returns a query ending in limit(pageSize).
+// The first page stays live; "more" fetches the next page once, starting after the last item
+// already loaded (a cursor), so earlier pages are never downloaded again.
+const withPath = (d) => ({ id: d.id, _path: d.ref.path, ...d.data() });
+export function usePagedQuery(makeQuery, deps, pageSize) {
+  const [first, setFirst] = useState([]);
+  const [older, setOlder] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+  const q = useRef(null);
+  const firstLast = useRef(null);  // last document of the live first page
+  const olderLast = useRef(null);  // last document fetched with "more"
+  const prevFirst = useRef([]);
+  useEffect(() => {
+    q.current = makeQuery();
+    setOlder([]); setError(null); firstLast.current = null; olderLast.current = null; prevFirst.current = [];
+    if (!q.current) { setFirst([]); setHasMore(false); setLoading(false); return; }
+    setLoading(true);
+    return onSnapshot(q.current, (s) => {
+      const list = s.docs.map(withPath);
+      // Once older pages are loaded, an item pushed off the first page by a new one stays in view
+      if (olderLast.current) {
+        const now = new Set(list.map((x) => x._path));
+        const dropped = prevFirst.current.filter((x) => !now.has(x._path));
+        if (dropped.length) setOlder((p) => [...dropped, ...p]);
+      } else {
+        firstLast.current = s.docs[s.docs.length - 1] || null;
+        setHasMore(s.docs.length >= pageSize);
+      }
+      prevFirst.current = list;
+      setFirst(list);
+      setLoading(false);
+    }, (e) => { console.error(e); setError(e); setLoading(false); });
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  const more = useCallback(async () => {
+    const cursor = olderLast.current || firstLast.current;
+    if (!q.current || !cursor) return;
+    setLoadingMore(true);
+    try {
+      const s = await getDocs(query(q.current, startAfter(cursor)));
+      if (s.docs.length) olderLast.current = s.docs[s.docs.length - 1];
+      setOlder((p) => [...p, ...s.docs.map(withPath)]);
+      setHasMore(s.docs.length >= pageSize);
+    } catch (e) { console.error(e); setError(e); } finally { setLoadingMore(false); }
+  }, [pageSize]);
+  const seen = new Set(first.map((x) => x._path));
+  const data = [...first, ...older.filter((x) => !seen.has(x._path))];
+  return { data, loading, loadingMore, error, hasMore, more };
 }
 
 // Live single document
@@ -68,13 +120,18 @@ export function useSiteData(cid, sid, { withPay = false } = {}) {
   const logs = useQuery(() => cid && sid && todayLogsQuery(cid, sid), [cid, sid]);
   const attendance = useDoc(() => cid && sid && attendanceDoc(cid, sid), [cid, sid]);
   const marks = attendance.data?.marks || {};
+  // Sorted lists are worked out once per change, not on every render of every tab
+  const sortedMaterials = useMemo(() => [...materials.data].sort(byName), [materials.data]);
+  const sortedWorkers = useMemo(() => [...workers.data].sort(byName), [workers.data]);
+  const payById = useMemo(() => Object.fromEntries(pay.data.map((p) => [p.id, p])), [pay.data]);
+  const usage = useMemo(() => usageByMaterial(logs.data), [logs.data]);
   return {
-    materials: materials.data.filter((m) => m.active !== false).sort(byName),
-    allMaterials: [...materials.data].sort(byName),
-    workers: workers.data.filter((w) => w.active !== false).sort(byName),
-    allWorkers: [...workers.data].sort(byName),
-    pay: Object.fromEntries(pay.data.map((p) => [p.id, p])),
-    usage: usageByMaterial(logs.data),
+    materials: useMemo(() => sortedMaterials.filter((m) => m.active !== false), [sortedMaterials]),
+    allMaterials: sortedMaterials,
+    workers: useMemo(() => sortedWorkers.filter((w) => w.active !== false), [sortedWorkers]),
+    allWorkers: sortedWorkers,
+    pay: payById,
+    usage,
     logs: logs.data,
     marks,
     presentCount: presentCount(marks),

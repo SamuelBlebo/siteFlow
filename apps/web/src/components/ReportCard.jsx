@@ -43,7 +43,7 @@ export default function ReportCard({ r, showSite }) {
         </>
       )}
       {(!!r.photos?.length || pending > 0) && <h4>Photos</h4>}
-      <PhotoViewer photos={r.photos || []} label={`${r.siteName || 'Site'} photo`} />
+      <PhotoViewer photos={r.photos || []} thumbs={r.thumbs} label={`${r.siteName || 'Site'} photo`} />
       {pending > 0 && <p className="hint">{pending} more photo{pending === 1 ? ' is' : 's are'} still uploading from the phone.</p>}
     </article>
   );

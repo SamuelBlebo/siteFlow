@@ -56,7 +56,7 @@ describe('sending', () => {
   it('a supervisor sends a full report with photos, weather, notes and materials', async () => {
     const u = await as('super');
     const rid = myReportId(u.uid);
-    const photos = await uploadPhotos(cid, a, rid, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'p.jpg', { type: 'image/jpeg' })]);
+    const { photos } = await uploadPhotos(cid, a, rid, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'p.jpg', { type: 'image/jpeg' })]);
     await send('super', a, { notes: 'Consultant visited', issues: 'Water tanker late' }, {
       photos, materials: [{ materialId: 'm1', name: 'Cement', unit: 'bags', qty: 12 }],
     });

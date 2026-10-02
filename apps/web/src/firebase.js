@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const firebaseConfig = {
@@ -19,14 +18,22 @@ export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
-export const storage = getStorage(app);
+// Storage is only needed to upload photos, so it is downloaded the first time a photo is sent
+let storage = null;
+export async function getStorage() {
+  if (!storage) {
+    const s = await import('firebase/storage');
+    storage = s.getStorage(app);
+    if (import.meta.env.VITE_USE_EMULATORS === 'true') s.connectStorageEmulator(storage, '127.0.0.1', port('STORAGE', 9199));
+  }
+  return storage;
+}
 export const functions = getFunctions(app, 'europe-west1');
 
+// Emulator ports from firebase.json; the automated tests use firebase.test.json's ports instead
+function port(name, fallback) { return Number(import.meta.env[`VITE_EMULATOR_${name}_PORT`] || fallback); }
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-  // Ports from firebase.json; the automated tests use firebase.test.json's ports instead
-  const port = (name, fallback) => Number(import.meta.env[`VITE_EMULATOR_${name}_PORT`] || fallback);
   connectAuthEmulator(auth, `http://127.0.0.1:${port('AUTH', 9099)}`, { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', port('FIRESTORE', 8080));
-  connectStorageEmulator(storage, '127.0.0.1', port('STORAGE', 9199));
   connectFunctionsEmulator(functions, '127.0.0.1', port('FUNCTIONS', 5001));
 }

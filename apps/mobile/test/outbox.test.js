@@ -106,6 +106,7 @@ describe('report outbox', () => {
       photoCount: 2, createdBy: 'u1', createdByName: 'Kofi Mensah', source: 'app', createdAt: 'ts',
     });
     expect(r.photos).toHaveLength(2);
+    expect(r.thumbs).toEqual([`https://files/${reportPath}/1-thumb.jpg`, `https://files/${reportPath}/2-thumb.jpg`]);
     expect(server.docs.get('companies/c1/sites/s1')).toMatchObject({ stage: 'Blockwork', progress: 30, lastReportDate: today });
     expect(o.getOutbox()[0].status).toBe('sent');
     expect(files.size).toBe(0);
@@ -143,7 +144,7 @@ describe('report outbox', () => {
     expect(o.getOutbox()[0].photos[0].url).toMatch(/^https:\/\/files\//); // upload progress remembered
     await o.processOutbox();
     expect(o.getOutbox()[0].status).toBe('sent');
-    expect(server.uploads.size).toBe(1);
+    expect([...server.uploads].sort()).toEqual([`${reportPath}/1-thumb.jpg`, `${reportPath}/1.jpg`]); // photo and small copy, once each
   });
 
   it('a permanent problem marks it failed and keeps it; retry sends it; delete removes it', async () => {
@@ -154,7 +155,7 @@ describe('report outbox', () => {
     const item = o.getOutbox()[0];
     expect(item.status).toBe('failed');
     expect(item.error).toMatch(/permission/i);
-    expect(files.size).toBe(1); // photo still kept
+    expect(files.size).toBe(2); // photo and its small copy still kept
     await o.retryReport(item.id);
     expect(o.getOutbox()[0].status).toBe('sent');
   });
@@ -182,7 +183,20 @@ describe('report outbox', () => {
     files.add(recent); fileTimes.set(recent, Date.now() / 1000);
     files.add('file:///app/other/keep.jpg'); fileTimes.set('file:///app/other/keep.jpg', 0);
     expect(await o.cleanPhotos()).toBe(1);
-    expect([...files].sort()).toEqual(['file:///app/other/keep.jpg', kept, recent].sort());
+    expect([...files].sort()).toEqual(['file:///app/other/keep.jpg', kept, kept.replace('.jpg', '-thumb.jpg'), recent].sort());
+  });
+
+  it('a report saved by an older app version (photos without small copies) still sends', async () => {
+    const local = 'file:///app/report-photos/old-1.jpg';
+    files.add(local);
+    store.set('siteflow:reportOutbox', JSON.stringify([{
+      kind: 'report', label: 'Old', id: `s1/${today}_u1`, rid: `${today}_u1`, cid: 'c1', sid: 's1', siteName: 'Adenta house', uid: 'u1', name: 'Kofi',
+      date: today, time: '17:00', input, materials: [], photos: [{ local, url: null }], status: 'waiting', attempts: 0, error: '', queuedAt: 1,
+    }]));
+    const o = await fresh();
+    await o.processOutbox();
+    expect(o.getOutbox()[0].status).toBe('sent');
+    expect(server.docs.get(reportPath)).toMatchObject({ photoCount: 1, thumbs: [''] });
   });
 
   it('a waiting or sent report cannot be deleted', async () => {

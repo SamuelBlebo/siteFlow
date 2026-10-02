@@ -102,7 +102,7 @@ describe('supervisor', () => {
 
   it('sends the daily report with a photo', async () => {
     const rid = myReportId(uid);
-    const photos = await uploadPhotos(cid, sid, rid, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'site.jpg', { type: 'image/jpeg' })]);
+    const { photos } = await uploadPhotos(cid, sid, rid, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'site.jpg', { type: 'image/jpeg' })]);
     const site = { id: sid, ...(await getDoc(siteDoc(cid, sid))).data() };
     await save(sendReport(cid, site, { text: 'Cast lintels', stage: 'Lintel level', progress: 35, workersPresent: 1 }, { uid, name: 'Kofi Asante', photos }).done);
     expect((await getDoc(siteDoc(cid, sid))).data()).toMatchObject({ stage: 'Lintel level', progress: 35 });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { filterReports, missingReportDays, prettyDate, recentWorkDays } from '@siteflow/shared';
-import { useQuery } from '../lib/hooks';
+import { usePagedQuery } from '../lib/hooks';
 import { siteReportsQuery } from '../lib/db';
 import { ReportRow } from './ReportCard';
 import { Empty, ErrorState, Loading } from './States';
@@ -9,10 +9,9 @@ const PAGE = 30;
 
 // One site's reports: the last two weeks at a glance (which days are missing), then the list
 export default function ReportHistory({ cid, site }) {
-  const [n, setN] = useState(PAGE);
   const [q, setQ] = useState('');
   const [issuesOnly, setIssuesOnly] = useState(false);
-  const { data, loading, error } = useQuery(() => cid && siteReportsQuery(cid, site.id, n), [cid, site.id, n]);
+  const { data, loading, loadingMore, error, hasMore, more } = usePagedQuery(() => cid && siteReportsQuery(cid, site.id, PAGE), [cid, site.id], PAGE);
 
   if (loading && !data.length) return <Loading what="reports" />;
   if (error) return <ErrorState error={error} what="reports" />;
@@ -43,7 +42,7 @@ export default function ReportHistory({ cid, site }) {
             <label className="chip"><input type="checkbox" checked={issuesOnly} onChange={(e) => setIssuesOnly(e.target.checked)} /> With issues only</label>
           </div>
           {!shown.length ? <Empty title="No reports match." /> : <ul className="list">{shown.map((r) => <ReportRow key={r.id} r={r} />)}</ul>}
-          {data.length >= n && <button type="button" className="btn ghost mt-sm" disabled={loading} onClick={() => setN(n + PAGE)}>{loading ? 'Loading…' : 'Show older reports'}</button>}
+          {hasMore && <button type="button" className="btn ghost mt-sm" disabled={loadingMore} onClick={more}>{loadingMore ? 'Loading…' : 'Show older reports'}</button>}
         </>
       )}
     </>

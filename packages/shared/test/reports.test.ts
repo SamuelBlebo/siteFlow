@@ -30,7 +30,7 @@ describe('report document', () => {
     expect(d).toEqual({
       companyId: 'c1', siteId: 's1', siteName: 'Adenta', date: '2026-06-15', time: '17:05',
       text: 'Blockwork', notes: '', issues: '', weather: '', stage: 'Blockwork', progress: 30, workersPresent: 7,
-      materialsUsed: [], photos: ['p1'], photoCount: 1, createdBy: 'u1', createdByName: 'Kofi', source: 'app',
+      materialsUsed: [], photos: ['p1'], thumbs: [], photoCount: 1, createdBy: 'u1', createdByName: 'Kofi', source: 'app',
     });
   });
 });
@@ -66,5 +66,21 @@ describe('report history', () => {
   });
   it('finds days without a report', () => {
     expect(missingReportDays(['2026-06-15', '2026-06-12'], ['2026-06-15', '2026-06-13', '2026-06-12'])).toEqual(['2026-06-13']);
+  });
+});
+
+describe('photo thumbnails', () => {
+  it('names the small copy next to the photo', async () => {
+    const { thumbName } = await import('../src');
+    expect(thumbName('1.jpg')).toBe('1-thumb.jpg');
+    expect(thumbName('companies/c/sites/s/reports/r/2-1700.jpg')).toBe('companies/c/sites/s/reports/r/2-1700-thumb.jpg');
+    expect(thumbName('photo')).toBe('photo-thumb');
+  });
+  it('uses the small copy when there is one, else the photo', async () => {
+    const { photoThumb } = await import('../src');
+    expect(photoThumb({ photos: ['a', 'b'], thumbs: ['ta', ''] }, 0)).toBe('ta');
+    expect(photoThumb({ photos: ['a', 'b'], thumbs: ['ta', ''] }, 1)).toBe('b');
+    expect(photoThumb({ photos: ['a'] }, 0)).toBe('a');
+    expect(photoThumb(null, 0)).toBe('');
   });
 });

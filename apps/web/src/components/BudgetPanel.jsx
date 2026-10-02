@@ -12,6 +12,8 @@ import {
 import { Empty, ErrorState, Loading } from './States';
 
 const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
+// The first day of the month, five months back: enough for the six-month chart and the default list
+const chartStart = () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 5); return todayKey(d); };
 function download(name, text) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
   Object.assign(document.createElement('a'), { href: url, download: name }).click();
@@ -22,7 +24,9 @@ function download(name, text) {
 export default function BudgetPanel({ cid, site, data }) {
   const { can } = useAuth();
   const { data: f, loading, error } = useDoc(() => financeDoc(cid, site.id), [cid, site.id]);
-  const { data: expenses, loading: eLoading } = useQuery(() => expensesQuery(cid, site.id), [cid, site.id]);
+  // Only the last six months are downloaded; "All" in the list fetches older ones when asked
+  const from = chartStart();
+  const { data: expenses, loading: eLoading } = useQuery(() => expensesQuery(cid, site.id, from, 1000), [cid, site.id, from]);
   const [editingBudget, setEditingBudget] = useState(false);
 
   if (loading) return <Loading what="budget" />;
@@ -198,7 +202,9 @@ function ExpenseList({ cid, site, expenses }) {
   const [category, setCategory] = useState('');
   const [editing, setEditing] = useState(null);
   const from = days === 'all' ? '' : ago(Number(days) - 1);
-  const shown = expenses.filter((e) => (!from || e.date >= from) && (!category || e.category === category));
+  const older = useQuery(() => days === 'all' && expensesQuery(cid, site.id, '', 2000), [cid, site.id, days === 'all']);
+  const source = days === 'all' ? older.data : expenses;
+  const shown = source.filter((e) => (!from || e.date >= from) && (!category || e.category === category));
   const total = shown.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   return (
     <>
@@ -210,7 +216,7 @@ function ExpenseList({ cid, site, expenses }) {
           <button type="button" className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown))}>Download (CSV)</button>
         </span>
       </div>
-      {!shown.length ? <Empty title="No expenses in this period." /> : (
+      {days === 'all' && older.loading ? <Loading what="all expenses" /> : !shown.length ? <Empty title="No expenses in this period." /> : (
         <div className="scroll"><table>
           <thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Paid to</th><th>Paid by</th><th>Amount</th><th /></tr></thead>
           <tbody>

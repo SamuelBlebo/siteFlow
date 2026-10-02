@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { onSnapshot } from 'firebase/firestore';
 import { can as roleCan, isRole } from '@siteflow/shared';
@@ -39,9 +39,13 @@ export function AuthProvider({ children }) {
   // A switched-off account or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);
   const role = active ? profile.role : null;
-  const can = (permission) => roleCan(role, permission);
+  // One value object per change, so screens using it only re-render when something in it changes
+  const value = useMemo(() => ({
+    user, profile, loading, error, active, role, cid: active ? profile.companyId : null,
+    can: (permission) => roleCan(role, permission),
+  }), [user, profile, loading, error, active, role]);
   return (
-    <AuthCtx.Provider value={{ user, profile, loading, error, active, role, can, cid: active ? profile.companyId : null }}>
+    <AuthCtx.Provider value={value}>
       {children}
     </AuthCtx.Provider>
   );

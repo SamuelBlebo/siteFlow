@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import {
-  REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportId, reportInput, todayKey, validate,
+  REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportId, reportInput, todayKey, validate, photoThumb,
 } from '@siteflow/shared';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
@@ -228,7 +228,7 @@ function RecentReports({ cid, sid, outbox }) {
                 <Muted>{r.workersPresent} workers, {r.stage} {r.progress}%{r.weather ? `, ${r.weather}` : ''}</Muted>
                 {r.photos?.length ? (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    {r.photos.map((u) => <Image key={u} source={{ uri: u }} style={{ width: 72, height: 54, borderRadius: 4 }} />)}
+                    {r.photos.map((u, i) => <Image key={u} source={{ uri: photoThumb(r, i) }} style={{ width: 72, height: 54, borderRadius: 4 }} />)}
                   </View>
                 ) : null}
               </>

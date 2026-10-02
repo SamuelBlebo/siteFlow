@@ -71,13 +71,13 @@ export function issueActions(issue: Pick<Issue, 'status' | 'assignedTo' | 'creat
 
 // The stored issue (createdAt / updatedAt / lastActivityAt are server timestamps set by the app)
 export function issueDoc(input: { title: string; description?: string; priority: IssuePriority; category: string; location?: string; dueDate?: string },
-  meta: { companyId: string; siteId: string; siteName: string; uid: string; name: string; photos?: string[]; assignedTo?: string | null; assignedToName?: string; date: string }) {
+  meta: { companyId: string; siteId: string; siteName: string; uid: string; name: string; photos?: string[]; thumbs?: string[]; assignedTo?: string | null; assignedToName?: string; date: string }) {
   return {
     companyId: meta.companyId, siteId: meta.siteId, siteName: meta.siteName,
     title: input.title, description: input.description || '', priority: input.priority, category: input.category,
     location: input.location || '', dueDate: input.dueDate || null, date: meta.date,
     status: 'open' as IssueStatus, assignedTo: meta.assignedTo ?? null, assignedToName: meta.assignedToName || '',
-    photos: meta.photos || [], photoCount: (meta.photos || []).length,
+    photos: meta.photos || [], thumbs: meta.thumbs || [], photoCount: (meta.photos || []).length,
     resolution: '', resolvedBy: null, resolvedByName: '',
     commentCount: 0, createdBy: meta.uid, createdByName: meta.name,
   };

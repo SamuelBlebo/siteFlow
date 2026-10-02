@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { attendanceRef, exists, milestonesQuery, siteRef, sub, toList, todayLogsQuery } from '../lib/db';
 import { isSiteOpen, presentCount, usageByMaterial } from '@siteflow/shared';
@@ -32,14 +32,19 @@ export function SiteProvider({ sid, children }) {
     return () => unsubs.forEach((u) => u());
   }, [cid, sid, withPay]);
 
-  const marks = attendance?.marks || {};
-  return (
-    <SiteCtx.Provider value={{
+  const canWorkRole = can('site.work');
+  // Rebuilt only when one of the site's records changes, not on every render
+  const value = useMemo(() => {
+    const marks = attendance?.marks || {};
+    return {
       cid, sid, site, loading: site === undefined, error,
       // Daily site work needs the role and an open (not closed) site; the rules check both
-      canWork: can('site.work') && isSiteOpen(site), materials, workers, pay: withPay ? pay : null,
+      canWork: canWorkRole && isSiteOpen(site), materials, workers, pay: withPay ? pay : null,
       attendance, marks, logs, milestones, usage: usageByMaterial(logs), presentCount: presentCount(marks),
-    }}>
+    };
+  }, [cid, sid, site, error, canWorkRole, materials, workers, withPay, pay, attendance, logs, milestones]);
+  return (
+    <SiteCtx.Provider value={value}>
       {children}
     </SiteCtx.Provider>
   );

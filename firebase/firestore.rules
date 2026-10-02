@@ -38,6 +38,8 @@ service cloud.firestore {
     function byMe() { return data().createdBy == request.auth.uid; }
     function isText(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
     function optText(field, max) { return !(field in data()) || isText(data()[field], 0, max); }
+    // Small copies of photos (optional; older records have none), at most one per photo
+    function validThumbs() { return !('thumbs' in data()) || (data().thumbs is list && data().thumbs.size() <= 8); }
     function isNum(v) { return v is int || v is float; }
     function isAmount(v) { return isNum(v) && v >= 0; }
     function isPct(v) { return (v is int || v is float) && v >= 0 && v <= 100; }
@@ -234,7 +236,7 @@ service cloud.firestore {
         match /reports/{id} {
           function validReport() {
             return data().keys().hasOnly(['companyId', 'siteId', 'siteName', 'date', 'time', 'text', 'notes', 'issues', 'weather',
-                                          'stage', 'progress', 'workersPresent', 'materialsUsed', 'photos', 'photoCount',
+                                          'stage', 'progress', 'workersPresent', 'materialsUsed', 'photos', 'thumbs', 'photoCount',
                                           'createdBy', 'createdByName', 'source', 'createdAt'])
               && data().companyId == cid && data().siteId == sid && isText(data().siteName, 1, 120)
               && isDateKey(data().date) && id == data().date + '_' + request.auth.uid
@@ -244,7 +246,7 @@ service cloud.firestore {
               && isText(data().stage, 1, 60) && isPct(data().progress)
               && data().workersPresent is int && data().workersPresent >= 0 && data().workersPresent <= 2000
               && (!('materialsUsed' in data()) || (data().materialsUsed is list && data().materialsUsed.size() <= 100))
-              && data().photos is list && data().photos.size() <= 8
+              && data().photos is list && data().photos.size() <= 8 && validThumbs()
               && (!('photoCount' in data()) || (data().photoCount is int && data().photoCount >= 0 && data().photoCount <= 8))
               && data().source in ['app', 'web']
               && data().createdByName == me().name;
@@ -253,7 +255,7 @@ service cloud.firestore {
           allow create: if siteWork(cid, sid) && byMe() && validReport();
           // Reports are a record: the author may only add photo links as they finish uploading
           allow update: if siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
-            && onlyChanges(['photos', 'photoCount']) && data().photos is list && data().photos.size() <= 8;
+            && onlyChanges(['photos', 'thumbs', 'photoCount']) && data().photos is list && data().photos.size() <= 8 && validThumbs();
           allow delete: if siteManager(cid);
         }
 
@@ -285,7 +287,7 @@ service cloud.firestore {
         match /issues/{id} {
           function issueKeys() {
             return ['companyId', 'siteId', 'siteName', 'title', 'description', 'priority', 'category', 'location', 'date', 'dueDate',
-                    'status', 'assignedTo', 'assignedToName', 'photos', 'photoCount', 'resolution', 'resolvedBy', 'resolvedByName',
+                    'status', 'assignedTo', 'assignedToName', 'photos', 'thumbs', 'photoCount', 'resolution', 'resolvedBy', 'resolvedByName',
                     'resolvedAt', 'commentCount', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'lastActivityAt'];
           }
           function validIssue() {
@@ -296,7 +298,7 @@ service cloud.firestore {
               && isDateKey(data().date) && (data().dueDate == null || isDateKey(data().dueDate))
               && data().status in ['open', 'in_progress', 'resolved', 'closed']
               && (data().assignedTo == null || data().assignedTo is string) && optText('assignedToName', 100)
-              && data().photos is list && data().photos.size() <= 8 && data().photoCount is int
+              && data().photos is list && data().photos.size() <= 8 && validThumbs() && data().photoCount is int
               && optText('resolution', 2000) && data().commentCount is int && data().commentCount >= 0
               && (data().status != 'resolved' || isText(data().resolution, 3, 2000));
           }
@@ -319,7 +321,7 @@ service cloud.firestore {
           }
           function reporterEdit() {
             return resource.data.createdBy == request.auth.uid && resource.data.status == 'open'
-              && only(['title', 'description', 'location', 'category', 'photos', 'photoCount', 'updatedAt', 'lastActivityAt']);
+              && only(['title', 'description', 'location', 'category', 'photos', 'thumbs', 'photoCount', 'updatedAt', 'lastActivityAt']);
           }
           function commentBump() {
             return only(['commentCount', 'lastActivityAt']) && data().commentCount == resource.data.commentCount + 1;

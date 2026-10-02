@@ -44,7 +44,7 @@ describe('reporting', () => {
   it('a supervisor reports a critical issue with a photo', async () => {
     const me = await as('super');
     issueId = newIssueId(cid, site.id);
-    const photos = await uploadIssuePhotos(cid, site.id, issueId, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'p.jpg', { type: 'image/jpeg' })]);
+    const { photos } = await uploadIssuePhotos(cid, site.id, issueId, [new File([new Uint8Array([0xff, 0xd8, 0xff])], 'p.jpg', { type: 'image/jpeg' })]);
     await save(createIssue(cid, site, input(), { id: issueId, ...me, photos }));
     expect(await read()).toMatchObject({ status: 'open', priority: 'critical', assignedTo: null, photoCount: 1, createdByName: names.super, siteName: 'Cape Coast hostel' });
   });

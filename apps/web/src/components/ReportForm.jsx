@@ -55,9 +55,9 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
     if (files.length && !navigator.onLine) return setErr('Photos need an internet connection. Remove them or send when you are back online.');
     setBusy(true);
     const rid = myReportId(user.uid);
-    let photos = [];
+    let up = { photos: [], thumbs: [] };
     try {
-      if (files.length) photos = await uploadPhotos(cid, site.id, rid, files);
+      if (files.length) up = await uploadPhotos(cid, site.id, rid, files);
     } catch (e2) {
       console.error('Photo upload failed', e2);
       setErr(`Photos could not be uploaded. ${friendlyError(e2)} Your report has not been sent yet.`);
@@ -65,7 +65,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
       return;
     }
     try {
-      const { done } = sendReport(cid, site, v.data, { uid: user.uid, name: profile.name, photos, materials, progressFromMilestones: fromMilestones });
+      const { done } = sendReport(cid, site, v.data, { uid: user.uid, name: profile.name, ...up, materials, progressFromMilestones: fromMilestones });
       const res = await save(done, "Today's report");
       clearDraft(key);
       setQueued(res.queued);

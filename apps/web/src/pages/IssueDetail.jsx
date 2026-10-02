@@ -55,7 +55,7 @@ export default function IssueDetail() {
           {issue.resolution && <><dt>How it was fixed</dt><dd className="prewrap">{issue.resolution}{issue.resolvedByName ? ` (${issue.resolvedByName})` : ''}</dd></>}
         </dl>
         {issue.description && <><h4>Details</h4><p className="prewrap">{issue.description}</p></>}
-        {!!issue.photos?.length && <><h4>Photos</h4><PhotoViewer photos={issue.photos} label="Issue photo" /></>}
+        {!!issue.photos?.length && <><h4>Photos</h4><PhotoViewer photos={issue.photos} thumbs={issue.thumbs} label="Issue photo" /></>}
       </div>
 
       <Actions issue={issue} act={act} change={change} people={can('sites.manage') ? assignableOn(members, sid) : []} me={me} />

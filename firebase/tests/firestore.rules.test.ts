@@ -420,19 +420,22 @@ describe('reports', () => {
     const db = sup();
     for (const bad of [
       { progress: 150 }, { photos: Array(9).fill('x') }, { spent: 1 }, { workersPresent: -1 }, { workersPresent: 2.5 },
-      { weather: 'Snow' }, { text: '' }, { source: 'whatsapp' }, { materialsUsed: 'lots' },
+      { weather: 'Snow' }, { text: '' }, { source: 'whatsapp' }, { materialsUsed: 'lots' }, { thumbs: Array(9).fill('x') }, { thumbs: 'x' },
     ]) {
       await assertFails(sendReport(db, C1, S1, me, name, bad));
     }
     await assertSucceeds(sendReport(db, C1, S1, me, name, {
       notes: 'Inspector visited', issues: 'Cement short', weather: 'Light rain',
       materialsUsed: [{ materialId: 'cement', name: 'Cement', unit: 'bags', qty: 6 }],
+      // Small copies of the photos are allowed alongside them
+      photos: ['https://x/1.jpg'], thumbs: ['https://x/1-thumb.jpg'], photoCount: 1,
     }));
   });
   it('the author adds photo links only; nobody rewrites a report', async () => {
     const db = sup();
     const ref = doc(db, paths.subDoc(C1, S1, 'reports', SEEDED_REPORT));
     await assertSucceeds(updateDoc(ref, { photos: ['https://example.com/a.jpg'], photoCount: 1 }));
+    await assertSucceeds(updateDoc(ref, { thumbs: ['https://example.com/a-thumb.jpg'] }));
     await assertFails(updateDoc(ref, { text: 'Rewritten' }));
     await assertFails(updateDoc(doc(asRole('manager'), paths.subDoc(C1, S1, 'reports', SEEDED_REPORT)), { text: 'Rewritten by manager' }));
     await assertFails(deleteDoc(ref));
@@ -512,6 +515,8 @@ describe('issues', () => {
   it('the reporter fixes the details only while it is open', async () => {
     await seedIssue('z');
     await assertSucceeds(updateDoc(ref(sup(), 'z'), { title: 'Scaffold unsafe on level 2', photos: ['https://x/p.jpg'], photoCount: 1 }));
+    await assertSucceeds(updateDoc(ref(sup(), 'z'), { thumbs: ['https://x/p-thumb.jpg'] }));
+    await assertFails(updateDoc(ref(sup(), 'z'), { thumbs: Array(9).fill('x') }));
     await assertFails(updateDoc(ref(sup(), 'z'), { status: 'resolved', resolution: 'Fixed it myself', resolvedBy: USERS.supervisor, resolvedByName: 'supervisor user' }));
     await assertFails(updateDoc(ref(sup(), 'z'), { createdBy: USERS.owner }));
     await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.subDoc(C1, S1, 'issues', 'z')), { status: 'in_progress' }));

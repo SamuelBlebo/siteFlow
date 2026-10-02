@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import auth from '@react-native-firebase/auth';
 import { can as roleCan, isRole } from '@siteflow/shared';
 import { exists, userRef } from '../lib/db';
@@ -36,12 +36,14 @@ export function AuthProvider({ children }) {
   // A switched-off account or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);
   const role = active ? profile.role : null;
+  // One value object per change, so screens using it only re-render when something in it changes
+  const value = useMemo(() => ({
+    user, profile, loading, error, active, role, cid: active ? profile.companyId : null,
+    can: (permission) => roleCan(role, permission),
+    signOut: () => auth().signOut(),
+  }), [user, profile, loading, error, active, role]);
   return (
-    <AuthCtx.Provider value={{
-      user, profile, loading, error, active, role, cid: active ? profile.companyId : null,
-      can: (permission) => roleCan(role, permission),
-      signOut: () => auth().signOut(),
-    }}>
+    <AuthCtx.Provider value={value}>
       {children}
     </AuthCtx.Provider>
   );

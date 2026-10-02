@@ -17,6 +17,14 @@ export const WORK_PHRASES = [
 export const REPORT_PHOTO_LIMIT = 8;
 export const REPORT_PHOTO_MAX_PX = 1600;   // long edge after resizing on the device
 export const REPORT_PHOTO_QUALITY = 0.7;   // JPEG quality after resizing
+// Small copies for lists and thumbnails, so a list of reports doesn't download every full photo
+export const PHOTO_THUMB_PX = 360;
+export const PHOTO_THUMB_QUALITY = 0.6;
+// "1.jpg" -> "1-thumb.jpg" (stored next to the photo)
+export const thumbName = (file: string) => file.replace(/(\.[a-z0-9]+)?$/i, '-thumb$1');
+// The small copy of photo i if there is one (older records have none), else the photo itself
+export const photoThumb = (doc: { photos?: string[]; thumbs?: string[] } | null | undefined, i: number) =>
+  doc?.thumbs?.[i] || doc?.photos?.[i] || '';
 
 export interface MaterialUsed { materialId: string; name: string; unit: string; qty: number }
 
@@ -38,7 +46,7 @@ export function reportDoc(input: {
   text: string; notes?: string; issues?: string; weather?: string; stage: string; progress: number; workersPresent: number;
 }, meta: {
   companyId: string; siteId: string; siteName: string; date: string; time: string; uid: string; name: string;
-  photos?: string[]; materials?: MaterialUsed[]; source: 'web' | 'app';
+  photos?: string[]; thumbs?: string[]; materials?: MaterialUsed[]; source: 'web' | 'app';
 }) {
   return {
     companyId: meta.companyId, siteId: meta.siteId, siteName: meta.siteName,
@@ -46,7 +54,7 @@ export function reportDoc(input: {
     text: input.text, notes: input.notes || '', issues: input.issues || '', weather: input.weather || '',
     stage: input.stage, progress: input.progress, workersPresent: input.workersPresent,
     materialsUsed: meta.materials || [],
-    photos: meta.photos || [], photoCount: (meta.photos || []).length,
+    photos: meta.photos || [], thumbs: meta.thumbs || [], photoCount: (meta.photos || []).length,
     createdBy: meta.uid, createdByName: meta.name, source: meta.source,
   };
 }

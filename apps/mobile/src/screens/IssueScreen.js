@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, Text, View } from 'react-native';
 import {
-  ISSUE_PRIORITY_LABELS, ISSUE_STATUS_LABELS, commentInput, isSiteOpen, issueActions, prettyDate, resolveInput, validate,
+  ISSUE_PRIORITY_LABELS, ISSUE_STATUS_LABELS, commentInput, isSiteOpen, issueActions, prettyDate, resolveInput, validate, photoThumb,
 } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { addComment, commentsQuery, exists, issueRef, siteRef, toList, updateIssue } from '../lib/db';
@@ -50,7 +50,7 @@ export default function IssueScreen({ route }) {
       {issue.description ? <Text style={{ color: colors.ink, marginTop: 12 }}>{issue.description}</Text> : null}
       {issue.photos?.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-          {issue.photos.map((u) => <Image key={u} source={{ uri: u }} style={{ width: 104, height: 78, borderRadius: 6 }} />)}
+          {issue.photos.map((u, i) => <Image key={u} source={{ uri: photoThumb(issue, i) }} style={{ width: 104, height: 78, borderRadius: 6 }} />)}
         </View>
       ) : null}
 
