@@ -4,6 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { ROLE_LABELS } from '@siteflow/shared';
+import ErrorBoundary from './ErrorBoundary';
 
 export default function Layout() {
   const { profile, role, can } = useAuth();
@@ -39,7 +40,8 @@ export default function Layout() {
           </div>
         </div>
       </header>
-      <main id="main" ref={main} tabIndex={-1}><Outlet /></main>
+      {/* A crash in one page keeps the menu working; moving to another page clears it */}
+      <main id="main" ref={main} tabIndex={-1}><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
     </>
   );
 }

@@ -10,6 +10,7 @@ import { SiteProvider } from './src/site/SiteContext';
 import { startOutbox } from './src/lib/reportOutbox';
 import { startSync } from './src/lib/sync';
 import { colors } from './src/theme';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import LoginScreen from './src/screens/LoginScreen';
 import SitesScreen from './src/screens/SitesScreen';
 import TodayScreen from './src/screens/TodayScreen';
@@ -88,7 +89,9 @@ export default function App() {
       <AuthProvider>
         <NavigationContainer>
           <StatusBar style="light" />
-          <Root />
+          <ErrorBoundary>
+            <Root />
+          </ErrorBoundary>
         </NavigationContainer>
       </AuthProvider>
     </SafeAreaProvider>

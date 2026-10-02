@@ -5,6 +5,7 @@ import { auth } from './firebase';
 import { useAuth } from './auth/AuthProvider';
 import Layout from './components/Layout';
 import Toaster from './components/Toaster';
+import ErrorBoundary from './components/ErrorBoundary';
 import { ErrorState, Loading } from './components/States';
 
 // Each page is its own download, fetched the first time it is opened
@@ -57,6 +58,7 @@ function Home() {
 export default function App() {
   return (
     <>
+      <ErrorBoundary>
       <Suspense fallback={<Loading />}>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -80,6 +82,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+      </ErrorBoundary>
       <Toaster />
     </>
   );
