@@ -13,6 +13,7 @@ export const paths = {
   company: (cid: string) => `companies/${cid}`,
   equipment: (cid: string) => `companies/${cid}/equipment`,
   activity: (cid: string) => `companies/${cid}/activity`,
+  notifications: (cid: string) => `companies/${cid}/notifications`,
   sites: (cid: string) => `companies/${cid}/sites`,
   site: (cid: string, sid: string) => `companies/${cid}/sites/${sid}`,
   sub: (cid: string, sid: string, name: SiteCollection) => `companies/${cid}/sites/${sid}/${name}`,

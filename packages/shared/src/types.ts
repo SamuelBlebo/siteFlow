@@ -5,9 +5,8 @@ export type Plan = 'starter' | 'professional' | 'enterprise';
 export type ModuleKey =
   | 'reports' | 'ai' | 'materials' | 'labour' | 'safety' | 'budget' | 'changeorders' | 'scheduling'
   | 'documents' | 'rfis' | 'inspections' | 'subcontractors' | 'equipment' | 'portal' | 'audit' | 'integrations';
-export type Channel = 'whatsapp' | 'email';
-export type NotificationKey =
-  | 'report' | 'usage' | 'stock' | 'budget' | 'co' | 'rfi' | 'safety' | 'service' | 'digest' | 'weekly';
+// See logic/notifications.ts for what each notification is
+export type NotificationKey = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest';
 
 export interface NotificationRule { whatsapp: boolean; email: boolean }
 
@@ -113,6 +112,12 @@ export interface Issue {
   commentCount: number; createdBy: string; createdByName: string;
   createdAt?: unknown; updatedAt?: unknown; lastActivityAt?: unknown; resolvedAt?: unknown;
 }
+// companies/{cid}/notifications/{id}: one per message attempt (written by Cloud Functions only)
+export interface NotificationLog {
+  id?: string; kind: NotificationKey; channel: 'whatsapp' | 'email'; to: string; toName: string; siteId?: string;
+  text: string; status: 'sending' | 'sent' | 'failed' | 'skipped'; error?: string; attempts: number; createdAt?: unknown; sentAt?: unknown;
+}
+
 // kind 'comment' is typed by a person; 'update' records a change (status, assignment, priority)
 export interface IssueComment { id?: string; text: string; kind: 'comment' | 'update'; createdBy: string; createdByName: string; createdAt?: unknown }
 
