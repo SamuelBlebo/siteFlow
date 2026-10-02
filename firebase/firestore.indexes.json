@@ -87,7 +87,125 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "companyId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "siteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "retry",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "issues",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "materialsUsed",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "photos",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "thumbs",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "issues",
+      "fieldPath": "description",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "issues",
+      "fieldPath": "resolution",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "issues",
+      "fieldPath": "photos",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "issues",
+      "fieldPath": "thumbs",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "comments",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notifications",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notifications",
+      "fieldPath": "params",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notifications",
+      "fieldPath": "address",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notifications",
+      "fieldPath": "error",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "materialLogs",
+      "fieldPath": "note",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "expenses",
+      "fieldPath": "note",
+      "indexes": []
+    }
+  ]
 }
