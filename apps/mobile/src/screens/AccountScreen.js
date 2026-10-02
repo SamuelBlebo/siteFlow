@@ -4,11 +4,13 @@ import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate } from '@siteflo
 import { useAuth } from '../auth/AuthProvider';
 import { companyRef, exists } from '../lib/db';
 import { updateMyProfile } from '../lib/account';
+import { getJournal } from '../lib/sync';
+import { getOutbox } from '../lib/reportOutbox';
 import { Button, Card, ErrorText, Field, H2, Muted, Notice, Screen, s } from '../components/ui';
 import PasswordForm from '../components/PasswordForm';
 import { colors } from '../theme';
 
-export default function AccountScreen() {
+export default function AccountScreen({ navigation }) {
   const { user, profile, role, cid, signOut } = useAuth();
   const [company, setCompany] = useState(null);
   const [name, setName] = useState(profile?.name || '');
@@ -31,7 +33,11 @@ export default function AccountScreen() {
     setMsg({ kind: 'ok', text: 'Your details are saved.' });
   }
 
-  const confirmSignOut = () => Alert.alert('Sign out?', 'You will need your email and password to sign in again.', [
+  // Changes not yet at the office would be refused once signed out, so warn first
+  const unsent = getJournal().length + getOutbox().filter((x) => x.status !== 'sent' && x.uid === user?.uid).length;
+  const confirmSignOut = () => Alert.alert('Sign out?', unsent
+    ? `${unsent} change${unsent === 1 ? ' has' : 's have'} not reached the office yet. Sign out only after they are sent, or they may need to be sent again.`
+    : 'You will need your email and password to sign in again.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Sign out', style: 'destructive', onPress: signOut },
   ]);
@@ -60,6 +66,9 @@ export default function AccountScreen() {
 
       <H2>Password</H2>
       <PasswordForm />
+
+      <H2>Sync</H2>
+      <Button title="See what is waiting to send" variant="ghost" onPress={() => navigation.navigate('Sync')} />
 
       <H2>Sign out</H2>
       <Button title="Sign out of SiteFlow" variant="ghost" onPress={confirmSignOut} />

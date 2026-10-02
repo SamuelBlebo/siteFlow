@@ -147,6 +147,20 @@ Mobile shows managers the top five items on the sites screen.
 - **Everyone** can edit their own name and WhatsApp number and change their password (web Account page,
   mobile Account screen).
 
+## Working offline (mobile)
+
+Sites often have no signal. Nothing a supervisor saves on the phone may be lost.
+
+- **Reports and issues** (with photos) go through the outbox (`apps/mobile/src/lib/reportOutbox.js`). They are saved on the phone first, with private photo copies, then sent when there is signal. Fixed ids (`{date}_{uid}` for reports) mean a retry can never make a second copy. Leftover photo files are cleaned up at start.
+- **Everything else** (attendance, materials, workers, issue changes and comments, milestones, profile) goes through the write journal (`apps/mobile/src/lib/sync.js`):
+  - Each change is written to the journal before it is sent, and leaves only when the server confirms it.
+  - Ids are made on the phone and kept with the change.
+  - When the app is reopened, any change still unconfirmed is checked on the server. If it arrived, it is cleared. If not, it shows as not saved, with Try again. Try again checks the server first, so nothing is counted twice.
+  - Refused changes (no permission, or someone else changed the issue first) keep their data and a plain message.
+- **Firestore** keeps its cache and its unsent writes on disk, with no size limit (`firestoreSetup.js`).
+- **Status:** a banner shows Offline, Syncing or Not saved, and tapping it opens the **Sync** screen (also under Account), which lists everything waiting or failed, with Send now, Try again and Remove. Signing out with unsent changes asks first.
+- **Drafts:** report and issue forms keep their text on the phone as it is typed.
+
 ## First-time setup
 ```bash
 nvm use                                  # Node 20

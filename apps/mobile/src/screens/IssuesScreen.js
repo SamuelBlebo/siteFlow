@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { siteIssuesQuery, toList } from '../lib/db';
 import { deleteReport, queueIssue, retryReport } from '../lib/reportOutbox';
 import { useOutbox } from '../lib/useOutbox';
+import { clearDraft, readDraft, writeDraft } from '../lib/drafts';
 import { Button, Card, Choice, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
@@ -82,6 +83,11 @@ function ReportIssue({ cid, site, onDone }) {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k) => (v) => setF((p) => ({ ...p, [k]: v }));
+  // The text is kept on the phone as it is typed, so a closed app or a flat battery loses nothing
+  const draftKey = `issue:${site.id}:${user.uid}`;
+  const ready = useRef(false);
+  useEffect(() => { readDraft(draftKey).then((d) => { if (d) setF((p) => ({ ...p, ...d })); ready.current = true; }); }, [draftKey]);
+  useEffect(() => { if (ready.current) writeDraft(draftKey, f); }, [draftKey, f]);
 
   async function addPhoto(camera) {
     if (camera) {
@@ -101,6 +107,7 @@ function ReportIssue({ cid, site, onDone }) {
     try {
       const { photos: _p, ...input } = v.data;
       await queueIssue({ cid, site, uid: user.uid, name: profile.name, input, photoUris: photos });
+      await clearDraft(draftKey);
       onDone('Issue saved. It reaches the office as soon as there is signal.');
     } catch (e) {
       console.warn('Issue not saved', e);
@@ -143,8 +150,8 @@ function ReportIssue({ cid, site, onDone }) {
         <Button title="From gallery" variant="ghost" onPress={() => addPhoto(false)} style={{ flex: 1 }} />
       </View>
       <Button title={busy ? 'Saving…' : 'Report problem'} onPress={submit} disabled={busy} />
-      <Button title="Cancel" variant="ghost" onPress={() => onDone(null)} style={{ marginTop: 8 }} />
-      <Muted style={{ marginTop: 8, fontSize: 13 }}>Tap a photo to remove it. Saved on your phone first, so it works without signal.</Muted>
+      <Button title="Discard" variant="ghost" onPress={() => { clearDraft(draftKey); onDone(null); }} style={{ marginTop: 8 }} />
+      <Muted style={{ marginTop: 8, fontSize: 13 }}>Tap a photo to remove it. Your text is kept on this phone until you send or discard it. Saved on your phone first, so it works without signal.</Muted>
     </Screen>
   );
 }

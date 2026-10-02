@@ -2,63 +2,55 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { errorCode, friendlyError } from '@siteflow/shared';
 import { colors } from '../theme';
-import { dismiss, getSyncState, retry, subscribe } from '../lib/sync';
-import { getOutbox, retryReport, subscribeOutbox } from '../lib/reportOutbox';
+import { useNavigation } from '@react-navigation/native';
+import { getSyncState, subscribe } from '../lib/sync';
+import { useOutbox } from '../lib/useOutbox';
 
-export function Screen({ children }) {
+export function Screen({ children, banner = true }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
-      <SyncBanner />
+      {banner && <SyncBanner />}
       {children}
     </ScrollView>
   );
 }
 
-// Offline, syncing and failed saves. Failed saves keep their data and can be retried.
+// True when the Sync screen exists in this navigator or a parent (it does once signed in)
+function useSyncScreen() {
+  const nav = useNavigation();
+  return () => {
+    for (let n = nav; n; n = n.getParent()) {
+      if (n.getState()?.routeNames?.includes('Sync')) return n.navigate('Sync');
+    }
+  };
+}
+
+// One line on every screen: offline, syncing, or changes the office refused. Tapping it opens
+// the Sync screen, which lists each one with Try again. Nothing shows when everything is saved.
 export function SyncBanner() {
   const [st, setSt] = useState(getSyncState());
-  const [outbox, setOutbox] = useState(getOutbox());
+  const outbox = useOutbox();
+  const openSync = useSyncScreen();
   useEffect(() => subscribe(setSt), []);
-  useEffect(() => {
-    let stop = () => {};
-    subscribeOutbox(setOutbox).then((un) => { stop = un; });
-    return () => stop();
-  }, []);
   const reportsWaiting = outbox.filter((x) => x.status === 'waiting' || x.status === 'sending').length;
-  const reportsFailed = outbox.filter((x) => x.status === 'failed');
+  const failed = st.failed.length + outbox.filter((x) => x.status === 'failed').length;
   const waiting = st.pending + reportsWaiting;
+  const plural = (n) => `${n} change${n === 1 ? '' : 's'}`;
+  let banner = null;
+  if (failed) {
+    banner = [colors.badbg, colors.bad, `${plural(failed)} not saved.`, 'Kept on this phone. Tap to see and try again.'];
+  } else if (!st.online) {
+    banner = [colors.warnbg, colors.warn, 'Offline.', waiting ? `${plural(waiting)} saved on this phone, waiting for signal.` : 'You can keep working; changes sync when signal returns.'];
+  } else if (waiting || st.syncing) {
+    banner = [colors.sunk, colors.ink, waiting ? `Syncing ${plural(waiting)}…` : 'Checking with the office…', ''];
+  }
+  if (!banner) return null;
+  const [bg, fg, title, line] = banner;
   return (
-    <>
-      {!st.online && (
-        <View style={[s.banner, { backgroundColor: colors.warnbg }]} accessibilityRole="alert">
-          <Text style={{ color: colors.warn, fontWeight: '600' }}>
-            Offline. {waiting ? `${waiting} change${waiting === 1 ? '' : 's'} saved on this phone, waiting for signal.` : 'You can keep working; changes sync when signal returns.'}
-          </Text>
-        </View>
-      )}
-      {st.online && waiting > 0 && (
-        <View style={[s.banner, { backgroundColor: colors.sunk }]}>
-          <Text style={{ color: colors.ink }}>Syncing {waiting} change{waiting === 1 ? '' : 's'}…</Text>
-        </View>
-      )}
-      {st.failed.map((f) => (
-        <View key={f.id} style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
-          <Text style={{ color: colors.bad, fontWeight: '600' }}>{f.label} was not saved.</Text>
-          <Text style={{ color: colors.bad, marginTop: 2 }}>{f.message}</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-            <Button title="Try again" onPress={() => retry(f.id)} style={{ flex: 1, paddingVertical: 10 }} />
-            <Button title="Dismiss" variant="ghost" onPress={() => dismiss(f.id)} style={{ flex: 1, paddingVertical: 10 }} />
-          </View>
-        </View>
-      ))}
-      {reportsFailed.map((r) => (
-        <View key={r.id} style={[s.banner, { backgroundColor: colors.badbg }]} accessibilityRole="alert">
-          <Text style={{ color: colors.bad, fontWeight: '600' }}>{r.label || `Daily report for ${r.siteName} (${r.date})`} was not sent.</Text>
-          <Text style={{ color: colors.bad, marginTop: 2 }}>{r.error} It is still saved on this phone.</Text>
-          <Button title="Try again" onPress={() => retryReport(r.id)} style={{ marginTop: 8, paddingVertical: 10 }} />
-        </View>
-      ))}
-    </>
+    <Pressable onPress={openSync} accessibilityRole="button" accessibilityLabel={`${title} ${line} Open sync details`} style={[s.banner, { backgroundColor: bg }]}>
+      <Text style={{ color: fg, fontWeight: '600' }}>{title}{!st.online && failed ? ' Offline.' : ''}</Text>
+      {!!line && <Text style={{ color: fg, marginTop: 2 }}>{line}</Text>}
+    </Pressable>
   );
 }
 

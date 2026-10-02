@@ -21,6 +21,7 @@ import SetPasswordScreen from './src/screens/SetPasswordScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import IssuesScreen from './src/screens/IssuesScreen';
 import IssueScreen from './src/screens/IssueScreen';
+import SyncScreen from './src/screens/SyncScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -67,6 +68,7 @@ function Root() {
           <Stack.Screen name="Sites" component={SitesScreen} options={{ title: 'Your sites' }} />
           <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Your account' }} />
           <Stack.Screen name="Issue" component={IssueScreen} options={{ title: 'Issue' }} />
+          <Stack.Screen name="Sync" component={SyncScreen} options={{ title: 'Sync' }} />
           <Stack.Screen name="Site" component={SiteTabs} options={({ route }) => ({ title: route.params.name })} />
         </>
       )}
