@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const store = new Map();
 const net = { online: true };
 const files = new Set();
+const fileTimes = new Map(); // seconds, like expo-file-system's modificationTime
 const server = { docs: new Map(), uploads: new Set(), writes: [], failNextCommit: null, failUpload: null };
 
 vi.mock('react-native', () => ({ AppState: { addEventListener: () => ({ remove() {} }) } }));
@@ -15,9 +16,10 @@ vi.mock('@react-native-firebase/auth', () => ({ default: () => ({ currentUser: {
 vi.mock('expo-file-system', () => ({
   documentDirectory: 'file:///app/',
   makeDirectoryAsync: async () => {},
-  copyAsync: async ({ to }) => { files.add(to); },
-  getInfoAsync: async (p) => ({ exists: files.has(p) }),
+  copyAsync: async ({ to }) => { files.add(to); fileTimes.set(to, Date.now() / 1000); },
+  getInfoAsync: async (p) => ({ exists: files.has(p), modificationTime: fileTimes.get(p) }),
   deleteAsync: async (p) => { files.delete(p); },
+  readDirectoryAsync: async (dir) => [...files].filter((f) => f.startsWith(dir)).map((f) => f.slice(dir.length)),
 }));
 vi.mock('expo-image-manipulator', () => ({ manipulateAsync: async (uri) => ({ uri: `${uri}.small.jpg` }), SaveFormat: { JPEG: 'jpeg' } }));
 vi.mock('@react-native-firebase/storage', () => ({
@@ -166,6 +168,21 @@ describe('report outbox', () => {
     await o.deleteReport(o.getOutbox()[0].id);
     expect(o.getOutbox()).toEqual([]);
     expect(files.size).toBe(0);
+  });
+
+  it('leftover photo files no report refers to are cleaned up; kept and very recent ones stay', async () => {
+    net.online = false;
+    const o = await fresh();
+    await o.queueReport({ cid: 'c1', site, uid: 'u1', name: 'Kofi', input, photoUris: ['file:///cache/k.jpg'] });
+    const kept = o.getOutbox()[0].photos[0].local;
+    fileTimes.set(kept, 0);
+    const old = 'file:///app/report-photos/orphan-1.jpg';
+    const recent = 'file:///app/report-photos/orphan-2.jpg';
+    files.add(old); fileTimes.set(old, 0);
+    files.add(recent); fileTimes.set(recent, Date.now() / 1000);
+    files.add('file:///app/other/keep.jpg'); fileTimes.set('file:///app/other/keep.jpg', 0);
+    expect(await o.cleanPhotos()).toBe(1);
+    expect([...files].sort()).toEqual(['file:///app/other/keep.jpg', kept, recent].sort());
   });
 
   it('a waiting or sent report cannot be deleted', async () => {

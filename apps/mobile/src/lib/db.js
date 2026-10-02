@@ -1,12 +1,19 @@
 import firestore from '@react-native-firebase/firestore';
 import { milestoneProgress, overallProgress, paths, stockDelta, todayKey } from '@siteflow/shared';
-import { registerOps, track } from './sync';
+import { journaled, registerChecks, registerOps } from './sync';
 
-// Firestore keeps working offline on React Native Firebase: writes apply on the phone
-// instantly and sync when the signal returns. Every write goes through track() so a
-// rejected one is kept and shown instead of disappearing. All paths come from shared.
+// Firestore keeps working offline on React Native Firebase: writes apply on the phone instantly
+// and sync when the signal returns. Every write goes through the write journal (sync.js), which
+// keeps it until the server confirms it. Ids are made on the phone and kept with the change, so
+// "Try again" and the server check always refer to the same records. All paths come from shared.
 const now = () => firestore.FieldValue.serverTimestamp();
 const inc = (n) => firestore.FieldValue.increment(n);
+const newId = (path) => firestore().collection(path).doc().id;
+// Server copy, ignoring the phone's cache (used to check whether a change arrived)
+const serverDoc = async (path) => {
+  const s = await firestore().doc(path).get({ source: 'server' });
+  return exists(s) ? s.data() : null;
+};
 
 export const exists = (snap) => (typeof snap.exists === 'function' ? snap.exists() : snap.exists);
 export const toList = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -20,97 +27,127 @@ export const financeRef = (cid, sid) => firestore().doc(paths.finance(cid, sid))
 export const attendanceRef = (cid, sid, date = todayKey()) => firestore().doc(paths.attendance(cid, sid, date));
 export const todayLogsQuery = (cid, sid) => sub(cid, sid, 'materialLogs').where('date', '==', todayKey());
 
-// Log entry and stock change in one batch (the rules check they match).
+// Entry and stock change in one batch (the rules check they match). The entry id is fixed, so
+// a repeat can never move stock twice (the rules refuse an entry that already exists).
 export function logMaterial(cid, sid, input) {
-  const { material, type, qty, cost = 0, supplier = '', ref = '', note = '', uid, name, date = todayKey() } = input;
-  const b = firestore().batch();
-  const logRef = sub(cid, sid, 'materialLogs').doc();
-  b.set(logRef, {
-    materialId: material.id, materialName: material.name, unit: material.unit,
-    type, qty, cost, supplier, ref, note, date, createdBy: uid, createdByName: name, createdAt: now(),
-  });
-  b.update(subRef(cid, sid, 'materials', material.id), { stock: inc(stockDelta({ type, qty })), lastLogId: logRef.id });
-  // A delivery cost (finance roles only) also records an expense; the server keeps the spending totals
-  if (type === 'delivery' && cost > 0) {
-    b.set(sub(cid, sid, 'expenses').doc(), {
-      date, category: 'Materials', amount: cost, payee: supplier, method: '', ref, createdBy: uid, createdByName: name, createdAt: now(),
-      note: `${material.name}, ${qty} ${material.unit}`,
+  const args = { ...input, date: input.date || todayKey(), logId: input.logId || newId(paths.sub(cid, sid, 'materialLogs')) };
+  const { material, type, qty, cost = 0, supplier = '', ref = '', note = '', uid, name, date, logId } = args;
+  return journaled({ label: `${material.name} ${type === 'usage' ? 'used' : 'received'} (${qty} ${material.unit})`, op: 'logMaterial', args: [cid, sid, args] }, () => {
+    const b = firestore().batch();
+    b.set(subRef(cid, sid, 'materialLogs', logId), {
+      materialId: material.id, materialName: material.name, unit: material.unit,
+      type, qty, cost, supplier, ref, note, date, createdBy: uid, createdByName: name, createdAt: now(),
     });
-  }
-  return track(b.commit(), {
-    label: `${material.name} ${type === 'usage' ? 'usage' : 'delivery'} (${qty} ${material.unit})`,
-    op: 'logMaterial', args: [cid, sid, { ...input, date }],
+    b.update(subRef(cid, sid, 'materials', material.id), { stock: inc(stockDelta({ type, qty })), lastLogId: logId });
+    // A delivery cost (finance roles only) also records an expense; the server keeps the spending totals
+    if (type === 'delivery' && cost > 0) {
+      b.set(subRef(cid, sid, 'expenses', `${logId}-cost`), {
+        date, category: 'Materials', amount: cost, payee: supplier, method: '', ref, createdBy: uid, createdByName: name, createdAt: now(),
+        note: `${material.name}, ${qty} ${material.unit}`,
+      });
+    }
+    return b.commit();
   });
 }
 
 // Marks one or more workers for a day ({ workerId: 'present' | 'late' | 'absent' | 'leave' }).
-// Merged per worker, so two phones marking different workers never overwrite each other.
+// Merged per worker, so two phones marking different workers never overwrite each other;
+// for the same worker, the last mark to reach the server wins.
 export function markAttendance(cid, sid, input) {
-  const { marks, label = 'Attendance', uid, date = todayKey() } = input;
-  return track(attendanceRef(cid, sid, date).set({ date, marks, markedBy: uid, updatedAt: now() }, { merge: true }), {
-    label, op: 'markAttendance', args: [cid, sid, { ...input, date }],
-  });
+  const args = { ...input, date: input.date || todayKey() };
+  const { marks, label = 'Attendance', uid, date } = args;
+  return journaled({ label, op: 'markAttendance', args: [cid, sid, args] },
+    () => attendanceRef(cid, sid, date).set({ date, marks, markedBy: uid, updatedAt: now() }, { merge: true }));
 }
 export const attendanceRangeQuery = (cid, sid, from, to) =>
   sub(cid, sid, 'attendance').where('date', '>=', from).where('date', '<=', to).orderBy('date', 'desc');
 
 // Pay goes to workerPay, which only finance roles may write
 export function addWorker(cid, sid, input) {
-  const { name, trade, phone = '', dailyRate = 0, uid } = input;
-  const b = firestore().batch();
-  const w = sub(cid, sid, 'workers').doc();
-  b.set(w, { name, trade, phone, active: true, createdBy: uid, createdAt: now() });
-  if (dailyRate > 0) b.set(firestore().doc(paths.workerPay(cid, sid, w.id)), { dailyRate, updatedAt: now() });
-  return track(b.commit(), { label: `New worker ${name}`, op: 'addWorker', args: [cid, sid, input] });
+  const args = { ...input, workerId: input.workerId || newId(paths.sub(cid, sid, 'workers')) };
+  const { name, trade, phone = '', dailyRate = 0, uid, workerId } = args;
+  return journaled({ label: `New worker ${name}`, op: 'addWorker', args: [cid, sid, args] }, () => {
+    const b = firestore().batch();
+    b.set(subRef(cid, sid, 'workers', workerId), { name, trade, phone, active: true, createdBy: uid, createdAt: now() });
+    if (dailyRate > 0) b.set(firestore().doc(paths.workerPay(cid, sid, workerId)), { dailyRate, updatedAt: now() });
+    return b.commit();
+  });
 }
 
 // The site team can fix a worker's name, trade and phone
 export function updateWorker(cid, sid, input) {
   const { id, name, trade, phone = '' } = input;
-  return track(subRef(cid, sid, 'workers', id).update({ name, trade, phone, updatedAt: now() }), {
-    label: `Changes to ${name}`, op: 'updateWorker', args: [cid, sid, input],
-  });
+  return journaled({ label: `Changes to ${name}`, op: 'updateWorker', args: [cid, sid, input] },
+    () => subRef(cid, sid, 'workers', id).update({ name, trade, phone, updatedAt: now() }));
 }
 
 // Daily reports are sent through the report outbox (reportOutbox.js), not here
 export const reportRef = (cid, sid, rid) => firestore().doc(paths.subDoc(cid, sid, 'reports', rid));
 export const siteReportsQuery = (cid, sid, n = 10) => sub(cid, sid, 'reports').orderBy('date', 'desc').limit(n);
 
-// Issues: new ones go through the outbox (queueIssue); changes and comments are tracked writes
+// Issues: new ones go through the outbox (queueIssue); changes and comments are journaled writes
 export const issueRef = (cid, sid, id) => firestore().doc(paths.subDoc(cid, sid, 'issues', id));
 export const siteIssuesQuery = (cid, sid, n = 100) => sub(cid, sid, 'issues').orderBy('date', 'desc').limit(n);
 // Every open issue in the company (roles that see every site)
 export const openIssuesQuery = (cid) => firestore().collectionGroup('issues').where('companyId', '==', cid).where('status', 'in', ['open', 'in_progress']);
 export const commentsQuery = (cid, sid, id) => firestore().collection(paths.issueComments(cid, sid, id)).orderBy('createdAt');
 
-// A change to an issue (start, resolve), with a note in its timeline
+// A change to an issue (start, resolve), with a note in its timeline. If someone else changed the
+// issue meanwhile (say a manager closed it), the rules refuse this one and it shows as not saved.
 export function updateIssue(cid, sid, input) {
-  const { id, patch, note = '', uid, name } = input;
-  const b = firestore().batch();
-  const resolved = patch.status === 'resolved' ? { resolvedAt: now() } : {};
-  b.update(issueRef(cid, sid, id), { ...patch, ...resolved, updatedAt: now(), lastActivityAt: now() });
-  if (note) b.set(firestore().collection(paths.issueComments(cid, sid, id)).doc(), { text: note, kind: 'update', createdBy: uid, createdByName: name, createdAt: now() });
-  return track(b.commit(), { label: 'Issue update', op: 'updateIssue', args: [cid, sid, input] });
+  const args = { ...input, noteId: input.note ? (input.noteId || newId(paths.issueComments(cid, sid, input.id))) : '' };
+  const { id, patch, note = '', uid, name, noteId } = args;
+  const refused = 'Someone else may have changed this issue first (for example, a manager closed it). Open it to see where it stands.';
+  return journaled({ label: 'Issue update', op: 'updateIssue', args: [cid, sid, args], refused }, () => {
+    const b = firestore().batch();
+    const resolved = patch.status === 'resolved' ? { resolvedAt: now() } : {};
+    b.update(issueRef(cid, sid, id), { ...patch, ...resolved, updatedAt: now(), lastActivityAt: now() });
+    if (note) b.set(firestore().doc(`${paths.issueComments(cid, sid, id)}/${noteId}`), { text: note, kind: 'update', createdBy: uid, createdByName: name, createdAt: now() });
+    return b.commit();
+  });
 }
 
 export function addComment(cid, sid, input) {
-  const { id, text, uid, name } = input;
-  const b = firestore().batch();
-  b.set(firestore().collection(paths.issueComments(cid, sid, id)).doc(), { text, kind: 'comment', createdBy: uid, createdByName: name, createdAt: now() });
-  b.update(issueRef(cid, sid, id), { commentCount: inc(1), lastActivityAt: now() });
-  return track(b.commit(), { label: 'Comment', op: 'addComment', args: [cid, sid, input] });
+  const args = { ...input, commentId: input.commentId || newId(paths.issueComments(cid, sid, input.id)) };
+  const { id, text, uid, name, commentId } = args;
+  return journaled({ label: 'Comment', op: 'addComment', args: [cid, sid, args] }, () => {
+    const b = firestore().batch();
+    b.set(firestore().doc(`${paths.issueComments(cid, sid, id)}/${commentId}`), { text, kind: 'comment', createdBy: uid, createdByName: name, createdAt: now() });
+    b.update(issueRef(cid, sid, id), { commentCount: inc(1), lastActivityAt: now() });
+    return b.commit();
+  });
 }
 
 // Milestones: the site team sets a milestone's percentage; the site's overall progress follows in the same batch
 export const milestonesQuery = (cid, sid) => sub(cid, sid, 'milestones').orderBy('order');
 export function setMilestoneProgress(cid, sid, input) {
-  const { milestone, all, percentDone, uid, name, today = todayKey() } = input;
-  const change = milestoneProgress(milestone, percentDone, today);
-  const b = firestore().batch();
-  b.update(subRef(cid, sid, 'milestones', milestone.id), { ...change, note: '', updatedBy: uid, updatedByName: name, updatedAt: now() });
-  const overall = overallProgress(all.map((m) => (m.id === milestone.id ? { ...m, ...change } : m)));
-  if (overall != null) b.update(siteRef(cid, sid), { progress: overall });
-  return track(b.commit(), { label: `${milestone.name} progress`, op: 'setMilestoneProgress', args: [cid, sid, { ...input, today }] });
+  const args = { ...input, today: input.today || todayKey() };
+  const { milestone, all, percentDone, uid, name, today } = args;
+  return journaled({ label: `${milestone.name} progress`, op: 'setMilestoneProgress', args: [cid, sid, args] }, () => {
+    const change = milestoneProgress(milestone, percentDone, today);
+    const b = firestore().batch();
+    b.update(subRef(cid, sid, 'milestones', milestone.id), { ...change, note: '', updatedBy: uid, updatedByName: name, updatedAt: now() });
+    const overall = overallProgress(all.map((m) => (m.id === milestone.id ? { ...m, ...change } : m)));
+    if (overall != null) b.update(siteRef(cid, sid), { progress: overall });
+    return b.commit();
+  });
 }
 
 registerOps({ logMaterial, markAttendance, addWorker, updateWorker, updateIssue, addComment, setMilestoneProgress });
+
+// How to tell, on the server, that each kind of change arrived
+const same = (doc, fields) => !!doc && Object.entries(fields).every(([k, v]) => doc[k] === v);
+registerChecks({
+  logMaterial: async (cid, sid, a) => !!(await serverDoc(paths.subDoc(cid, sid, 'materialLogs', a.logId))),
+  markAttendance: async (cid, sid, a) => {
+    const d = await serverDoc(paths.attendance(cid, sid, a.date));
+    return !!d && Object.entries(a.marks).every(([w, st]) => d.marks?.[w] === st);
+  },
+  addWorker: async (cid, sid, a) => !!(await serverDoc(paths.subDoc(cid, sid, 'workers', a.workerId))),
+  updateWorker: async (cid, sid, a) => same(await serverDoc(paths.subDoc(cid, sid, 'workers', a.id)), { name: a.name, trade: a.trade, phone: a.phone || '' }),
+  updateIssue: async (cid, sid, a) => (a.noteId
+    ? !!(await serverDoc(`${paths.issueComments(cid, sid, a.id)}/${a.noteId}`))
+    : same(await serverDoc(paths.subDoc(cid, sid, 'issues', a.id)), a.patch)),
+  addComment: async (cid, sid, a) => !!(await serverDoc(`${paths.issueComments(cid, sid, a.id)}/${a.commentId}`)),
+  setMilestoneProgress: async (cid, sid, a) => (await serverDoc(paths.subDoc(cid, sid, 'milestones', a.milestone.id)))?.percentDone === milestoneProgress(a.milestone, a.percentDone, a.today).percentDone,
+});

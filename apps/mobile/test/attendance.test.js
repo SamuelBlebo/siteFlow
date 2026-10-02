@@ -5,7 +5,7 @@ const writes = [];
 let fail = null;
 vi.mock('@react-native-firebase/firestore', () => {
   const ref = (path) => ({
-    path,
+    path, id: path.split('/').pop(),
     set: async (data, opts) => { writes.push(['set', path, data, opts]); if (fail) throw fail; },
     update: async (data) => { writes.push(['update', path, data]); if (fail) throw fail; },
   });

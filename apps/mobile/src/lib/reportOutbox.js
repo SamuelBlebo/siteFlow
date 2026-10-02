@@ -180,11 +180,29 @@ async function removePhotos(item) {
   for (const p of item.photos || []) await FileSystem.deleteAsync(p.local, { idempotent: true }).catch(() => {});
 }
 
+// Photo files no report or issue on the phone refers to any more (the app closed between
+// copying a photo and saving the item, or a deleted item). Only this app's own folder is touched.
+export async function cleanPhotos() {
+  await load();
+  const keep = new Set(items.flatMap((x) => (x.status === 'sent' ? [] : (x.photos || []).map((p) => p.local))));
+  const names = await FileSystem.readDirectoryAsync(DIR).catch(() => []);
+  let removed = 0;
+  for (const n of names) {
+    if (keep.has(`${DIR}${n}`)) continue;
+    // A photo copied in the last few minutes may belong to a report being saved right now
+    const info = await FileSystem.getInfoAsync(`${DIR}${n}`).catch(() => null);
+    if (!info?.exists || (info.modificationTime || 0) * 1000 > Date.now() - 10 * 60 * 1000) continue;
+    await FileSystem.deleteAsync(`${DIR}${n}`, { idempotent: true }).catch(() => {});
+    removed++;
+  }
+  return removed;
+}
+
 async function runOutbox() {
   await load();
   const net = await NetInfo.fetch();
   const uid = auth().currentUser?.uid;
-  if (!net.isConnected || !uid) return;
+  if (!net.isConnected || net.isInternetReachable === false || !uid) return;
   const tried = new Set();
   for (;;) {
     const item = items.find((x) => x.status === 'waiting' && x.uid === uid && !tried.has(x.id));
@@ -247,6 +265,7 @@ export function startOutbox() {
   load().then(async () => {
     for (const x of items.filter((i) => i.status === 'sending')) await update(x.id, { status: 'waiting' });
     run();
+    cleanPhotos().catch((e) => console.warn('Photo clean-up failed', e));
   });
   const unNet = NetInfo.addEventListener((s) => { if (s.isConnected) run(); });
   const unAuth = auth().onAuthStateChanged(run);
