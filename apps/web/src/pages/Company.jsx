@@ -5,6 +5,7 @@ import { useDoc, useQuery } from '../lib/hooks';
 import { companyDoc, teamQuery, updateCompany } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { ErrorState, Loading } from '../components/States';
+import { NotificationSettings } from '../components/Notifications';
 
 const PLAN_LABEL = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
 
@@ -56,6 +57,9 @@ export default function Company() {
         </div>
         <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save company details'}</button>
       </form>
+
+      <h2 className="sub">Notifications</h2>
+      <NotificationSettings cid={cid} company={company} />
 
       <h2 className="sub">Features on your plan</h2>
       <ul className="list">

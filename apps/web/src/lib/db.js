@@ -272,3 +272,8 @@ export function addStandardMilestones(cid, site) {
   syncSiteProgress(b, cid, site.id, list);
   return b.commit();
 }
+
+// ---------- notifications ----------
+// Owner: which notifications go out, by WhatsApp and/or email ({ kind: { whatsapp, email } })
+export const updateNotifications = (cid, notifications) => updateDoc(companyDoc(cid), { notifications, updatedAt: serverTimestamp() });
+export const notificationsQuery = (cid, n = 50) => query(collection(db, paths.notifications(cid)), orderBy('createdAt', 'desc'), limit(n));

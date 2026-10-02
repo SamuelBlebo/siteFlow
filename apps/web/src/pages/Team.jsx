@@ -8,6 +8,7 @@ import {
   ROLE_DESCRIPTIONS, ROLE_LABELS, assignableRoles, canChangeMember, friendlyError, inviteInput, isSiteScoped, validate, waPhone,
 } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from '../components/States';
+import { NotificationLog } from '../components/Notifications';
 
 const loginText = (name, email, pw) =>
   `Hi ${name.split(' ')[0]}, your SiteFlow login: ${window.location.origin} Email: ${email} Temporary password: ${pw} You will choose your own password when you sign in.`;
@@ -66,7 +67,8 @@ export default function Team() {
                 return (
                   <tr key={m.id} className={off ? 'muted' : ''}>
                     <td><b>{m.name}</b>{m.id === user.uid && <span className="muted small"> (you)</span>}<div className="muted small">{m.email}{m.phone ? `, ${m.phone}` : ''}</div>
-                      {m.mustChangePassword && <span className="pill warn">Hasn't set a password yet</span>}</td>
+                      {m.mustChangePassword && <span className="pill warn">Hasn't set a password yet</span>}
+                      {!m.phone && m.active !== false && <span className="pill" title="Add a WhatsApp number on their account to send them alerts">No WhatsApp number</span>}</td>
                     <td>{ROLE_LABELS[m.role] || m.role}</td>
                     <td>{isSiteScoped(m.role)
                       ? (m.siteIds?.length ? sites.filter((s) => m.siteIds.includes(s.id)).map((s) => s.name).join(', ') : <span className="pill bad">No sites</span>)
@@ -100,6 +102,10 @@ export default function Team() {
       })()}
 
       <InviteForm roles={roles} sites={sites} onInvited={setIssued} />
+
+      <h2 className="sub">Messages sent</h2>
+      <p className="hint">WhatsApp and email alerts from the last while. Numbers and addresses are partly hidden. {can('company.settings') ? 'Choose which alerts go out on the Company page.' : ''}</p>
+      <NotificationLog cid={cid} />
 
       {can('audit.view') && (
         <>
