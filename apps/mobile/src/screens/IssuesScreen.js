@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import {
-  ISSUE_CATEGORIES, ISSUE_PRIORITIES, ISSUE_PRIORITY_HINTS, ISSUE_PRIORITY_LABELS, ISSUE_STATUS_LABELS, filterIssues, isOpenIssue,
+  ISSUE_CATEGORIES, ISSUE_PHOTO_LIMIT, ISSUE_PRIORITIES, ISSUE_PRIORITY_HINTS, ISSUE_PRIORITY_LABELS, ISSUE_STATUS_LABELS, filterIssues, isOpenIssue,
   issueInput, prettyDate, sortIssues, validate,
 } from '@siteflow/shared';
 import { useSite } from '../site/SiteContext';
@@ -11,23 +10,25 @@ import { siteIssuesQuery, toList } from '../lib/db';
 import { deleteReport, queueIssue, retryReport } from '../lib/reportOutbox';
 import { useOutbox } from '../lib/useOutbox';
 import { clearDraft, readDraft, writeDraft } from '../lib/drafts';
-import { Button, Card, Choice, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Pill, Screen, s } from '../components/ui';
+import { Button, Card, Choice, Empty, ErrorText, ErrorView, Field, H1, H2, Loading, Muted, Notice, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
+import PhotoPicker from '../components/PhotoPicker';
 
 export const PRIORITY_COLOR = { critical: colors.bad, high: colors.bad, medium: colors.warn, low: colors.muted };
 
 export default function IssuesScreen({ navigation }) {
   const { cid, sid, site, error, canWork } = useSite();
   const outbox = useOutbox();
-  const [issues, setIssues] = useState([]);
+  const [issues, setIssues] = useState(null); // null until the first load
+  const [loadError, setLoadError] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [saved, setSaved] = useState('');
-  useEffect(() => siteIssuesQuery(cid, sid).onSnapshot((q) => setIssues(toList(q)), (e) => console.warn('Could not load issues', e)), [cid, sid]);
+  useEffect(() => siteIssuesQuery(cid, sid).onSnapshot((q) => { setIssues(toList(q)); setLoadError(null); }, (e) => { console.warn('Could not load issues', e); setLoadError(e); setIssues((p) => p || []); }), [cid, sid]);
 
   const onPhone = outbox.filter((x) => x.kind === 'issue' && x.sid === sid && x.status !== 'sent');
-  const shown = sortIssues(filterIssues(issues, { status: showAll ? 'all' : 'open' }));
-  const finished = issues.filter((i) => !isOpenIssue(i.status)).length;
+  const shown = sortIssues(filterIssues(issues || [], { status: showAll ? 'all' : 'open' }));
+  const finished = (issues || []).filter((i) => !isOpenIssue(i.status)).length;
 
   if (reporting) {
     return <ReportIssue cid={cid} site={site} onDone={(msg) => { setReporting(false); if (msg) setSaved(msg); }} />;
@@ -54,8 +55,9 @@ export default function IssuesScreen({ navigation }) {
         </Card>
       ))}
 
-      {!shown.length && !onPhone.length ? (
-        <Muted>{showAll ? 'No issues reported on this site.' : 'No open issues on this site.'}</Muted>
+      {loadError ? <ErrorView error={loadError} what="issues" /> : null}
+      {issues === null ? <Loading what="issues" /> : !shown.length && !onPhone.length ? (
+        <Empty>{showAll ? 'No issues reported on this site.' : 'No open issues on this site.'}</Empty>
       ) : (
         <Card>
           {shown.map((i, n) => (
@@ -88,16 +90,6 @@ function ReportIssue({ cid, site, onDone }) {
   const ready = useRef(false);
   useEffect(() => { readDraft(draftKey).then((d) => { if (d) setF((p) => ({ ...p, ...d })); ready.current = true; }); }, [draftKey]);
   useEffect(() => { if (ready.current) writeDraft(draftKey, f); }, [draftKey, f]);
-
-  async function addPhoto(camera) {
-    if (camera) {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) return setErr('Allow camera access in your phone settings to take photos.');
-    }
-    const r = camera ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
-      : await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, selectionLimit: 8 - photos.length, quality: 0.8 });
-    if (!r.canceled) setPhotos((p) => [...p, ...r.assets.map((a) => a.uri)].slice(0, 8));
-  }
 
   async function submit() {
     setErr('');
@@ -137,21 +129,10 @@ function ReportIssue({ cid, site, onDone }) {
       <Choice label="About" options={ISSUE_CATEGORIES} value={f.category} onChange={set('category')} />
       <Field label="Where on site (optional)" value={f.location} onChangeText={set('location')} placeholder="e.g. Block B, first floor" />
       <Field label="Details (optional)" value={f.description} onChangeText={set('description')} multiline />
-      <Text style={s.label}>Photos ({photos.length}/8)</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-        {photos.map((uri) => (
-          <Pressable key={uri} onPress={() => setPhotos((p) => p.filter((x) => x !== uri))} accessibilityLabel="Remove photo">
-            <Image source={{ uri }} style={{ width: 84, height: 64, borderRadius: 6 }} />
-          </Pressable>
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-        <Button title="Take photo" variant="ghost" onPress={() => addPhoto(true)} style={{ flex: 1 }} />
-        <Button title="From gallery" variant="ghost" onPress={() => addPhoto(false)} style={{ flex: 1 }} />
-      </View>
+      <PhotoPicker photos={photos} onChange={setPhotos} limit={ISSUE_PHOTO_LIMIT} />
       <Button title={busy ? 'Saving…' : 'Report problem'} onPress={submit} disabled={busy} />
       <Button title="Discard" variant="ghost" onPress={() => { clearDraft(draftKey); onDone(null); }} style={{ marginTop: 8 }} />
-      <Muted style={{ marginTop: 8, fontSize: 13 }}>Tap a photo to remove it. Your text is kept on this phone until you send or discard it. Saved on your phone first, so it works without signal.</Muted>
+      <Muted style={{ marginTop: 8, fontSize: 13 }}>Your text is kept on this phone until you send or discard it. Saved on your phone first, so it works without signal.</Muted>
     </Screen>
   );
 }

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CO_REASONS, INCIDENT_TYPES } from './constants';
 import { ROLES } from './permissions';
 import { REPORT_PHOTO_LIMIT, WEATHER } from './logic/reports';
+import { ISSUE_PHOTO_LIMIT } from './logic/issues';
 
 // Validation used by the forms (web and mobile) and again in Cloud Functions.
 const money = z.coerce.number({ invalid_type_error: 'Enter an amount.' }).nonnegative('Amount cannot be negative.');
@@ -155,7 +156,7 @@ export const issueInput = z.object({
   category: z.string().min(1, 'Choose what it is about.').max(60),
   location: z.string().trim().max(120).optional().default(''),
   dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date.').optional().default(''),
-  photos: z.array(z.string()).max(8, 'Add up to 8 photos.').default([]),
+  photos: z.array(z.string()).max(ISSUE_PHOTO_LIMIT, `Add up to ${ISSUE_PHOTO_LIMIT} photos.`).default([]),
 });
 export const resolveInput = z.object({ resolution: z.string().trim().min(3, 'Say how it was fixed.').max(2000) });
 export const commentInput = z.object({ text: z.string().trim().min(1, 'Write a comment first.').max(2000, 'Keep comments under 2000 characters.') });

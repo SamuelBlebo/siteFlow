@@ -4,7 +4,7 @@ import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
 import { logMaterial } from '../lib/db';
 import { MATERIAL_LOG_LABELS, daysLeft, materialLogInput, materialStatus, validate } from '@siteflow/shared';
-import { Button, Card, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Pill, Screen, s } from '../components/ui';
+import { Button, Card, Empty, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 const USED_FOR = ['Blockwork', 'Concrete', 'Plastering', 'Foundation', 'Slab', 'Columns', 'Roofing', 'Flooring'];
@@ -21,7 +21,7 @@ export default function MaterialsScreen() {
   const set = (k) => (v) => setF((p) => ({ ...p, [k]: v }));
 
   if (!materials.length) {
-    return <Screen><H1>Materials</H1>{error ? <ErrorView error={error} what="materials" /> : null}<Muted>No materials set up for this site yet. A project manager adds them on the web.</Muted></Screen>;
+    return <Screen><H1>Materials</H1>{error ? <ErrorView error={error} what="materials" /> : null}<Empty>No materials set up for this site yet. A project manager adds them on the web.</Empty></Screen>;
   }
   const material = materials.find((m) => m.id === mid) || materials[0];
   const todays = [...logs].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));

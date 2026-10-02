@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import {
   REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportId, reportInput, todayKey, validate,
 } from '@siteflow/shared';
@@ -10,8 +9,9 @@ import { exists, reportRef, siteReportsQuery, toList, todayLogsQuery } from '../
 import { deleteReport, outboxKey, queueReport, retryReport } from '../lib/reportOutbox';
 import { useOutbox } from '../lib/useOutbox';
 import { clearDraft, readDraft, writeDraft } from '../lib/drafts';
-import { Button, Card, Choice, ErrorText, ErrorView, Field, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
+import { Button, Card, Choice, Empty, ErrorText, ErrorView, Field, H1, H2, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
+import PhotoPicker from '../components/PhotoPicker';
 
 const STATUS = {
   waiting: ['warn', 'Saved on this phone. It sends as soon as there is signal.'],
@@ -34,8 +34,8 @@ export default function ReportScreen() {
     (d) => setOnServer(exists(d) ? d.data() : null), (e) => console.warn('Could not check today\'s report', e)), [cid, sid, user.uid, today]);
   useEffect(() => todayLogsQuery(cid, sid).onSnapshot((q) => setLogs(toList(q)), () => {}), [cid, sid]);
 
-  if (loading) return <Screen><Muted>Loading…</Muted></Screen>;
-  if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
+  if (loading) return <Screen><Loading what="site" /></Screen>;
+  if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Empty>This site is not available. Ask your manager if you should have access.</Empty>}</Screen>;
 
   let top;
   if (queued && queued.status !== 'sent') top = <QueuedReport item={queued} />;
@@ -71,19 +71,6 @@ function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMi
   const materials = materialsUsed(logs);
   const addPhrase = (p) => set('text')(f.text.trim() ? `${f.text.trim()}. ${p}` : p);
   const nudge = (k, by, max) => set(k)(String(Math.max(0, Math.min(max, (Number(k === 'workersPresent' ? workers : f[k]) || 0) + by))));
-
-  async function addPhotos(fromCamera) {
-    const room = REPORT_PHOTO_LIMIT - f.photos.length;
-    if (room <= 0) return setErr(`You can add up to ${REPORT_PHOTO_LIMIT} photos.`);
-    if (fromCamera) {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) return setErr('Allow camera access in your phone settings to take site photos.');
-    }
-    const r = fromCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
-      : await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, selectionLimit: room, quality: 0.8 });
-    if (!r.canceled) set('photos')([...f.photos, ...r.assets.map((a) => a.uri)].slice(0, REPORT_PHOTO_LIMIT));
-  }
 
   async function submit() {
     setErr('');
@@ -132,22 +119,7 @@ function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMi
 
       <Field label="Issues or delays" value={f.issues} onChangeText={set('issues')} multiline placeholder="Leave empty if none" />
 
-      <Text style={s.label}>Photos ({f.photos.length}/{REPORT_PHOTO_LIMIT})</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-        {f.photos.map((uri) => (
-          <View key={uri}>
-            <Image source={{ uri }} style={{ width: 84, height: 64, borderRadius: 6 }} />
-            <Pressable onPress={() => set('photos')(f.photos.filter((x) => x !== uri))} accessibilityRole="button" accessibilityLabel="Remove photo"
-              style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.bad, borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-        <Button title="Take photo" variant="ghost" onPress={() => addPhotos(true)} style={{ flex: 1 }} />
-        <Button title="From gallery" variant="ghost" onPress={() => addPhotos(false)} style={{ flex: 1 }} />
-      </View>
+      <PhotoPicker photos={f.photos} onChange={set('photos')} limit={REPORT_PHOTO_LIMIT} />
 
       {more ? (
         <Field label="Notes" value={f.notes} onChangeText={set('notes')} multiline placeholder="Visitors, instructions received, plans for tomorrow" />
@@ -172,11 +144,11 @@ function Stepper({ value, onMinus, onPlus, onChange, hint, step = 1 }) {
   return (
     <View style={{ marginBottom: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Button title={`−${step === 1 ? '' : step}`} variant="ghost" onPress={onMinus} style={{ width: 64 }} />
+        <Button title={`−${step === 1 ? '' : step}`} variant="ghost" onPress={onMinus} style={{ width: 64 }} accessibilityLabel={`Less, by ${step}`} />
         <View style={{ flex: 1 }}>
           <Field label="" value={String(value)} onChangeText={onChange} keyboardType="number-pad" accessibilityLabel={hint} style={{ textAlign: 'center', fontSize: 20, fontWeight: '700' }} />
         </View>
-        <Button title={`+${step === 1 ? '' : step}`} variant="ghost" onPress={onPlus} style={{ width: 64 }} />
+        <Button title={`+${step === 1 ? '' : step}`} variant="ghost" onPress={onPlus} style={{ width: 64 }} accessibilityLabel={`More, by ${step}`} />
       </View>
       {hint ? <Muted style={{ fontSize: 13 }}>{hint}</Muted> : null}
     </View>

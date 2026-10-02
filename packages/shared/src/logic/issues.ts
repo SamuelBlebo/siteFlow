@@ -1,6 +1,9 @@
 import { can } from '../permissions';
 import type { Issue, IssuePriority, IssueStatus, Role } from '../types';
 
+// Most photos an issue can carry (the security rules allow the same)
+export const ISSUE_PHOTO_LIMIT = 8;
+
 export const ISSUE_PRIORITIES: IssuePriority[] = ['critical', 'high', 'medium', 'low'];
 export const ISSUE_PRIORITY_LABELS: Record<IssuePriority, string> = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 export const ISSUE_PRIORITY_HINTS: Record<IssuePriority, string> = {

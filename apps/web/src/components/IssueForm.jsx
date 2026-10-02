@@ -4,7 +4,7 @@ import { useQuery } from '../lib/hooks';
 import { createIssue, newIssueId, teamQuery, uploadIssuePhotos } from '../lib/db';
 import { save } from '../lib/save';
 import {
-  ISSUE_CATEGORIES, ISSUE_PRIORITIES, ISSUE_PRIORITY_HINTS, ISSUE_PRIORITY_LABELS, can as roleCan, friendlyError, isSiteOpen, issueInput,
+  ISSUE_CATEGORIES, ISSUE_PHOTO_LIMIT, ISSUE_PRIORITIES, ISSUE_PRIORITY_HINTS, ISSUE_PRIORITY_LABELS, can as roleCan, friendlyError, isSiteOpen, issueInput,
   siteTeam, validate,
 } from '@siteflow/shared';
 
@@ -95,7 +95,7 @@ export default function IssueForm({ cid, sites, onDone }) {
           </select></div>
       )}
       <div className="field"><label htmlFor="if-p">Photos</label>
-        <input id="if-p" type="file" accept="image/*" multiple onChange={(e) => setFiles([...e.target.files].slice(0, 8))} />
+        <input id="if-p" type="file" accept="image/*" multiple onChange={(e) => setFiles([...e.target.files].slice(0, ISSUE_PHOTO_LIMIT))} />
         <p className="hint">Up to 8 photos. {files.length ? `${files.length} selected.` : ''}</p></div>
       <div className="actions">
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Reporting…' : 'Report issue'}</button>

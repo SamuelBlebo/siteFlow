@@ -9,15 +9,15 @@ import {
 } from '@siteflow/shared';
 import { useState } from 'react';
 import { setMilestoneProgress } from '../lib/db';
-import { Button, Card, ErrorView, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
+import { Button, Card, Empty, ErrorView, H1, H2, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function TodayScreen({ navigation }) {
   const { profile, user } = useAuth();
   const { cid, sid, site, loading, error, materials, usage, presentCount, canWork, milestones } = useSite();
   const outbox = useOutbox();
-  if (loading) return <Screen><Muted>Loading site…</Muted></Screen>;
-  if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Muted>This site is not available.</Muted>}</Screen>;
+  if (loading) return <Screen><Loading what="site" /></Screen>;
+  if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Empty>This site is not available. Ask your manager if you should have access.</Empty>}</Screen>;
   const work = canWork;
 
   const queued = outbox.find((x) => x.id === outboxKey(sid, user.uid));

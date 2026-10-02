@@ -5,7 +5,7 @@ import { useOutbox } from '../lib/useOutbox';
 import { outboxKey } from '../lib/reportOutbox';
 import { exists, openIssuesQuery, siteRef, sitesCol, toList } from '../lib/db';
 import { ALERT_LABELS, SITE_STATUS_LABELS, isSiteScoped, rankAlerts, siteAlerts, todayKey } from '@siteflow/shared';
-import { Card, ErrorView, Muted, Pill, Screen, s } from '../components/ui';
+import { Card, Empty, ErrorView, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
 export default function SitesScreen({ navigation }) {
@@ -21,7 +21,8 @@ export default function SitesScreen({ navigation }) {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Text onPress={() => navigation.navigate('Account')} accessibilityRole="button" style={{ color: '#fff', fontWeight: '600', padding: 8 }}>Account</Text>
+        <Text onPress={() => navigation.navigate('Account')} accessibilityRole="button" accessibilityLabel="Your account" hitSlop={8}
+          style={{ color: '#fff', fontWeight: '600', paddingVertical: 12, paddingHorizontal: 8 }}>Account</Text>
       ),
     });
   }, [navigation]);
@@ -61,16 +62,16 @@ export default function SitesScreen({ navigation }) {
       <Muted style={{ marginBottom: 12 }}>Hi {profile.name?.split(' ')[0]}. Pick a site to work on.</Muted>
       {error ? <ErrorView error={error} what="your sites" /> : null}
       {all && loaded ? <Attention sites={list} openIssues={openIssues} navigation={navigation} /> : null}
-      {!loaded && !error ? <Muted>Loading sites…</Muted> : !list.length ? (
-        <Card style={{ padding: 16 }}><Text style={{ color: colors.ink }}>You haven't been added to a site yet. Ask your manager to add you.</Text></Card>
+      {!loaded && !error ? <Loading what="sites" /> : !list.length ? (
+        <Empty>You haven't been added to a site yet. Ask your manager to add you.</Empty>
       ) : (
         <Card>
           {list.map((site, i) => {
             const onPhone = outbox.find((x) => x.id === outboxKey(site.id, user.uid) && x.status !== 'sent');
             const sent = site.lastReportDate === today;
             return (
-              <Pressable key={site.id} onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name })}
-                style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
+              <Pressable key={site.id} onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name })} accessibilityRole="button"
+                android_ripple={{ color: colors.sunk }} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{site.name}</Text>
                   <Muted>{site.location}</Muted>

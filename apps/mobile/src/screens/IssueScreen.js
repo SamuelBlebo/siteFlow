@@ -5,7 +5,7 @@ import {
 } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { addComment, commentsQuery, exists, issueRef, siteRef, toList, updateIssue } from '../lib/db';
-import { Button, Card, ErrorText, Field, H1, H2, Muted, Pill, Screen, s } from '../components/ui';
+import { Button, Card, Empty, ErrorText, Field, H1, H2, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { PRIORITY_COLOR } from './IssuesScreen';
 import { colors } from '../theme';
 
@@ -20,8 +20,8 @@ export default function IssueScreen({ route }) {
   useEffect(() => siteRef(cid, sid).onSnapshot((d) => setSite(exists(d) ? d.data() : null), () => {}), [cid, sid]);
   useEffect(() => commentsQuery(cid, sid, id).onSnapshot((q) => setComments(toList(q)), () => {}), [cid, sid, id]);
 
-  if (issue === undefined) return <Screen><Muted>Loading…</Muted></Screen>;
-  if (!issue) return <Screen><Muted>This issue is not available.</Muted></Screen>;
+  if (issue === undefined) return <Screen><Loading what="issue" /></Screen>;
+  if (!issue) return <Screen><Empty>This issue is not available. It may have been removed, or you no longer have access to its site.</Empty></Screen>;
   const act = issueActions(issue, { uid: user.uid, role }, isSiteOpen(site));
   const me = { uid: user.uid, name: profile.name };
 

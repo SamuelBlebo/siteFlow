@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { errorCode, friendlyError } from '@siteflow/shared';
-import { colors } from '../theme';
+import { colors, touchMin } from '../theme';
 import { useNavigation } from '@react-navigation/native';
 import { getSyncState, subscribe } from '../lib/sync';
 import { useOutbox } from '../lib/useOutbox';
 
 export function Screen({ children, banner = true }) {
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
       {banner && <SyncBanner />}
       {children}
     </ScrollView>
@@ -63,25 +63,45 @@ export function ErrorView({ error, what = 'this' }) {
     </View>
   );
 }
-export const H1 = ({ children, style }) => <Text style={[s.h1, style]}>{children}</Text>;
-export const H2 = ({ children, style }) => <Text style={[s.h2, style]}>{children}</Text>;
+// Loading, empty: the same look on every screen
+export function Loading({ what = '' }) {
+  return (
+    <View style={s.loading} accessible accessibilityLabel={`Loading${what ? ` ${what}` : ''}`}>
+      <ActivityIndicator color={colors.steel} />
+      <Text style={s.muted}>Loading{what ? ` ${what}` : ''}…</Text>
+    </View>
+  );
+}
+export function Empty({ children, action }) {
+  return (
+    <View style={s.empty}>
+      <Text style={s.muted}>{children}</Text>
+      {action ? <View style={{ marginTop: 10 }}>{action}</View> : null}
+    </View>
+  );
+}
+
+export const H1 = ({ children, style }) => <Text accessibilityRole="header" style={[s.h1, style]}>{children}</Text>;
+export const H2 = ({ children, style }) => <Text accessibilityRole="header" style={[s.h2, style]}>{children}</Text>;
 export const Muted = ({ children, style }) => <Text style={[s.muted, style]}>{children}</Text>;
 
-export function Button({ title, onPress, variant = 'solid', disabled, style }) {
+export function Button({ title, onPress, variant = 'solid', disabled, style, accessibilityLabel }) {
   const ghost = variant === 'ghost';
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled}
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled: !!disabled }} onPress={onPress} disabled={disabled}
       style={({ pressed }) => [s.btn, ghost && s.btnGhost, (pressed || disabled) && { opacity: 0.6 }, style]}>
       <Text style={[s.btnText, ghost && { color: colors.steel }]}>{title}</Text>
     </Pressable>
   );
 }
 
+// The label is also read out by screen readers when the box is focused
 export function Field({ label, hint, style, ...props }) {
   return (
     <View style={{ marginBottom: 14 }}>
       {label ? <Text style={s.label}>{label}</Text> : null}
-      <TextInput placeholderTextColor={colors.muted} style={[s.input, props.multiline && { minHeight: 90, textAlignVertical: 'top' }, style]} {...props} />
+      <TextInput placeholderTextColor={colors.muted} accessibilityLabel={label} accessibilityHint={hint}
+        style={[s.input, props.multiline && { minHeight: 90, textAlignVertical: 'top' }, style]} {...props} />
       {hint ? <Text style={s.hint}>{hint}</Text> : null}
     </View>
   );
@@ -98,7 +118,7 @@ export function Choice({ label, options, value, onChange }) {
           const l = typeof o === 'string' ? o : o.label;
           const on = v === value;
           return (
-            <Pressable key={v} onPress={() => onChange(v)} accessibilityState={{ selected: on }}
+            <Pressable key={v} onPress={() => onChange(v)} accessibilityRole="button" accessibilityLabel={label ? `${label}: ${l}` : l} accessibilityState={{ selected: on }}
               style={[s.chip, on && { backgroundColor: colors.steel, borderColor: colors.steel }]}>
               <Text style={{ color: on ? '#fff' : colors.ink, fontWeight: '500' }}>{l}</Text>
             </Pressable>
@@ -126,17 +146,19 @@ export const s = StyleSheet.create({
   h1: { fontSize: 24, fontWeight: '700', color: colors.ink, marginBottom: 4 },
   h2: { fontSize: 18, fontWeight: '700', color: colors.ink, marginTop: 20, marginBottom: 8 },
   muted: { color: colors.muted },
-  btn: { backgroundColor: colors.steel, borderRadius: 8, paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.steel },
+  btn: { minHeight: touchMin, justifyContent: 'center', backgroundColor: colors.steel, borderRadius: 8, paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.steel },
   btnGhost: { backgroundColor: 'transparent' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   label: { fontWeight: '600', color: colors.ink, marginBottom: 6 },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 12, fontSize: 16, color: colors.ink },
   hint: { color: colors.muted, fontSize: 13, marginTop: 4 },
-  chip: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, marginRight: 8 },
+  chip: { minHeight: touchMin - 4, justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, marginRight: 8 },
   err: { backgroundColor: colors.badbg, color: colors.bad, padding: 12, borderRadius: 8, marginBottom: 12, fontWeight: '500' },
   notice: { backgroundColor: colors.okbg, padding: 12, borderRadius: 8, marginBottom: 12 },
   pill: { borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
   banner: { padding: 12, borderRadius: 8, marginBottom: 12 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: colors.line, gap: 12 },
+  loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 32 },
+  empty: { borderWidth: 1, borderStyle: 'dashed', borderColor: colors.line, borderRadius: 10, padding: 16 },
+  row: { minHeight: touchMin, flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: colors.line, gap: 12 },
 });
