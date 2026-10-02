@@ -88,9 +88,9 @@ function MaterialHistory({ cid, site, materials }) {
                 <td>{t.adjusted ? `${t.adjusted > 0 ? '+' : ''}${t.adjusted} ${t.unit}` : '–'}</td>{money && <td>{cedi(t.cost)}</td>}</tr>
             ))}</tbody>
           </table></div>
-          <div className="row-between" style={{ margin: '16px 0 8px' }}>
-            <h3 className="sub" style={{ margin: 0 }}>Entries</h3>
-            <button className="btn sm ghost" onClick={() => download(`materials-${site.name.replace(/[^\w]+/g, '-')}-${from || 'all'}.csv`, materialLogCsv(shown, money))}>Download (CSV)</button>
+          <div className="section-head">
+            <h3 className="sub">Entries</h3>
+            <button type="button" className="btn sm ghost" onClick={() => download(`materials-${site.name.replace(/[^\w]+/g, '-')}-${from || 'all'}.csv`, materialLogCsv(shown, money))}>Download (CSV)</button>
           </div>
           <div className="scroll"><table>
             <thead><tr><th>Date</th><th>Entry</th><th>Material</th><th>Quantity</th><th>Details</th><th>By</th>{money && <th>Cost</th>}</tr></thead>

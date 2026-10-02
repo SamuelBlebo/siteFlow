@@ -38,12 +38,12 @@ export default function ReportHistory({ cid, site }) {
       )}
       {!data.length ? <Empty title="No daily reports yet.">They appear here as soon as the site team sends one.</Empty> : (
         <>
-          <div className="row-between" style={{ margin: '12px 0' }}>
-            <input type="search" aria-label="Search reports" placeholder="Search work, issues, notes or names" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1, minWidth: 220 }} />
+          <div className="toolbar">
+            <input type="search" aria-label="Search reports" placeholder="Search work, issues, notes or names" value={q} onChange={(e) => setQ(e.target.value)} />
             <label className="chip"><input type="checkbox" checked={issuesOnly} onChange={(e) => setIssuesOnly(e.target.checked)} /> With issues only</label>
           </div>
           {!shown.length ? <Empty title="No reports match." /> : <ul className="list">{shown.map((r) => <ReportRow key={r.id} r={r} />)}</ul>}
-          {data.length >= n && <button className="btn ghost" style={{ marginTop: 12 }} disabled={loading} onClick={() => setN(n + PAGE)}>{loading ? 'Loading…' : 'Show older reports'}</button>}
+          {data.length >= n && <button type="button" className="btn ghost mt-sm" disabled={loading} onClick={() => setN(n + PAGE)}>{loading ? 'Loading…' : 'Show older reports'}</button>}
         </>
       )}
     </>

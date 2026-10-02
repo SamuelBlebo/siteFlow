@@ -43,12 +43,12 @@ export default function BudgetPanel({ cid, site, data }) {
         <div><dt>Expected final cost</dt><dd>{sum.forecast == null ? '–' : cedi(sum.forecast)}</dd></div>
       </dl>
       {sum.forecastOver > 0 && <p className="notice warn">At this rate the job would cost about {cedi(sum.forecast)}, {cedi(sum.forecastOver)} over budget.</p>}
-      {sum.overspendRisk && <p className="err">{sum.usedPct}% of the budget is spent but only {sum.progress}% of the work is done.</p>}
+      {sum.overspendRisk && <p className="err" role="alert">{sum.usedPct}% of the budget is spent but only {sum.progress}% of the work is done.</p>}
       <p className="hint">Totals update automatically from the expenses below. Expected final cost assumes spending carries on at the same rate per % of work.</p>
 
-      <div className="row-between" style={{ marginTop: 16 }}>
-        <h3 className="sub" style={{ margin: 0 }}>Budget by category</h3>
-        {can('sites.manage') && !editingBudget && <button className="btn sm ghost" onClick={() => setEditingBudget(true)}>Edit budget</button>}
+      <div className="section-head">
+        <h3 className="sub">Budget by category</h3>
+        {can('sites.manage') && !editingBudget && <button type="button" className="btn sm ghost" onClick={() => setEditingBudget(true)}>Edit budget</button>}
       </div>
       {editingBudget && <BudgetForm cid={cid} sid={site.id} f={f} onDone={() => setEditingBudget(false)} />}
       {!rows.length ? <Empty title="No spending or category budgets yet." /> : (
@@ -140,14 +140,14 @@ function Wages({ cid, site, data, expenses }) {
   }
   return (
     <div className="form inline">
-      <div className="row-between"><h3 style={{ margin: 0 }}>Labour cost from attendance</h3>
+      <div className="row-between"><h3 className="m0">Labour cost from attendance</h3>
         <select aria-label="Period" value={period} onChange={(e) => setPeriod(e.target.value)}>
           <option value="last">Last week</option><option value="this">This week</option><option value="30">Last 30 days</option>
         </select></div>
-      <p style={{ marginTop: 8 }}>{prettyDate(from)} to {prettyDate(to)}: <b>{cedi(sheet.total)}</b> for {sheet.rows.length} worker{sheet.rows.length === 1 ? '' : 's'} ({sheet.rows.reduce((s, r) => s + r.days, 0)} days worked).</p>
+      <p className="mt-sm">{prettyDate(from)} to {prettyDate(to)}: <b>{cedi(sheet.total)}</b> for {sheet.rows.length} worker{sheet.rows.length === 1 ? '' : 's'} ({sheet.rows.reduce((s, r) => s + r.days, 0)} days worked).</p>
       {noRate > 0 && <p className="hint">{noRate} worker{noRate === 1 ? ' has' : 's have'} no daily rate, so {noRate === 1 ? 'is' : 'are'} not counted. Set rates under Labour, Workers.</p>}
       {recorded ? <p className="notice ok">Recorded as an expense on {prettyDate(recorded.date)}.</p>
-        : can('finance.edit') && sheet.total > 0 && <button className="btn ghost" onClick={record}>Record these wages as an expense</button>}
+        : can('finance.edit') && sheet.total > 0 && <button type="button" className="btn ghost" onClick={record}>Record these wages as an expense</button>}
     </div>
   );
 }
@@ -187,7 +187,7 @@ function ExpenseForm({ cid, sid }) {
       <h3>Record an expense</h3>
       {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
       {expenseFields(f, set, 'ne')}
-      <button className="btn ghost">Save expense</button>
+      <button type="submit" className="btn ghost">Save expense</button>
     </form>
   );
 }
@@ -202,12 +202,12 @@ function ExpenseList({ cid, site, expenses }) {
   const total = shown.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   return (
     <>
-      <div className="row-between" style={{ margin: '20px 0 8px' }}>
-        <h3 className="sub" style={{ margin: 0 }}>Expenses</h3>
-        <span className="row-between" style={{ gap: 8 }}>
+      <div className="section-head">
+        <h3 className="sub">Expenses</h3>
+        <span className="actions">
           <select aria-label="Period" value={days} onChange={(e) => setDays(e.target.value)}><option value="30">Last 30 days</option><option value="90">Last 3 months</option><option value="all">All</option></select>
           <select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)}><option value="">All categories</option>{EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
-          <button className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown))}>Download (CSV)</button>
+          <button type="button" className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown))}>Download (CSV)</button>
         </span>
       </div>
       {!shown.length ? <Empty title="No expenses in this period." /> : (
@@ -221,7 +221,7 @@ function ExpenseList({ cid, site, expenses }) {
                   <td>{prettyDate(x.date)}</td><td>{x.category}</td>
                   <td>{x.note}{x.ref ? <div className="muted small">Ref {x.ref}</div> : null}<div className="muted small">{x.createdByName}</div></td>
                   <td>{x.payee || '–'}</td><td>{x.method || '–'}</td><td><b>{cedi(x.amount)}</b></td>
-                  <td>{can('finance.edit') && <button className="btn sm ghost" onClick={() => setEditing(x.id)}>Edit</button>}</td>
+                  <td>{can('finance.edit') && <button type="button" className="btn sm ghost" onClick={() => setEditing(x.id)}>Edit</button>}</td>
                 </tr>
               ))}
             <tr className="total"><td colSpan={5}><b>Total shown</b></td><td><b>{cedi(total)}</b></td><td /></tr>
@@ -247,7 +247,7 @@ function EditExpense({ cid, sid, x, onDone }) {
     try { await save(deleteExpense(cid, sid, x.id), 'Expense'); onDone(); } catch (e2) { setErr(e2.message); }
   }
   return (
-    <form className="form" onSubmit={submit} style={{ margin: 0 }}>
+    <form className="form compact" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
       {expenseFields(f, set, `ee-${x.id}`)}
       <button className="btn">Save</button> <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>{' '}

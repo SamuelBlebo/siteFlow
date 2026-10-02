@@ -63,7 +63,7 @@ export default function MaterialLogForm({ cid, sid, materials }) {
       ) : (
         <div className="field"><label htmlFor="m-n">Used for (optional)</label><input id="m-n" value={f.note} onChange={set('note')} placeholder="e.g. Column casting, first floor" /></div>
       )}
-      <button className="btn" disabled={busy}>{busy ? 'Saving…' : type === 'usage' ? 'Save usage' : 'Save delivery'}</button>
+      <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : type === 'usage' ? 'Save usage' : 'Save delivery'}</button>
     </form>
   );
 }

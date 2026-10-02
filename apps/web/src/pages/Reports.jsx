@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { filterReports, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useTitle } from '../lib/hooks';
 import { companyReportsQuery, sitesCol } from '../lib/db';
 import { ReportRow } from '../components/ReportCard';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -12,6 +12,7 @@ const RANGES = [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 3 mon
 
 // Every report across the company, for roles that see every site
 export default function Reports() {
+  useTitle('Daily reports');
   const { cid } = useAuth();
   const { data: sites } = useQuery(() => cid && sitesCol(cid), [cid]);
   const [siteId, setSiteId] = useState('');
@@ -50,7 +51,7 @@ export default function Reports() {
         <div className="field grow"><label htmlFor="rf-q">Search</label>
           <input id="rf-q" type="search" placeholder="Work, issues, notes, stage, weather" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       </div>
-      <div className="chips" style={{ marginBottom: 12 }}>
+      <div className="chips mb">
         <label className="chip"><input type="checkbox" checked={issuesOnly} onChange={(e) => setIssuesOnly(e.target.checked)} /> With issues ({withIssues})</label>
         <label className="chip"><input type="checkbox" checked={photosOnly} onChange={(e) => setPhotosOnly(e.target.checked)} /> With photos</label>
       </div>
@@ -61,7 +62,7 @@ export default function Reports() {
         <>
           <p className="hint">{shown.length} of {data.length} report{data.length === 1 ? '' : 's'} shown.</p>
           {!shown.length ? <Empty title="No reports match these filters." /> : <ul className="list">{shown.map((r) => <ReportRow key={`${r.siteId}/${r.id}`} r={r} showSite={!siteId} />)}</ul>}
-          {data.length >= n && <button className="btn ghost" style={{ marginTop: 12 }} disabled={loading} onClick={() => setN(n + PAGE)}>{loading ? 'Loading…' : 'Show more'}</button>}
+          {data.length >= n && <button type="button" className="btn ghost mt-sm" disabled={loading} onClick={() => setN(n + PAGE)}>{loading ? 'Loading…' : 'Show more'}</button>}
         </>
       )}
     </section>

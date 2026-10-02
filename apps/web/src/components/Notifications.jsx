@@ -33,7 +33,7 @@ export function NotificationSettings({ cid, company }) {
           ))}
         </tbody>
       </table></div>
-      <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save notification settings'}</button>
+      <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save notification settings'}</button>
     </form>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { prettyDate, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useTitle } from '../lib/hooks';
 import { sitesCol } from '../lib/db';
 import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
@@ -11,6 +11,7 @@ const FILTERS = [['open', 'Active and on hold'], ['active', 'Active'], ['on_hold
 
 // All sites in the company, for roles that see every site
 export default function Sites() {
+  useTitle('Sites');
   const { cid, can } = useAuth();
   const nav = useNavigate();
   const { data: sites, loading, error } = useQuery(() => cid && sitesCol(cid), [cid]);
@@ -35,18 +36,18 @@ export default function Sites() {
         {can('sites.manage') && <Link to="/sites/new" className="btn">Add a site</Link>}
       </div>
       {!sites.length ? (
-        <div style={{ marginTop: 16 }}>
-          <Empty title="No sites yet.">{can('sites.manage') ? 'Add your first site to start tracking reports, materials and workers.' : 'A manager adds sites. They will appear here.'}</Empty>
+        <div className="mt">
+          <Empty title="No sites yet." action={can('sites.manage') && <Link to="/sites/new" className="btn">Add a site</Link>}>{can('sites.manage') ? 'Add your first site to start tracking reports, materials and workers.' : 'A manager adds sites. They will appear here.'}</Empty>
         </div>
       ) : (
         <>
-          <div className="row-between" style={{ margin: '16px 0' }}>
+          <div className="toolbar">
             <div className="seg" role="group" aria-label="Filter by status">
               {FILTERS.map(([k, label]) => <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>{label} ({count(k)})</button>)}
             </div>
-            <input type="search" aria-label="Search sites" placeholder="Search name, location, foreman or client" value={q} onChange={(e) => setQ(e.target.value)} style={{ minWidth: 260 }} />
+            <input type="search" aria-label="Search sites" placeholder="Search name, location, foreman or client" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          {!shown.length ? <Empty title="No sites match." >Try another filter or search.</Empty> : (
+          {!shown.length ? <Empty title="No sites match." action={<button type="button" className="btn sm ghost" onClick={() => { setQ(''); setFilter('all'); }}>Clear search and filter</button>}>Try another filter or search.</Empty> : (
             <div className="scroll"><table>
               <thead><tr><th>Site</th><th>Status</th><th>Stage</th><th>Progress</th><th>Planned finish</th><th>Last report</th></tr></thead>
               <tbody>

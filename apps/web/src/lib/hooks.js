@@ -82,3 +82,10 @@ export function useSiteData(cid, sid, { withPay = false } = {}) {
     error: materials.error || workers.error || attendance.error || logs.error || pay.error,
   };
 }
+
+// The browser tab title for a page ("Sites · SiteFlow"), so tabs, history and screen readers say where you are
+export function useTitle(title) {
+  useEffect(() => {
+    document.title = title ? `${title} · SiteFlow` : 'SiteFlow';
+  }, [title]);
+}

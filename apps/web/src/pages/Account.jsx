@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc } from '../lib/hooks';
+import { useDoc, useTitle } from '../lib/hooks';
 import { companyDoc, updateMyProfile } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { logOut } from '../lib/account';
 import PasswordForm from '../components/PasswordForm';
 
 export default function Account() {
+  useTitle('Your account');
   const { user, profile, role, cid } = useAuth();
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
   const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '' });
@@ -33,7 +34,7 @@ export default function Account() {
   return (
     <section className="wrap narrow">
       <h1>Your account</h1>
-      <dl className="cols" style={{ marginTop: 16 }}>
+      <dl className="cols mt">
         <div><dt>Company</dt><dd>{company?.name || '–'}</dd></div>
         <div><dt>Role</dt><dd>{ROLE_LABELS[role]}</dd></div>
         <div><dt>Sign-in email</dt><dd className="small">{user.email}</dd></div>
@@ -48,15 +49,15 @@ export default function Account() {
           <div className="field"><label htmlFor="a-p">WhatsApp number</label><input id="a-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="024 000 0000" />
             <p className="hint">Used for SiteFlow alerts on WhatsApp.</p></div>
         </div>
-        <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
+        <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
       </form>
 
       <h2 className="sub">Password</h2>
       <div className="card"><PasswordForm /></div>
 
       <h2 className="sub">Sign out</h2>
-      <p className="muted" style={{ marginBottom: 8 }}>Sign out of SiteFlow on this device.</p>
-      <button className="btn ghost" onClick={logOut}>Sign out</button>
+      <p className="muted mb">Sign out of SiteFlow on this device.</p>
+      <button type="button" className="btn ghost" onClick={logOut}>Sign out</button>
     </section>
   );
 }

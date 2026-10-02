@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { onSnapshot } from 'firebase/firestore';
 import { EXPENSE_CATEGORIES, cedi, portfolioTotals, siteFinanceSummary } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useTitle } from '../lib/hooks';
 import { financeDoc, sitesCol } from '../lib/db';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -17,6 +17,7 @@ const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 // Money across every site (finance roles)
 export default function Finance() {
+  useTitle('Finance');
   const { cid } = useAuth();
   const { data: sites, loading, error } = useQuery(() => cid && sitesCol(cid), [cid]);
   const [showClosed, setShowClosed] = useState(false);
@@ -47,7 +48,7 @@ export default function Finance() {
     <section className="wrap">
       <div className="head row-between">
         <div><h1>Finance</h1><p className="muted">Budgets and spending across your sites. Totals update automatically from each site's expenses.</p></div>
-        <button className="btn ghost" onClick={csv}>Download (CSV)</button>
+        <button type="button" className="btn ghost" onClick={csv}>Download (CSV)</button>
       </div>
       <dl className="strip">
         <div><dt>Total budget</dt><dd>{cedi(t.budget)}</dd></div>
@@ -57,7 +58,7 @@ export default function Finance() {
       </dl>
       {!!risky.length && <p className="notice warn">Watch: {risky.map((r) => r.site.name).join(', ')}. Spending is running ahead of the work done.</p>}
 
-      <div className="row-between"><h2 className="sec" style={{ margin: '12px 0' }}>By site</h2>
+      <div className="row-between"><h2 className="sec">By site</h2>
         <label className="chip"><input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} /> Include closed sites</label></div>
       {!rows.length ? <Empty title="No sites yet." /> : (
         <div className="scroll"><table>

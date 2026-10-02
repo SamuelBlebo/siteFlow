@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ISSUE_CATEGORIES, ISSUE_PRIORITIES, ISSUE_PRIORITY_LABELS, ISSUE_STATUSES, ISSUE_STATUS_LABELS, filterIssues, sortIssues } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useTitle } from '../lib/hooks';
 import { companyIssuesQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import IssueList from '../components/IssueList';
 import IssueForm from '../components/IssueForm';
@@ -10,6 +10,7 @@ import { ErrorState, Loading } from '../components/States';
 
 // Every issue in the company, for roles that see every site. Critical ones at the top.
 export default function Issues() {
+  useTitle('Issues');
   const { cid, can, user } = useAuth();
   const nav = useNavigate();
   const [status, setStatus] = useState('open');
@@ -32,10 +33,10 @@ export default function Issues() {
     <section className="wrap">
       <div className="head row-between">
         <div><h1>Issues</h1><p className="muted">Problems reported on site and who is fixing them.</p></div>
-        {can('site.work') && !reporting && <button className="btn" onClick={() => setReporting(true)}>Report an issue</button>}
+        {can('site.work') && !reporting && <button type="button" className="btn" onClick={() => setReporting(true)}>Report an issue</button>}
       </div>
       {reporting && (
-        <div style={{ marginTop: 16 }}>
+        <div className="mt">
           <IssueForm cid={cid} sites={[...sites].sort((a, b) => a.name.localeCompare(b.name))} onDone={(r) => { setReporting(false); if (r) nav(`/issues/${r.siteId}/${r.id}`); }} />
         </div>
       )}
@@ -65,7 +66,7 @@ export default function Issues() {
           </select></div>
         <div className="field grow"><label htmlFor="is-q">Search</label><input id="is-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Title, details, location, names" /></div>
       </div>
-      <label className="chip" style={{ marginBottom: 12 }}><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Given to me</label>
+      <label className="chip mb"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Given to me</label>
       {source.loading ? <Loading what="issues" /> : source.error ? <ErrorState error={source.error} what="issues" /> : (
         <IssueList issues={shown} showSite={!siteId} empty={status === 'open' ? 'No open issues.' : 'No issues match.'} />
       )}

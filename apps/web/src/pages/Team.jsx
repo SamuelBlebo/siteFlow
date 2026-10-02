@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useTitle } from '../lib/hooks';
 import { activityQuery, sitesCol, teamQuery } from '../lib/db';
 import { team } from '../lib/account';
 import { toast } from '../lib/save';
@@ -15,6 +15,7 @@ const loginText = (name, email, pw) =>
 const waLink = (phone, text) => `https://wa.me/${phone ? waPhone(phone) : ''}?text=${encodeURIComponent(text)}`;
 
 export default function Team() {
+  useTitle('Team');
   const { cid, role: myRole, user, can } = useAuth();
   const roles = assignableRoles(myRole);
   const { data: members, loading, error } = useQuery(() => cid && teamQuery(cid), [cid]);
@@ -46,17 +47,17 @@ export default function Team() {
       <p className="muted">Add people, choose what they can do and which sites they work on. Changes take effect straight away.</p>
 
       {issued && (
-        <div className="notice ok" style={{ marginTop: 16 }}>
+        <div className="notice ok mt">
           <p><b>Login for {issued.name}</b>: {issued.email}, temporary password <code>{issued.pw}</code></p>
           <p className="small">Share it privately. They will choose their own password when they sign in. It is not shown again.</p>
-          <div className="row-between" style={{ justifyContent: 'flex-start' }}>
+          <div className="actions">
             <a className="btn sm" target="_blank" rel="noreferrer" href={waLink(issued.phone, loginText(issued.name, issued.email, issued.pw))}>Send on WhatsApp</a>
-            <button className="btn sm ghost" onClick={() => setIssued(null)}>Done</button>
+            <button type="button" className="btn sm ghost" onClick={() => setIssued(null)}>Done</button>
           </div>
         </div>
       )}
 
-      <div style={{ marginTop: 16 }}>
+      <div className="mt">
         {loading ? <Loading what="your team" /> : error ? <ErrorState error={error} what="your team" /> : (
           <div className="scroll"><table>
             <thead><tr><th>Name</th><th>Role</th><th>Sites</th><th>Access</th><th /></tr></thead>
@@ -74,7 +75,7 @@ export default function Team() {
                       ? (m.siteIds?.length ? sites.filter((s) => m.siteIds.includes(s.id)).map((s) => s.name).join(', ') : <span className="pill bad">No sites</span>)
                       : <span className="muted">All sites</span>}</td>
                     <td>{off ? <span className="pill bad">Switched off</span> : <span className="pill ok">Active</span>}</td>
-                    <td>{editable && <button className="btn sm ghost" onClick={() => setEditing(editing === m.id ? null : m.id)}>{editing === m.id ? 'Close' : 'Manage'}</button>}</td>
+                    <td>{editable && <button type="button" className="btn sm ghost" onClick={() => setEditing(editing === m.id ? null : m.id)}>{editing === m.id ? 'Close' : 'Manage'}</button>}</td>
                   </tr>
                 );
               })}
@@ -143,11 +144,11 @@ function MemberPanel({ m, roles, sites, busy, onSave, onActive, onReset, onRemov
           {!sites.length ? <p className="hint">No sites yet.</p> : <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
         </fieldset>
       )}
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        <button className="btn" disabled={!!busy} onClick={() => onSave(role, siteIds)}>{busy === 'update' ? 'Saving…' : 'Save changes'}</button>
-        <button className="btn ghost" disabled={!!busy} onClick={onReset}>{busy === 'reset' ? 'Working…' : 'New temporary password'}</button>
-        <button className="btn ghost" disabled={!!busy} onClick={() => onActive(off)}>{busy === 'active' ? 'Working…' : off ? 'Switch on' : 'Switch off'}</button>
-        <button className="btn ghost danger" disabled={!!busy} onClick={onRemove}>{busy === 'remove' ? 'Removing…' : 'Remove from company'}</button>
+      <div className="actions">
+        <button type="button" className="btn" disabled={!!busy} onClick={() => onSave(role, siteIds)}>{busy === 'update' ? 'Saving…' : 'Save changes'}</button>
+        <button type="button" className="btn ghost" disabled={!!busy} onClick={onReset}>{busy === 'reset' ? 'Working…' : 'New temporary password'}</button>
+        <button type="button" className="btn ghost" disabled={!!busy} onClick={() => onActive(off)}>{busy === 'active' ? 'Working…' : off ? 'Switch on' : 'Switch off'}</button>
+        <button type="button" className="btn ghost danger" disabled={!!busy} onClick={onRemove}>{busy === 'remove' ? 'Removing…' : 'Remove from company'}</button>
       </div>
       <p className="hint">Switching someone off signs them out everywhere and blocks their login until you switch them back on.</p>
     </div>
@@ -198,7 +199,7 @@ function InviteForm({ roles, sites, onInvited }) {
           {!sites.length ? <p className="hint">Add a site first.</p> : <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={f.siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
         </fieldset>
       )}
-      <button className="btn" disabled={busy}>{busy ? 'Adding…' : 'Add member'}</button>
+      <button type="submit" className="btn" disabled={busy}>{busy ? 'Adding…' : 'Add member'}</button>
     </form>
   );
 }

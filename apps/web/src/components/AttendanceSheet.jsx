@@ -34,20 +34,20 @@ export default function AttendanceSheet({ cid, sid, workers, pay, readOnly }) {
 
   return (
     <>
-      <div className="row-between" style={{ margin: '8px 0 12px' }}>
+      <div className="section-head">
         <div className="seg" role="group" aria-label="Day">
           <button type="button" aria-pressed={date === todayKey()} onClick={() => setDate(todayKey())}>Today</button>
           <button type="button" aria-pressed={date === yesterday()} onClick={() => setDate(yesterday())}>Yesterday</button>
         </div>
         <label className="small">Other day <input type="date" value={date} max={todayKey()} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
       </div>
-      <h3 className="sub" style={{ marginTop: 0 }}>{prettyDate(date)}</h3>
+      <h3 className="sub m0">{prettyDate(date)}</h3>
       {loading ? <Loading what="attendance" /> : error ? <ErrorState error={error} what="attendance" /> : !workers.length ? (
         <Empty title="No workers yet.">{readOnly ? 'The site team adds workers.' : 'Add workers under Workers to mark attendance.'}</Empty>
       ) : (
         <>
           {!readOnly && unmarked > 0 && (
-            <button className="btn" disabled={busy} style={{ marginBottom: 12 }} onClick={() => mark(markAllPresent(workers, marks), 'Attendance')}>
+            <button type="button" className="btn mb" disabled={busy} onClick={() => mark(markAllPresent(workers, marks), 'Attendance')}>
               Mark the other {unmarked} present
             </button>
           )}

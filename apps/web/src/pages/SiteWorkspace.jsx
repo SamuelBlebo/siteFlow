@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useSiteData } from '../lib/hooks';
+import { useDoc, useSiteData, useTitle } from '../lib/hooks';
 import { siteDoc } from '../lib/db';
 import { isSiteOpen, longToday, todayKey } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
@@ -17,9 +16,13 @@ import { ErrorState, Loading } from '../components/States';
 export default function SiteWorkspace() {
   const { sid } = useParams();
   const { cid, profile, can } = useAuth();
-  const [tab, setTab] = useState('today');
+  // The tab lives in the address, so Back, refresh and shared links keep it
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab') || 'today';
+  const setTab = (t) => setParams(t === 'today' ? {} : { tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const d = useSiteData(cid, sid, { withPay: can('finance.view') });
+  useTitle(site ? `${site.name}: site work` : 'Site work');
 
   if (loading) return <Loading />;
   if (error) return <section className="wrap narrow"><ErrorState error={error} what="this site" /><Link to="/work">Back to your sites</Link></section>;
@@ -44,7 +47,7 @@ export default function SiteWorkspace() {
       <h1>{site.name}</h1>
       <p className="muted">{longToday()}. Signed in as {profile.name}.</p>
       {!work && <p className="notice warn">{isSiteOpen(site) ? 'You can view this site but not change it.' : 'This site is closed. You can view its records but not add new ones.'}</p>}
-      <Tabs value={tab} onChange={setTab} tabs={tabs} />
+      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site work">
       {d.error && <ErrorState error={d.error} what="some site data" />}
 
       {tab === 'today' && (
@@ -52,7 +55,7 @@ export default function SiteWorkspace() {
           <ol className="steps">
             {steps.map((s) => (
               <li key={s.key} className={s.done ? 'done' : ''}>
-                <button onClick={() => setTab(work || s.key !== 'report' ? s.key : 'today')}><span><b>{s.title}</b><small>{s.note}</small></span></button>
+                <button type="button" onClick={() => setTab(work || s.key !== 'report' ? s.key : 'today')}><span><b>{s.title}</b><small>{s.note}</small></span></button>
               </li>
             ))}
           </ol>
@@ -66,6 +69,7 @@ export default function SiteWorkspace() {
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={d} canWork={work} />}
       {tab === 'workers' && <LabourPanel cid={cid} site={site} data={d} canWork={work} />}
+      </Tabs>
     </section>
   );
 }

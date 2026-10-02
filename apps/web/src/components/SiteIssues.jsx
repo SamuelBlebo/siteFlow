@@ -21,11 +21,11 @@ export default function SiteIssues({ cid, site }) {
 
   return (
     <>
-      <div className="row-between" style={{ margin: '8px 0 12px' }}>
-        {canReport && !reporting ? <button className="btn" onClick={() => setReporting(true)}>Report an issue</button> : <span />}
+      <div className="section-head">
+        {canReport && !reporting ? <button type="button" className="btn" onClick={() => setReporting(true)}>Report an issue</button> : <span />}
         {!!finished && <label className="chip"><input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} /> Show {finished} resolved or closed</label>}
       </div>
-      {reporting && <div style={{ marginBottom: 16 }}><IssueForm cid={cid} sites={[site]} onDone={(r) => { setReporting(false); if (r) nav(`/issues/${r.siteId}/${r.id}`); }} /></div>}
+      {reporting && <div className="mb"><IssueForm cid={cid} sites={[site]} onDone={(r) => { setReporting(false); if (r) nav(`/issues/${r.siteId}/${r.id}`); }} /></div>}
       {loading ? <Loading what="issues" /> : error ? <ErrorState error={error} what="issues" /> : <IssueList issues={shown} empty={showAll ? 'No issues reported on this site.' : 'No open issues on this site.'} />}
     </>
   );

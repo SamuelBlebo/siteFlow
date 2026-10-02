@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useQuery, useSiteData } from '../lib/hooks';
+import { useDoc, useQuery, useSiteData, useTitle } from '../lib/hooks';
 import {
   financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
@@ -31,6 +31,7 @@ export default function SiteDetail() {
   const setTab = (t) => setParams({ tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const data = useSiteData(cid, sid, { withPay: can('finance.view') });
+  useTitle(site?.name || 'Site');
 
   if (loading) return <Loading />;
   if (error) return <section className="wrap"><ErrorState error={error} what="this site" /></section>;
@@ -58,7 +59,7 @@ export default function SiteDetail() {
           {can('sites.manage') ? ' Reopen it from Settings.' : ''}
         </p>
       )}
-      <Tabs value={tab} onChange={setTab} tabs={tabs} />
+      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <OverviewTab site={site} data={data} />}
       {tab === 'reports' && <ReportHistory cid={cid} site={site} />}
@@ -69,6 +70,7 @@ export default function SiteDetail() {
       {tab === 'budget' && can('finance.view') && <BudgetPanel cid={cid} site={site} data={data} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
       {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} />}
+      </Tabs>
     </section>
   );
 }
@@ -114,7 +116,7 @@ function OverviewTab({ site, data }) {
           </dl>
         </div>
       </div>
-      {!!low.length && <p className="notice warn" style={{ marginTop: 16 }}>Reorder soon: {low.map((m) => `${m.name} (${m.stock} ${m.unit} left)`).join(', ')}.</p>}
+      {!!low.length && <p className="notice warn mt">Reorder soon: {low.map((m) => `${m.name} (${m.stock} ${m.unit} left)`).join(', ')}.</p>}
     </>
   );
 }
@@ -157,13 +159,13 @@ function TeamTab({ cid, sid, site }) {
       <h3 className="sub">Working on this site</h3>
       {!t.assigned.length
         ? <Empty title="Nobody is assigned yet.">{manage ? 'Add a site supervisor below so they can send daily reports.' : ''}</Empty>
-        : <ul className="list">{t.assigned.map((m) => row(m, manage && <button className="btn sm ghost" disabled={busy === m.id} onClick={() => toggle(m, false)}>Remove</button>))}</ul>}
+        : <ul className="list">{t.assigned.map((m) => row(m, manage && <button type="button" className="btn sm ghost" disabled={busy === m.id} onClick={() => toggle(m, false)}>Remove</button>))}</ul>}
       {manage && (
         <>
           <h3 className="sub">Add to this site</h3>
           {!t.available.length
             ? <Empty>{noneToAdd}</Empty>
-            : <ul className="list">{t.available.map((m) => row(m, <button className="btn sm" disabled={busy === m.id} onClick={() => toggle(m, true)}>Add</button>))}</ul>}
+            : <ul className="list">{t.available.map((m) => row(m, <button type="button" className="btn sm" disabled={busy === m.id} onClick={() => toggle(m, true)}>Add</button>))}</ul>}
         </>
       )}
       <h3 className="sub">Also sees this site</h3>
@@ -230,7 +232,7 @@ function SettingsTab({ cid, sid, site }) {
           <form className="form inline" onSubmit={saveBudget}>
             <p>Current budget: <b>{finance ? cedi(finance.budget) : '–'}</b></p>
             <div className="field"><label htmlFor="st-b">New budget (GH₵)</label><input id="st-b" type="number" min="0" value={budget} onChange={(e) => setBudgetValue(e.target.value)} /></div>
-            <button className="btn ghost">Save budget</button>
+            <button type="submit" className="btn ghost">Save budget</button>
           </form>
         </>
       )}

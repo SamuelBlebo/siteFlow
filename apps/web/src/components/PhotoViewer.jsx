@@ -28,11 +28,11 @@ export default function PhotoViewer({ photos, label = 'Site photo' }) {
         <div className="viewer" role="dialog" aria-modal="true" aria-label={`Photo ${open + 1} of ${photos.length}`} onClick={() => setOpen(-1)}>
           <img src={photos[open]} alt={`${label} ${open + 1}`} onClick={(e) => e.stopPropagation()} />
           <div className="viewer-bar" onClick={(e) => e.stopPropagation()}>
-            {photos.length > 1 && <button className="btn sm ghost" onClick={() => setOpen((open - 1 + photos.length) % photos.length)}>Previous</button>}
+            {photos.length > 1 && <button type="button" className="btn sm ghost" onClick={() => setOpen((open - 1 + photos.length) % photos.length)}>Previous</button>}
             <span>{open + 1} of {photos.length}</span>
-            {photos.length > 1 && <button className="btn sm ghost" onClick={() => setOpen((open + 1) % photos.length)}>Next</button>}
+            {photos.length > 1 && <button type="button" className="btn sm ghost" onClick={() => setOpen((open + 1) % photos.length)}>Next</button>}
             <a className="btn sm ghost" href={photos[open]} target="_blank" rel="noreferrer">Full size</a>
-            <button className="btn sm" onClick={() => setOpen(-1)}>Close</button>
+            <button type="button" className="btn sm" onClick={() => setOpen(-1)}>Close</button>
           </div>
         </div>
       )}

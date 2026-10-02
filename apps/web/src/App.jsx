@@ -36,8 +36,8 @@ function Guard({ perm, children }) {
     return (
       <section className="wrap narrow">
         <h1>Account switched off</h1>
-        <p className="muted" style={{ margin: '12px 0' }}>Your access to SiteFlow has been switched off. Ask your company's owner or admin.</p>
-        <button className="btn ghost" onClick={() => signOut(auth)}>Sign out</button>
+        <p className="muted lead">Your access to SiteFlow has been switched off. Ask your company's owner or admin.</p>
+        <button type="button" className="btn ghost" onClick={() => signOut(auth)}>Sign out</button>
       </section>
     );
   }

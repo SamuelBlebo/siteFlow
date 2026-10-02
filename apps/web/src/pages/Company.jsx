@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MODULES, companySettingsInput, isOn, planFor, validate } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useQuery } from '../lib/hooks';
+import { useDoc, useQuery, useTitle } from '../lib/hooks';
 import { companyDoc, teamQuery, updateCompany } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { ErrorState, Loading } from '../components/States';
@@ -11,6 +11,7 @@ const PLAN_LABEL = { starter: 'Starter', professional: 'Professional', enterpris
 
 // Company settings: owner only (the rules allow nobody else to change them)
 export default function Company() {
+  useTitle('Company');
   const { cid } = useAuth();
   const { data: company, loading, error } = useDoc(() => cid && companyDoc(cid), [cid]);
   const { data: members } = useQuery(() => cid && teamQuery(cid), [cid]);
@@ -42,7 +43,7 @@ export default function Company() {
   return (
     <section className="wrap narrow">
       <h1>Company</h1>
-      <dl className="cols" style={{ marginTop: 16 }}>
+      <dl className="cols mt">
         <div><dt>Plan</dt><dd>{PLAN_LABEL[company.plan] || PLAN_LABEL[planFor(company.modules || {})]}</dd></div>
         <div><dt>Team members</dt><dd>{active}</dd></div>
       </dl>
@@ -55,7 +56,7 @@ export default function Company() {
           <div className="field"><label htmlFor="c-p">Phone</label><input id="c-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="030 000 0000" /></div>
           <div className="field"><label htmlFor="c-l">Office location</label><input id="c-l" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="e.g. East Legon, Accra" /></div>
         </div>
-        <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save company details'}</button>
+        <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save company details'}</button>
       </form>
 
       <h2 className="sub">Notifications</h2>
@@ -65,7 +66,7 @@ export default function Company() {
       <ul className="list">
         {on.map((m) => <li key={m.key}><span className="it"><span className="grow"><b>{m.name}</b><small>{m.description}</small></span></span></li>)}
       </ul>
-      <p className="hint" style={{ marginTop: 8 }}>To change your plan or features, contact SiteFlow support.</p>
+      <p className="hint mt-sm">To change your plan or features, contact SiteFlow support.</p>
     </section>
   );
 }

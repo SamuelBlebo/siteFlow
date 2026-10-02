@@ -3,8 +3,10 @@ import { useAuth } from '../auth/AuthProvider';
 import { createSite } from '../lib/db';
 import { save, toast } from '../lib/save';
 import SiteForm from '../components/SiteForm';
+import { useTitle } from '../lib/hooks';
 
 export default function NewSite() {
+  useTitle('Add a site');
   const { cid } = useAuth();
   const nav = useNavigate();
 
@@ -18,7 +20,7 @@ export default function NewSite() {
   return (
     <section className="wrap narrow">
       <h1>Add a site</h1>
-      <p className="muted" style={{ margin: '4px 0 16px' }}>One site per project. You can change these details later in the site's settings.</p>
+      <p className="muted lead">One site per project. You can change these details later in the site's settings.</p>
       <SiteForm withBudget initial={{}} submitLabel="Create site" busyLabel="Creating…" onSubmit={create} />
     </section>
   );

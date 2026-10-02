@@ -21,8 +21,8 @@ export default function MaterialSetup({ cid, sid, materials, canCount }) {
                   <b>{m.name}</b> {m.active === false && <span className="pill bad">Archived</span>}
                   <small>{m.stock} {m.unit} in stock. Reorder below {m.reorderLevel || '–'}, usual use {m.avgDaily || '–'} a day.</small>
                 </span>
-                {m.active !== false && canCount && <button className="btn sm ghost" onClick={() => setOpen(open?.id === m.id && open.mode === 'count' ? null : { id: m.id, mode: 'count' })}>Count stock</button>}
-                <button className="btn sm ghost" onClick={() => setOpen(open?.id === m.id && open.mode === 'edit' ? null : { id: m.id, mode: 'edit' })}>Edit</button>
+                {m.active !== false && canCount && <button type="button" className="btn sm ghost" onClick={() => setOpen(open?.id === m.id && open.mode === 'count' ? null : { id: m.id, mode: 'count' })}>Count stock</button>}
+                <button type="button" className="btn sm ghost" onClick={() => setOpen(open?.id === m.id && open.mode === 'edit' ? null : { id: m.id, mode: 'edit' })}>Edit</button>
               </div>
               {open?.id === m.id && open.mode === 'edit' && <EditMaterial cid={cid} sid={sid} m={m} onDone={() => setOpen(null)} />}
               {open?.id === m.id && open.mode === 'count' && <CountStock cid={cid} sid={sid} m={m} onDone={() => setOpen(null)} />}
@@ -74,7 +74,7 @@ function AddMaterial({ cid, sid }) {
         {fields(f, set, 'am')}
         <div className="field"><label htmlFor="am-s">Opening stock</label><input id="am-s" type="number" min="0" value={f.stock} onChange={set('stock')} /></div>
       </div>
-      <button className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Add material'}</button>
+      <button type="submit" className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Add material'}</button>
     </form>
   );
 }
@@ -99,12 +99,12 @@ function EditMaterial({ cid, sid, m, onDone }) {
     toast(m.active === false ? `${m.name} is back in use.` : `${m.name} archived. Its history is kept.`);
   });
   return (
-    <form className="form" onSubmit={submit} style={{ padding: 14, margin: 0 }}>
+    <form className="form compact" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
       <div className="grid3">{fields(f, set, `em-${m.id}`)}</div>
       <p className="hint">To change the quantity in stock, use Count stock.</p>
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        <button className="btn" disabled={busy}>Save</button>
+      <div className="actions">
+        <button type="submit" className="btn" disabled={busy}>Save</button>
         <button type="button" className="btn ghost" onClick={onDone} disabled={busy}>Cancel</button>
         <button type="button" className="btn ghost danger" onClick={archive} disabled={busy}>{m.active === false ? 'Bring back' : 'Archive'}</button>
       </div>
@@ -135,7 +135,7 @@ function CountStock({ cid, sid, m, onDone }) {
     }
   }
   return (
-    <form className="form" onSubmit={submit} style={{ padding: 14, margin: 0 }}>
+    <form className="form compact" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
       <p>Records show <b>{m.stock} {m.unit}</b>. Count what is on site and enter it here.</p>
       <div className="grid2">
@@ -143,8 +143,8 @@ function CountStock({ cid, sid, m, onDone }) {
           {diff != null && diff !== 0 && <p className="hint">{diff > 0 ? `${diff} ${m.unit} more` : `${-diff} ${m.unit} fewer`} than the records.</p>}</div>
         <div className="field"><label htmlFor={`cs-n-${m.id}`}>Reason</label><input id={`cs-n-${m.id}`} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Monthly count, bags damaged by rain" /></div>
       </div>
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save count'}</button>
+      <div className="actions">
+        <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save count'}</button>
         <button type="button" className="btn ghost" onClick={onDone} disabled={busy}>Cancel</button>
       </div>
     </form>

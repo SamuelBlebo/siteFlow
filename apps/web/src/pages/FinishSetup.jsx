@@ -4,10 +4,12 @@ import { signOut } from 'firebase/auth';
 import { companySetupInput, friendlyError, validate } from '@siteflow/shared';
 import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
+import { useTitle } from '../lib/hooks';
 
 // Shown when someone is signed in but has no profile: a sign-up that didn't finish,
 // or a login that was never added to a company.
 export default function FinishSetup() {
+  useTitle('Set up your company');
   const { user } = useAuth();
   const [f, setF] = useState({ companyName: '', name: user?.displayName || '' });
   const [err, setErr] = useState('');
@@ -38,7 +40,7 @@ export default function FinishSetup() {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="field"><label htmlFor="fs-c">Company name</label><input id="fs-c" value={f.companyName} onChange={set('companyName')} /></div>
         <div className="field"><label htmlFor="fs-n">Your name</label><input id="fs-n" value={f.name} onChange={set('name')} /></div>
-        <button className="btn block" disabled={busy}>{busy ? 'Setting up…' : 'Create my company'}</button>
+        <button type="submit" className="btn block" disabled={busy}>{busy ? 'Setting up…' : 'Create my company'}</button>
         <p className="row-between"><span /><button type="button" className="linkbtn" onClick={() => signOut(auth)}>Sign out</button></p>
       </form>
     </div>

@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useQuery } from '../lib/hooks';
+import { useDoc, useQuery, useTitle } from '../lib/hooks';
 import { siteDoc, sitesCol } from '../lib/db';
 import { todayKey } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
 
 export default function MySites() {
+  useTitle('Your sites');
   const { cid, profile, can } = useAuth();
   const all = can('sites.all');
   // Roles that see every site list them; site-scoped roles read each assigned site directly
@@ -17,7 +18,7 @@ export default function MySites() {
     <section className="wrap narrow">
       <h1>Site work</h1>
       <p className="muted">Pick a site to mark attendance, log materials or send today's report.</p>
-      <div style={{ marginTop: 16 }}>
+      <div className="mt">
         {all && loading ? <Loading what="sites" /> : error ? <ErrorState error={error} what="your sites" /> : !ids.length ? (
           <Empty title="No sites yet.">{all ? 'Sites appear here once a manager adds them.' : "You haven't been added to a site yet. Ask your manager to add you."}</Empty>
         ) : (

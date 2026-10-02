@@ -112,11 +112,11 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
       </fieldset>
       <div className="field">
         <label htmlFor="r-iss">Issues or delays</label>
-        <textarea id="r-iss" value={f.issues} onChange={set('issues')} placeholder="Leave empty if none" style={{ minHeight: 60 }} />
+        <textarea id="r-iss" value={f.issues} onChange={set('issues')} placeholder="Leave empty if none" className="short" />
       </div>
       <div className="field">
         <label htmlFor="r-notes">Notes</label>
-        <textarea id="r-notes" value={f.notes} onChange={set('notes')} placeholder="Visitors, instructions received, plans for tomorrow" style={{ minHeight: 60 }} />
+        <textarea id="r-notes" value={f.notes} onChange={set('notes')} placeholder="Visitors, instructions received, plans for tomorrow" className="short" />
       </div>
       {!!materials.length && (
         <div className="field">
@@ -129,7 +129,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
         <input id="r-ph" type="file" accept="image/*" multiple onChange={(e) => setFiles([...e.target.files].slice(0, REPORT_PHOTO_LIMIT))} />
         <p className="hint">Up to {REPORT_PHOTO_LIMIT} photos, made smaller before upload. {files.length ? `${files.length} selected.` : ''}</p>
       </div>
-      <button className="btn" disabled={busy}>{busy ? 'Sending…' : 'Send report'}</button>
+      <button type="submit" className="btn" disabled={busy}>{busy ? 'Sending…' : 'Send report'}</button>
       <p className="draft-note">Your draft is kept on this device until you send it.</p>
     </form>
   );

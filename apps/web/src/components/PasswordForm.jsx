@@ -38,7 +38,7 @@ export default function PasswordForm({ currentLabel = 'Current password', submit
         <div className="field"><label htmlFor="pw-n">New password</label><input id="pw-n" type="password" autoComplete="new-password" value={f.password} onChange={set('password')} /><p className="hint">At least 8 characters.</p></div>
         <div className="field"><label htmlFor="pw-r">New password again</label><input id="pw-r" type="password" autoComplete="new-password" value={f.confirm} onChange={set('confirm')} /></div>
       </div>
-      <button className="btn" disabled={busy}>{busy ? 'Saving…' : submitLabel}</button>
+      <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : submitLabel}</button>
     </form>
   );
 }

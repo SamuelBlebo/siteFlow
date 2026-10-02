@@ -16,11 +16,11 @@ export default function AlertsPanel({ alerts }) {
 
   return (
     <section className="alerts" aria-labelledby="alerts-h">
-      <h2 id="alerts-h">Needs your attention <span className="count">{alerts.length}</span>{bad ? <span className="pill bad" style={{ marginLeft: 6 }}>{bad} urgent</span> : null}</h2>
-      {!alerts.length ? <p style={{ marginTop: 10 }}>Nothing needs your attention right now.</p> : (
+      <h2 id="alerts-h">Needs your attention <span className="count">{alerts.length}</span>{bad ? <span className="pill bad">{bad} urgent</span> : null}</h2>
+      {!alerts.length ? <p className="mt-sm">Nothing needs your attention right now.</p> : (
         <>
           {counts.length > 1 && (
-            <div className="chips" style={{ margin: '10px 0' }} role="group" aria-label="Filter alerts">
+            <div className="chips" role="group" aria-label="Filter alerts">
               <button type="button" className={`chip ${!kind ? 'on' : ''}`} aria-pressed={!kind} onClick={() => setKind('')}>All ({alerts.length})</button>
               {counts.map((c) => <button key={c.kind} type="button" className={`chip ${kind === c.kind ? 'on' : ''}`} aria-pressed={kind === c.kind} onClick={() => setKind(c.kind)}>{c.label} ({c.count})</button>)}
             </div>
@@ -37,7 +37,7 @@ export default function AlertsPanel({ alerts }) {
               </li>
             ))}
           </ul>
-          {shown.length > SHOW && <button className="linkbtn" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${shown.length}`}</button>}
+          {shown.length > SHOW && <button type="button" className="linkbtn" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${shown.length}`}</button>}
         </>
       )}
     </section>

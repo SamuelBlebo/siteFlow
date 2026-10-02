@@ -53,7 +53,7 @@ export default function AttendanceHistory({ cid, site, workers, pay }) {
           </>
         )}
       </div>
-      {from > to ? <p className="err">The start date must be before the end date.</p>
+      {from > to ? <p className="err" role="alert">The start date must be before the end date.</p>
         : loading ? <Loading what="attendance" /> : error ? <ErrorState error={error} what="attendance" />
         : !shown.length ? <Empty title="No workers yet." /> : (
           <>
@@ -74,9 +74,9 @@ export default function AttendanceHistory({ cid, site, workers, pay }) {
                 ))}
               </tbody>
             </table></div>
-            <div className="row-between" style={{ marginTop: 12, justifyContent: 'flex-start' }}>
-              <button className="btn ghost" onClick={() => download(`attendance-${slug}.csv`, attendanceCsv(shown, records, days))}>Download attendance (CSV)</button>
-              {wages && <button className="btn ghost" onClick={() => download(`wages-${slug}.csv`, wageSheetCsv(wages.rows))}>Download wage sheet (CSV)</button>}
+            <div className="actions mt-sm">
+              <button type="button" className="btn ghost" onClick={() => download(`attendance-${slug}.csv`, attendanceCsv(shown, records, days))}>Download attendance (CSV)</button>
+              {wages && <button type="button" className="btn ghost" onClick={() => download(`wages-${slug}.csv`, wageSheetCsv(wages.rows))}>Download wage sheet (CSV)</button>}
               {wages && <b>Total wages: {cedi(wages.total)}</b>}
             </div>
           </>

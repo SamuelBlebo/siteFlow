@@ -56,7 +56,7 @@ export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, 
         {input('sf-cp', 'Phone', 'clientPhone', { type: 'tel' })}
         {input('sf-ce', 'Email', 'clientEmail', { type: 'email' })}
       </div>
-      <button className="btn" disabled={busy}>{busy ? busyLabel : submitLabel}</button>
+      <button type="submit" className="btn" disabled={busy}>{busy ? busyLabel : submitLabel}</button>
     </form>
   );
 }

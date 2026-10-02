@@ -5,7 +5,7 @@ import {
   resolveInput, todayKey, validate,
 } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useQuery } from '../lib/hooks';
+import { useDoc, useQuery, useTitle } from '../lib/hooks';
 import { addComment, commentsQuery, issueRef, siteDoc, teamQuery, updateIssue } from '../lib/db';
 import { save, toast } from '../lib/save';
 import PhotoViewer from '../components/PhotoViewer';
@@ -22,6 +22,7 @@ export default function IssueDetail() {
   const nav = useNavigate();
   const { data: issue, loading, error } = useDoc(() => cid && issueRef(cid, sid, id), [cid, sid, id]);
   const { data: site } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
+  useTitle(issue ? `Issue: ${issue.title}` : 'Issue');
   const { data: comments } = useQuery(() => cid && commentsQuery(cid, sid, id), [cid, sid, id]);
   const { data: members } = useQuery(() => cid && can('sites.manage') && teamQuery(cid), [cid]);
   const back = can('sites.all') ? '/issues' : `/work/${sid}`;
@@ -39,13 +40,13 @@ export default function IssueDetail() {
 
   return (
     <section className="wrap narrow">
-      <button className="btn sm ghost back" onClick={() => (window.history.length > 1 ? nav(-1) : nav(back))}>Back</button>
+      <button type="button" className="btn sm ghost back" onClick={() => (window.history.length > 1 ? nav(-1) : nav(back))}>Back</button>
       <div className={`report issue-card ${issue.priority === 'critical' && isOpenIssue(issue.status) ? 'critical' : ''}`}>
         <div className="row-between">
-          <h1 style={{ fontSize: 26 }}>{issue.title}</h1>
+          <h1>{issue.title}</h1>
           <span className="tags"><PriorityPill p={issue.priority} /> <IssueStatusPill s={issue.status} /> {overdue && <span className="pill bad">Overdue</span>}</span>
         </div>
-        <dl className="facts" style={{ marginTop: 10 }}>
+        <dl className="facts mt-sm">
           <dt>Site</dt><dd>{can('sites.all') ? <Link to={`/sites/${issue.siteId}?tab=issues`}>{issue.siteName}</Link> : issue.siteName}</dd>
           <dt>About</dt><dd>{issue.category}{issue.location ? `, ${issue.location}` : ''}</dd>
           <dt>Reported</dt><dd>{prettyDate(issue.date)} by {issue.createdByName}</dd>
@@ -90,21 +91,21 @@ function Actions({ issue, act, change, people, me }) {
   return (
     <div className="form inline">
       <h3>What next</h3>
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        {act.start && <button className="btn" onClick={() => change({ status: 'in_progress' }, 'started working on it')}>Start working on it</button>}
-        {act.resolve && !resolving && <button className="btn" onClick={() => setResolving(true)}>Mark resolved</button>}
-        {act.close && <button className="btn" onClick={() => change({ status: 'closed' }, 'checked the fix and closed it')}>Check and close</button>}
-        {act.reopen && <button className="btn ghost" onClick={() => change({ status: 'open' }, 'reopened it')}>Reopen</button>}
+      <div className="actions">
+        {act.start && <button type="button" className="btn" onClick={() => change({ status: 'in_progress' }, 'started working on it')}>Start working on it</button>}
+        {act.resolve && !resolving && <button type="button" className="btn" onClick={() => setResolving(true)}>Mark resolved</button>}
+        {act.close && <button type="button" className="btn" onClick={() => change({ status: 'closed' }, 'checked the fix and closed it')}>Check and close</button>}
+        {act.reopen && <button type="button" className="btn ghost" onClick={() => change({ status: 'open' }, 'reopened it')}>Reopen</button>}
       </div>
       {resolving && (
-        <form onSubmit={resolve} style={{ marginTop: 12 }}>
+        <form className="mt-sm" onSubmit={resolve}>
           {err && <p className="err" role="alert">{err}</p>}
-          <div className="field"><label htmlFor="rs">How was it fixed?</label><textarea id="rs" value={resolution} onChange={(e) => setResolution(e.target.value)} style={{ minHeight: 60 }} /></div>
+          <div className="field"><label htmlFor="rs">How was it fixed?</label><textarea id="rs" value={resolution} onChange={(e) => setResolution(e.target.value)} className="short" /></div>
           <button className="btn">Save as resolved</button> <button type="button" className="btn ghost" onClick={() => setResolving(false)}>Cancel</button>
         </form>
       )}
       {(act.assign || act.setPriority) && (
-        <div className="grid3" style={{ marginTop: 12 }}>
+        <div className="grid3 mt-sm">
           {act.assign && (
             <div className="field"><label htmlFor="ia">Given to</label>
               <select id="ia" value={issue.assignedTo || ''} onChange={(e) => {
@@ -152,8 +153,8 @@ function CommentBox({ cid, sid, id, me }) {
   return (
     <form className="form" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
-      <div className="field"><label htmlFor="cm">Add a comment</label><textarea id="cm" value={text} onChange={(e) => setText(e.target.value)} style={{ minHeight: 60 }} placeholder="Updates, questions, what you need" /></div>
-      <button className="btn ghost" disabled={busy}>{busy ? 'Posting…' : 'Post comment'}</button>
+      <div className="field"><label htmlFor="cm">Add a comment</label><textarea id="cm" value={text} onChange={(e) => setText(e.target.value)} className="short" placeholder="Updates, questions, what you need" /></div>
+      <button type="submit" className="btn ghost" disabled={busy}>{busy ? 'Posting…' : 'Post comment'}</button>
     </form>
   );
 }

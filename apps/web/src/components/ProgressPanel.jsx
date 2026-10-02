@@ -45,7 +45,7 @@ export default function ProgressPanel({ cid, site, canWork }) {
       {!milestones.length ? (
         <>
           <Empty title="No milestones yet.">{manage ? 'Add your own below, or start from the usual building stages.' : 'A project manager sets up the milestones.'} Until then, progress comes from the daily reports.</Empty>
-          {manage && <button className="btn" style={{ marginTop: 12 }} onClick={async () => {
+          {manage && <button type="button" className="btn mt-sm" onClick={async () => {
             try { await save(addStandardMilestones(cid, site), 'Milestones'); toast('Standard stages added. Adjust their dates and weights as needed.'); } catch (e) { toast(e.message, 'err'); }
           }}>Use the standard building stages</button>}
         </>
@@ -81,7 +81,7 @@ function MilestoneList({ cid, site, milestones, canWork, manage }) {
                   {m.actualStart ? `. Started ${prettyDate(m.actualStart)}` : ''}{m.actualEnd ? `, finished ${prettyDate(m.actualEnd)}` : ''}
                   {m.weight && m.weight !== 1 ? `. Weight ${m.weight}` : ''}{m.updatedByName ? `. Last update by ${m.updatedByName}` : ''}
                 </small>
-                <span className="meter" style={{ marginTop: 6 }}><span style={{ width: `${m.percentDone}%` }} /></span>
+                <span className="meter mt-sm"><span style={{ width: `${m.percentDone}%` }} /></span>
               </span>
               <span className="ms-actions">
                 <b>{m.percentDone}%</b>
@@ -92,9 +92,9 @@ function MilestoneList({ cid, site, milestones, canWork, manage }) {
                 )}
                 {manage && (
                   <span>
-                    <button className="btn sm ghost" disabled={i === 0} aria-label={`Move ${m.name} up`} onClick={() => run(swapMilestones(cid, site.id, m, milestones[i - 1]), 'Order')}>↑</button>
-                    <button className="btn sm ghost" disabled={i === milestones.length - 1} aria-label={`Move ${m.name} down`} onClick={() => run(swapMilestones(cid, site.id, m, milestones[i + 1]), 'Order')}>↓</button>
-                    <button className="btn sm ghost" onClick={() => setEditing(m.id)}>Edit</button>
+                    <button type="button" className="btn sm ghost" disabled={i === 0} aria-label={`Move ${m.name} up`} onClick={() => run(swapMilestones(cid, site.id, m, milestones[i - 1]), 'Order')}>↑</button>
+                    <button type="button" className="btn sm ghost" disabled={i === milestones.length - 1} aria-label={`Move ${m.name} down`} onClick={() => run(swapMilestones(cid, site.id, m, milestones[i + 1]), 'Order')}>↓</button>
+                    <button type="button" className="btn sm ghost" onClick={() => setEditing(m.id)}>Edit</button>
                   </span>
                 )}
               </span>
@@ -132,7 +132,7 @@ function AddMilestone({ cid, sid, all }) {
       <h3>Add a milestone</h3>
       {err && <p className="err" role="alert">{err}</p>}
       {planForm(f, set, 'am')}
-      <button className="btn ghost">Add milestone</button>
+      <button type="submit" className="btn ghost">Add milestone</button>
     </form>
   );
 }
@@ -152,11 +152,11 @@ function EditMilestone({ cid, sid, m, all, onDone }) {
     try { await save(deleteMilestone(cid, sid, m.id, all), 'Milestone'); onDone(); } catch (e2) { setErr(e2.message); }
   }
   return (
-    <form className="form" onSubmit={submit} style={{ padding: 14, margin: 0 }}>
+    <form className="form compact" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
       {planForm(f, set, `em-${m.id}`)}
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        <button className="btn">Save</button>
+      <div className="actions">
+        <button type="submit" className="btn">Save</button>
         <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
         <button type="button" className="btn ghost danger" onClick={remove}>Remove</button>
       </div>

@@ -87,7 +87,7 @@ export default function IssueForm({ cid, sites, onDone }) {
         <div className="field"><label htmlFor="if-l">Where on site (optional)</label><input id="if-l" value={f.location} onChange={set('location')} placeholder="e.g. Block B, first floor" /></div>
         {manager && <div className="field"><label htmlFor="if-due">Fix by (optional)</label><input id="if-due" type="date" value={f.dueDate} onChange={set('dueDate')} /></div>}
       </div>
-      <div className="field"><label htmlFor="if-d">Details (optional)</label><textarea id="if-d" value={f.description} onChange={set('description')} style={{ minHeight: 70 }} /></div>
+      <div className="field"><label htmlFor="if-d">Details (optional)</label><textarea id="if-d" value={f.description} onChange={set('description')} className="short" /></div>
       {manager && (
         <div className="field"><label htmlFor="if-a">Give it to (optional)</label>
           <select id="if-a" value={f.assignedTo} onChange={set('assignedTo')}>
@@ -97,8 +97,8 @@ export default function IssueForm({ cid, sites, onDone }) {
       <div className="field"><label htmlFor="if-p">Photos</label>
         <input id="if-p" type="file" accept="image/*" multiple onChange={(e) => setFiles([...e.target.files].slice(0, 8))} />
         <p className="hint">Up to 8 photos. {files.length ? `${files.length} selected.` : ''}</p></div>
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        <button className="btn" disabled={busy}>{busy ? 'Reporting…' : 'Report issue'}</button>
+      <div className="actions">
+        <button type="submit" className="btn" disabled={busy}>{busy ? 'Reporting…' : 'Report issue'}</button>
         {onDone && <button type="button" className="btn ghost" onClick={() => onDone(null)} disabled={busy}>Cancel</button>}
       </div>
     </form>

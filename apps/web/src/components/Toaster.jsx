@@ -25,7 +25,7 @@ export default function Toaster() {
       {s.toasts.map((t) => (
         <div key={t.id} className={`toast ${t.kind}`} role={t.kind === 'err' ? 'alert' : 'status'}>
           <span>{t.message}</span>
-          <button className="linkbtn" onClick={() => dismiss(t.id)} aria-label="Dismiss">Close</button>
+          <button type="button" className="linkbtn" onClick={() => dismiss(t.id)} aria-label="Dismiss">Close</button>
         </div>
       ))}
     </div>

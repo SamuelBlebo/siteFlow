@@ -18,8 +18,8 @@ export default function WorkersManager({ cid, sid, workers, pay, canWork }) {
   return (
     <>
       {canWork && <AddWorker cid={cid} sid={sid} />}
-      <div className="row-between" style={{ margin: '16px 0 8px' }}>
-        <h3 className="sub" style={{ margin: 0 }}>{active.length} worker{active.length === 1 ? '' : 's'} on this site</h3>
+      <div className="section-head">
+        <h3 className="sub">{active.length} worker{active.length === 1 ? '' : 's'} on this site</h3>
         {!!off.length && <label className="chip"><input type="checkbox" checked={showOff} onChange={(e) => setShowOff(e.target.checked)} /> Show {off.length} switched off</label>}
       </div>
       {!list.length ? <Empty title="No workers yet." /> : (
@@ -34,7 +34,7 @@ export default function WorkersManager({ cid, sid, workers, pay, canWork }) {
                       <b>{w.name}</b> {w.active === false && <span className="pill bad">Switched off</span>}
                       <small>{w.trade}{w.phone ? `, ${w.phone}` : ''}{pay && can('finance.view') ? `, ${pay[w.id] ? `${cedi(pay[w.id].dailyRate)} a day` : 'no rate set'}` : ''}</small>
                     </span>
-                    {canEdit && <button className="btn sm ghost" onClick={() => setEditing(w.id)}>Edit</button>}
+                    {canEdit && <button type="button" className="btn sm ghost" onClick={() => setEditing(w.id)}>Edit</button>}
                   </div>
                 )}
             </li>
@@ -87,7 +87,7 @@ function AddWorker({ cid, sid }) {
         {withPay && <div className="field"><label htmlFor="aw-r">Daily rate (GH₵)</label><input id="aw-r" type="number" min="0" value={f.rate} onChange={set('rate')} /></div>}
       </div>
       {!withPay && <p className="hint">The office sets the daily rate.</p>}
-      <button className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Add worker'}</button>
+      <button type="submit" className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Add worker'}</button>
     </form>
   );
 }
@@ -123,7 +123,7 @@ function EditWorker({ cid, sid, w, pay, onDone }) {
   });
 
   return (
-    <form className="form" onSubmit={saveDetails} style={{ padding: 14, margin: 0 }}>
+    <form className="form compact" onSubmit={saveDetails}>
       {err && <p className="err" role="alert">{err}</p>}
       <div className="grid3">
         <div className="field"><label htmlFor={`ew-n-${w.id}`}>Name</label><input id={`ew-n-${w.id}`} value={f.name} onChange={set('name')} /></div>
@@ -132,8 +132,8 @@ function EditWorker({ cid, sid, w, pay, onDone }) {
         <div className="field"><label htmlFor={`ew-p-${w.id}`}>Phone</label><input id={`ew-p-${w.id}`} type="tel" value={f.phone} onChange={set('phone')} /></div>
         {can('finance.edit') && <div className="field"><label htmlFor={`ew-r-${w.id}`}>Daily rate (GH₵)</label><input id={`ew-r-${w.id}`} type="number" min="0" value={f.rate} onChange={set('rate')} /></div>}
       </div>
-      <div className="row-between" style={{ justifyContent: 'flex-start' }}>
-        <button className="btn" disabled={busy}>Save</button>
+      <div className="actions">
+        <button type="submit" className="btn" disabled={busy}>Save</button>
         <button type="button" className="btn ghost" onClick={onDone} disabled={busy}>Cancel</button>
         {can('sites.manage') && <button type="button" className="btn ghost danger" onClick={toggleActive} disabled={busy}>{w.active === false ? 'Switch back on' : 'Switch off'}</button>}
       </div>

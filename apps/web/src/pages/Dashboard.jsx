@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useQuery, useSiteSignals } from '../lib/hooks';
+import { useDoc, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyIssuesQuery, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
   activityFeed, budgetUsedPct, cedi, dailyTotals, daysBetweenKeys, issueFlow, longToday, materialStatus, prettyDate, recentWorkDays,
@@ -22,6 +22,7 @@ const when = (ms) => {
 
 // The owner's and manager's view: what needs attention, what is happening, how each site is doing
 export default function Dashboard() {
+  useTitle('Dashboard');
   const { cid, can } = useAuth();
   const nav = useNavigate();
   const money = can('finance.view');
@@ -42,9 +43,10 @@ export default function Dashboard() {
     return (
       <section className="wrap">
         <h1>Welcome to SiteFlow</h1>
-        <div style={{ marginTop: 16 }}>
-          <Empty title="No sites yet.">{can('sites.manage') ? 'Add your first site to start tracking reports, materials and workers.' : 'A manager adds sites. They will appear here.'}</Empty>
-          {can('sites.manage') && <Link to="/sites/new" className="btn" style={{ marginTop: 12, display: 'inline-block' }}>Add a site</Link>}
+        <div className="mt">
+          <Empty title="No sites yet." action={can('sites.manage') && <Link to="/sites/new" className="btn">Add a site</Link>}>
+            {can('sites.manage') ? 'Add your first site to start tracking reports, materials and workers.' : 'A manager adds sites. They will appear here.'}
+          </Empty>
         </div>
       </section>
     );
@@ -86,7 +88,7 @@ export default function Dashboard() {
       <div className="dash-grid">
         <AlertsPanel alerts={alerts} />
         <section className="card feed" aria-labelledby="feed-h">
-          <h2 id="feed-h" className="sub" style={{ marginTop: 0 }}>Latest from site</h2>
+          <h2 id="feed-h" className="sub m0">Latest from site</h2>
           {!feed.length ? <p className="muted">Reports and issues appear here as they come in.</p> : (
             <ul>
               {feed.map((f) => (
@@ -132,7 +134,7 @@ export default function Dashboard() {
                 <td>{c ? <><b className={c.pct < 70 ? 'neg' : ''}>{c.pct}%</b> <small className="muted">{c.sent}/{c.expected} days</small></> : '–'}</td>
                 <td>{present[s.id] || 0}</td>
                 <td>{iss.length
-                  ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}{crit ? <span className="pill bad" style={{ marginLeft: 4 }}>{crit} critical</span> : null}</Link>
+                  ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}{crit ? <span className="pill bad">{crit} critical</span> : null}</Link>
                   : <span className="muted">0</span>}</td>
                 <td>{lowStock ? <span className="pill warn">{lowStock} low</span> : <span className="pill ok">OK</span>}</td>
                 {money && <td>{f ? <><div className={`meter ${fs.overspendRisk ? 'hot' : ''}`}><span style={{ width: `${Math.min(budgetUsedPct(f), 100)}%` }} /></div><small className="muted">{fs.usedPct}% of {cedi(fs.budget)}</small></> : '–'}</td>}
