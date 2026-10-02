@@ -5,7 +5,8 @@ import type { Expense, SiteFinance } from '../types';
 
 export const PAYMENT_METHODS = ['Cash', 'Mobile money', 'Bank transfer', 'Cheque', 'Credit'] as const;
 
-const round2 = (n: number) => Math.round(n * 100) / 100 + 0;
+// Money to the pesewa (+ 0 turns -0 into 0)
+export const round2 = (n: number) => Math.round(n * 100) / 100 + 0;
 
 // Spending totals from the expenses themselves (what the server writes to the finance summary)
 export function expenseTotals(expenses: Pick<Expense, 'amount' | 'category'>[]) {
