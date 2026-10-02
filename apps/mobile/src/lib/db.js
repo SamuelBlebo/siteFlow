@@ -135,19 +135,29 @@ export function setMilestoneProgress(cid, sid, input) {
 
 registerOps({ logMaterial, markAttendance, addWorker, updateWorker, updateIssue, addComment, setMilestoneProgress });
 
-// How to tell, on the server, that each kind of change arrived
-const same = (doc, fields) => !!doc && Object.entries(fields).every(([k, v]) => doc[k] === v);
+// How to tell, on the server, that each kind of change arrived. When the record is there but
+// holds something else, someone has probably changed it since: say so, so nobody resends an
+// older value over a newer one without looking.
+const differs = (what) => `The office has a different ${what} now. Someone may have changed it since. Check it before you try again.`;
+const same = (doc, fields, what) => (!doc ? false : Object.entries(fields).every(([k, v]) => doc[k] === v) || differs(what));
 registerChecks({
   logMaterial: async (cid, sid, a) => !!(await serverDoc(paths.subDoc(cid, sid, 'materialLogs', a.logId))),
   markAttendance: async (cid, sid, a) => {
     const d = await serverDoc(paths.attendance(cid, sid, a.date));
-    return !!d && Object.entries(a.marks).every(([w, st]) => d.marks?.[w] === st);
+    if (!d) return false;
+    const marks = Object.entries(a.marks);
+    if (marks.every(([w, st]) => d.marks?.[w] === st)) return true;
+    // A worker marked differently on the server: likely re-marked by someone else afterwards
+    return marks.some(([w]) => d.marks?.[w] !== undefined) ? differs('attendance mark') : false;
   },
   addWorker: async (cid, sid, a) => !!(await serverDoc(paths.subDoc(cid, sid, 'workers', a.workerId))),
-  updateWorker: async (cid, sid, a) => same(await serverDoc(paths.subDoc(cid, sid, 'workers', a.id)), { name: a.name, trade: a.trade, phone: a.phone || '' }),
+  updateWorker: async (cid, sid, a) => same(await serverDoc(paths.subDoc(cid, sid, 'workers', a.id)), { name: a.name, trade: a.trade, phone: a.phone || '' }, 'record for this worker'),
   updateIssue: async (cid, sid, a) => (a.noteId
     ? !!(await serverDoc(`${paths.issueComments(cid, sid, a.id)}/${a.noteId}`))
-    : same(await serverDoc(paths.subDoc(cid, sid, 'issues', a.id)), a.patch)),
+    : same(await serverDoc(paths.subDoc(cid, sid, 'issues', a.id)), a.patch, 'status or details for this issue')),
   addComment: async (cid, sid, a) => !!(await serverDoc(`${paths.issueComments(cid, sid, a.id)}/${a.commentId}`)),
-  setMilestoneProgress: async (cid, sid, a) => (await serverDoc(paths.subDoc(cid, sid, 'milestones', a.milestone.id)))?.percentDone === milestoneProgress(a.milestone, a.percentDone, a.today).percentDone,
+  setMilestoneProgress: async (cid, sid, a) => {
+    const d = await serverDoc(paths.subDoc(cid, sid, 'milestones', a.milestone.id));
+    return same(d, { percentDone: milestoneProgress(a.milestone, a.percentDone, a.today).percentDone }, `progress for ${a.milestone.name}`);
+  },
 });

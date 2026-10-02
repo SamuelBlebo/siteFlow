@@ -186,6 +186,29 @@ describe('try again', () => {
   });
 });
 
+describe('shared phone', () => {
+  it('each person sees, checks and resends only their own changes', async () => {
+    store.set(KEY, JSON.stringify([entry({ id: 'a', uid: 'u1', status: 'failed' }), entry({ id: 'b', uid: 'u2' }), entry({ id: 'old' })]));
+    const sync = await appStart();
+    const check = vi.fn(async () => true);
+    sync.registerChecks({ logMaterial: check });
+    sync.setSyncUser('u1');
+    await sync.reconcile();
+    expect(sync.getJournal().map((e) => e.id)).toEqual(['a']); // 'old' (no owner) was checked and cleared; u2's is hidden
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(sync.getSyncState()).toMatchObject({ pending: 0 });
+    sync.setSyncUser('u2');
+    await sync.reconcile();
+    expect(sync.getJournal().map((e) => e.id)).toEqual([]);
+  });
+  it('a new change is recorded as made by the signed-in person', async () => {
+    const sync = await appStart();
+    sync.setSyncUser('u7');
+    await sync.journaled({ label: 'x', op: 'x', args: [] }, async () => { throw offline(); }).catch(() => {});
+    expect(saved()[0].uid).toBe('u7');
+  });
+});
+
 describe('connection', () => {
   it('shows offline, and checks waiting changes when signal returns', async () => {
     store.set(KEY, JSON.stringify([entry()]));

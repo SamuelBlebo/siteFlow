@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import auth from '@react-native-firebase/auth';
 import { can as roleCan, isRole } from '@siteflow/shared';
 import { exists, userRef } from '../lib/db';
+import { setSyncUser } from '../lib/sync';
 
 const AuthCtx = createContext(null);
 
@@ -32,6 +33,8 @@ export function AuthProvider({ children }) {
     });
     return () => { unsub(); unsubProfile(); };
   }, []);
+  // The write journal shows and sends only the signed-in person's changes
+  useEffect(() => setSyncUser(user?.uid), [user?.uid]);
 
   // A switched-off account or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);

@@ -12,7 +12,8 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: async (k) => store.get(k) ?? null, setItem: async (k, v) => { store.set(k, v); }, removeItem: async (k) => { store.delete(k); } },
 }));
 vi.mock('@react-native-community/netinfo', () => ({ default: { fetch: async () => ({ isConnected: net.online }), addEventListener: () => () => {} } }));
-vi.mock('@react-native-firebase/auth', () => ({ default: () => ({ currentUser: { uid: 'u1' }, onAuthStateChanged: () => () => {} }) }));
+const signedIn = { uid: 'u1' };
+vi.mock('@react-native-firebase/auth', () => ({ default: () => ({ currentUser: signedIn.uid ? { uid: signedIn.uid } : null, onAuthStateChanged: () => () => {} }) }));
 vi.mock('expo-file-system', () => ({
   documentDirectory: 'file:///app/',
   makeDirectoryAsync: async () => {},
@@ -85,7 +86,7 @@ const reportPath = `companies/c1/sites/s1/reports/${today}_u1`;
 
 beforeEach(async () => {
   store.clear(); files.clear(); server.docs.clear(); server.uploads.clear(); server.writes.length = 0;
-  server.failNextCommit = null; server.failUpload = null; net.online = true;
+  server.failNextCommit = null; server.failUpload = null; net.online = true; signedIn.uid = 'u1';
   vi.resetModules(); // each test starts with a fresh outbox, as after an app restart
 });
 const fresh = () => import('../src/lib/reportOutbox');
@@ -197,6 +198,42 @@ describe('report outbox', () => {
     await o.processOutbox();
     expect(o.getOutbox()[0].status).toBe('sent');
     expect(server.docs.get(reportPath)).toMatchObject({ photoCount: 1, thumbs: [''] });
+  });
+
+  it('on a shared phone, a report is only sent while its author is signed in', async () => {
+    net.online = false;
+    const o = await fresh();
+    await o.queueReport({ cid: 'c1', site, uid: 'u1', name: 'Kofi', input });
+    net.online = true;
+    signedIn.uid = 'u2';
+    await o.processOutbox();
+    expect(o.getOutbox()[0].status).toBe('waiting');
+    signedIn.uid = 'u1';
+    await o.processOutbox();
+    expect(o.getOutbox()[0].status).toBe('sent');
+  });
+
+  it('at app start, a report caught mid-send goes back to waiting and is sent', async () => {
+    store.set('siteflow:reportOutbox', JSON.stringify([{
+      kind: 'report', label: 'Daily report', id: `s1/${today}_u1`, rid: `${today}_u1`, cid: 'c1', sid: 's1', siteName: 'Adenta house', uid: 'u1', name: 'Kofi',
+      date: today, time: '17:00', input, materials: [], photos: [], status: 'sending', attempts: 0, error: '', queuedAt: 1,
+    }]));
+    const o = await fresh();
+    const stop = o.startOutbox();
+    await vi.waitFor(() => expect(o.getOutbox()[0]?.status).toBe('sent'));
+    expect(server.docs.has(reportPath)).toBe(true);
+    stop();
+  });
+
+  it('keeps only the 20 most recent sent reports on the phone', async () => {
+    const old = Array.from({ length: 25 }, (_, i) => ({ id: `s1/old${i}`, kind: 'report', uid: 'u1', status: 'sent', sentAt: i, photos: [] }));
+    store.set('siteflow:reportOutbox', JSON.stringify(old));
+    const o = await fresh();
+    await o.processOutbox();
+    const kept = o.getOutbox();
+    expect(kept).toHaveLength(20);
+    expect(kept.some((x) => x.id === 's1/old0')).toBe(false); // the oldest went first
+    expect(kept.some((x) => x.id === 's1/old24')).toBe(true);
   });
 
   it('a waiting or sent report cannot be deleted', async () => {

@@ -32,6 +32,11 @@ const ops = {};
 const checks = {};
 const inFlight = new Set(); // entries sent in this session and not yet answered
 let entries = [];
+// On a shared phone each change belongs to whoever made it: only they see it, and only their
+// sign-in can check or resend it (the rules would refuse anyone else). Entries without a uid
+// (made before this was added) are shown to everyone.
+let currentUid = null;
+const mine = (e) => !e.uid || e.uid === currentUid;
 let state = { online: true, pending: 0, failed: [], syncing: false, lastSyncedAt: null };
 let loaded = null;
 let reconciling = null;
@@ -39,8 +44,8 @@ let reconciling = null;
 function publish(patch = {}) {
   state = {
     ...state, ...patch,
-    pending: entries.filter((e) => e.status === 'pending').length,
-    failed: entries.filter((e) => e.status === 'failed'),
+    pending: entries.filter((e) => mine(e) && e.status === 'pending').length,
+    failed: entries.filter((e) => mine(e) && e.status === 'failed'),
   };
   listeners.forEach((l) => l(state));
 }
@@ -65,7 +70,14 @@ async function load() {
 
 export function subscribe(fn) { listeners.add(fn); fn(state); return () => listeners.delete(fn); }
 export const getSyncState = () => state;
-export const getJournal = () => entries;
+export const getJournal = () => entries.filter(mine);
+
+// Called by the auth provider whenever someone signs in or out
+export function setSyncUser(uid) {
+  currentUid = uid || null;
+  publish();
+  if (currentUid) reconcile().catch((e) => console.warn('Sync check failed', e));
+}
 
 // db.js registers each write by name: how to run it again, and how to check it reached the server
 export function registerOps(map) { Object.assign(ops, map); }
@@ -83,7 +95,7 @@ async function setEntry(id, patch) {
 export async function journaled({ label, op, args, refused }, run) {
   await load();
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  entries = [...entries, { id, label, op, args, status: 'pending', at: Date.now() }].slice(-MAX);
+  entries = [...entries, { id, uid: currentUid, label, op, args, status: 'pending', at: Date.now() }].slice(-MAX);
   await persist();
   publish();
   inFlight.add(id);
@@ -103,16 +115,22 @@ export async function journaled({ label, op, args, refused }, run) {
   }
 }
 
+// A check answers true (it's on the server), false (it isn't), or a message: the record is there
+// but holds something else now (most likely someone changed it since), so look before resending.
 async function isApplied(e) {
   const check = checks[e.op];
   if (!check) return false;
-  try { return !!(await check(...e.args)); } catch (err) { console.warn('Could not check', e.label, err); return null; }
+  try {
+    const r = await check(...e.args);
+    return typeof r === 'string' ? r : !!r;
+  } catch (err) { console.warn('Could not check', e.label, err); return null; }
 }
+const NOT_THERE = 'This change did not reach the office. Tap Try again to send it.';
 
 // Settles changes left unconfirmed (from an earlier session, or after a dropped connection)
 async function runReconcile() {
   await load();
-  const waiting = entries.filter((e) => e.status === 'pending' && !inFlight.has(e.id));
+  const waiting = entries.filter((e) => mine(e) && e.status === 'pending' && !inFlight.has(e.id));
   if (!waiting.length) return;
   publish({ syncing: true });
   try {
@@ -121,7 +139,7 @@ async function runReconcile() {
     for (const e of waiting) {
       const applied = await isApplied(e);
       if (applied === null) continue; // no signal after all: try later
-      await setEntry(e.id, applied ? null : { status: 'failed', message: 'This change did not reach the office. Tap Try again to send it.' });
+      await setEntry(e.id, applied === true ? null : { status: 'failed', message: typeof applied === 'string' ? applied : NOT_THERE });
     }
     publish({ lastSyncedAt: Date.now() });
   } finally {
@@ -137,7 +155,7 @@ export function reconcile() {
 export async function retry(id) {
   const e = entries.find((x) => x.id === id);
   if (!e) return;
-  if (await isApplied(e)) return setEntry(id, null);
+  if ((await isApplied(e)) === true) return setEntry(id, null);
   await setEntry(id, null);
   const fn = ops[e.op];
   if (!fn) return console.warn('No way to retry', e.op);
