@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     include: ['firebase/functions/test/**/*.test.ts'],
     testTimeout: 30000,
+    hookTimeout: 60000, // the first test waits for the emulator to warm up
     fileParallelism: false,
     env: { FUNCTIONS_EMULATOR: 'true', GCLOUD_PROJECT: 'demo-siteflow' },
   },

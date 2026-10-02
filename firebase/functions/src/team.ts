@@ -3,6 +3,11 @@ import { logger } from 'firebase-functions';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { randomBytes } from 'node:crypto';
+import { checkLimit } from './limits';
+
+// Set ENFORCE_APP_CHECK=true in firebase/functions/.env.<project> once the web app has App Check
+// (docs/OPERATIONS.md). The mobile app doesn't call these functions.
+const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 import {
   DEFAULT_MODULES, ROLE_LABELS, assignableRoles, canChangeMember, companySetupInput, inviteInput, isRole, isSiteScoped,
   can, memberActiveInput, memberRefInput, memberUpdateInput, paths, siteAssignInput, validate,
@@ -60,10 +65,11 @@ async function logActivity(db: Firestore, actor: UserProfile & { id: string }, w
 
 // First sign-up. Creates the company and the owner's profile on the server, so plan and
 // modules can't be chosen by the client. Safe to call again if the first attempt failed.
-export const createCompany = onCall(async (req) => {
+export const createCompany = onCall(callOpts, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
   const { companyName, name } = parse(companySetupInput, req.data);
   const uid = req.auth.uid;
+  await checkLimit(uid, 'createCompany');
   const db = getFirestore();
   // A login removed from a company may still hold a valid token for a while
   const login = await getAuth().getUser(uid).catch(() => null);
@@ -89,9 +95,10 @@ export const createCompany = onCall(async (req) => {
 
 // Owner or admin adds a team member. Returns a temporary password to share with them;
 // they are asked to choose their own password when they first sign in.
-export const inviteMember = onCall(async (req) => {
+export const inviteMember = onCall(callOpts, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
+  await checkLimit(me.id, 'invite');
   const { name, email, phone, siteIds, ...rest } = parse(inviteInput, req.data);
   const role = rest.role as Role;
   if (!assignableRoles(me.role).includes(role)) throw new HttpsError('permission-denied', `You can't add someone as ${roleName(role)}.`);
@@ -122,9 +129,10 @@ export const inviteMember = onCall(async (req) => {
 });
 
 // Change a member's role and assigned sites
-export const updateMember = onCall(async (req) => {
+export const updateMember = onCall(callOpts, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
+  await checkLimit(me.id, 'teamChange');
   const input = parse(memberUpdateInput, req.data);
   const role = input.role as Role;
   const m = await changeableMember(db, me, input.uid);
@@ -137,9 +145,10 @@ export const updateMember = onCall(async (req) => {
 });
 
 // Switch a member off (they can't sign in or see anything) or back on
-export const setMemberActive = onCall(async (req) => {
+export const setMemberActive = onCall(callOpts, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
+  await checkLimit(me.id, 'teamChange');
   const { uid, active } = parse(memberActiveInput, req.data);
   const m = await changeableMember(db, me, uid);
   await db.doc(paths.user(uid)).update({ active, updatedAt: FieldValue.serverTimestamp() });
@@ -150,9 +159,10 @@ export const setMemberActive = onCall(async (req) => {
 });
 
 // New temporary password for someone who forgot theirs (site teams often have no email access)
-export const resetMemberPassword = onCall(async (req) => {
+export const resetMemberPassword = onCall(callOpts, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
+  await checkLimit(me.id, 'resetPassword');
   const { uid } = parse(memberRefInput, req.data);
   const m = await changeableMember(db, me, uid);
   const password = tempPassword();
@@ -164,9 +174,10 @@ export const resetMemberPassword = onCall(async (req) => {
 });
 
 // Remove someone from the company for good. Their reports and logs stay, with their name.
-export const removeMember = onCall(async (req) => {
+export const removeMember = onCall(callOpts, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
+  await checkLimit(me.id, 'teamChange');
   const { uid } = parse(memberRefInput, req.data);
   const m = await changeableMember(db, me, uid);
   await db.doc(paths.user(uid)).delete();
@@ -179,7 +190,7 @@ export const removeMember = onCall(async (req) => {
 
 // Put a supervisor or viewer on a site, or take them off. Project managers can do this
 // for any site (they manage sites but not the team); owners and admins too.
-export const assignToSite = onCall(async (req) => {
+export const assignToSite = onCall(callOpts, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
   const db = getFirestore();
   const { sid, uid, assigned } = parse(siteAssignInput, req.data);
@@ -188,6 +199,7 @@ export const assignToSite = onCall(async (req) => {
   if (!me || me.active === false || !isRole(me.role) || !can(me.role, 'sites.manage')) {
     throw new HttpsError('permission-denied', 'Only owners, admins and project managers can assign people to sites.');
   }
+  await checkLimit(req.auth.uid, 'teamChange');
   const site = await db.doc(paths.site(me.companyId, sid)).get();
   if (!site.exists) throw new HttpsError('not-found', 'That site was not found.');
   const mSnap = await db.doc(paths.user(uid)).get();

@@ -46,6 +46,9 @@ describe('6pm missing-report reminder', () => {
     expect(sent.find((n) => n.toName === 'Kofi Mensah')?.text).toContain('Hi Kofi');
     expect(sent.every((n) => n.status === 'skipped')).toBe(true); // test mode: nothing left the machine
     expect(sent.some((n) => n.toName === 'Yaw Off')).toBe(false); // switched off
+    // Privacy: once handled, only the masked contact stays, and every entry has an expiry date
+    expect(sent.every((n) => n.address === undefined && /^…|@/.test(n.to))).toBe(true);
+    expect(sent.every((n) => n.expireAt?.toMillis() > Date.now() + 170 * 86400000)).toBe(true);
   });
 
   it('running twice the same day never reminds anyone twice', async () => {
@@ -94,7 +97,9 @@ describe('retrying failed messages', () => {
     await retryFailedNotifications();
     const byId = Object.fromEntries((await log()).map((n) => [n.id, n]));
     expect(byId.again).toMatchObject({ status: 'skipped', attempts: 2 }); // tried again (test mode: skipped)
+    expect(byId.again.address).toBeUndefined(); // done with: the full number is not kept
     expect(byId.enough).toMatchObject({ status: 'failed', retry: false, attempts: 3 });
+    expect(byId.enough.address).toBeUndefined();
     expect(byId.final).toMatchObject({ status: 'failed', attempts: 1 });
   });
 });

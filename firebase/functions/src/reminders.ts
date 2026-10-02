@@ -49,8 +49,10 @@ export async function remindMissingReports(company: Company, today = todayKey())
   }
 }
 
+// Scheduled jobs go through every company: up to 9 minutes (the default is 1), and one retry if
+// the whole run fails. Messages have fixed ids, so a retried run never sends anything twice.
 // 6pm Monday to Saturday. Ghana is on UTC all year, so server dates match local dates.
-export const missingReportReminder = onSchedule({ schedule: '0 18 * * 1-6', timeZone: TIMEZONE, secrets: SECRETS }, async () => {
+export const missingReportReminder = onSchedule({ timeoutSeconds: 540, retryCount: 1, schedule: '0 18 * * 1-6', timeZone: TIMEZONE, secrets: SECRETS }, async () => {
   await eachCompany(getFirestore(), 'missingReportReminder', (c) => remindMissingReports(c));
 });
 
@@ -90,6 +92,6 @@ export async function sendWeeklySummary(company: Company, now = new Date()) {
 }
 
 // Friday 5pm
-export const weeklyDigest = onSchedule({ schedule: '0 17 * * 5', timeZone: TIMEZONE, secrets: SECRETS }, async () => {
+export const weeklyDigest = onSchedule({ timeoutSeconds: 540, retryCount: 1, schedule: '0 17 * * 5', timeZone: TIMEZONE, secrets: SECRETS }, async () => {
   await eachCompany(getFirestore(), 'weeklyDigest', (c) => sendWeeklySummary(c));
 });

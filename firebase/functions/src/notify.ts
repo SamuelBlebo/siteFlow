@@ -18,6 +18,8 @@ export type SendResult = { status: 'sent' | 'failed' | 'skipped'; error?: string
 // In the emulator (tests, local development) nothing leaves the machine
 const testMode = () => process.env.FUNCTIONS_EMULATOR === 'true';
 const secret = (s: typeof WA_TOKEN) => { try { return s.value(); } catch { return ''; } };
+// Provider error bodies can repeat the phone number or email: keep them out of the logs
+export const scrub = (text: string) => text.slice(0, 500).replace(/\+?\d[\d\s-]{6,}\d/g, '[number]').replace(/[^\s"'<>@]+@[^\s"'<>]+/g, '[email]');
 
 // WhatsApp Cloud API (Meta). Messages the business starts must use an approved template,
 // so every SiteFlow message is sent as a template with its parameters filled in.
@@ -36,7 +38,7 @@ export async function sendWhatsAppTemplate(to: string, template: string, params:
     });
     if (res.ok) return { status: 'sent' };
     const body = await res.text();
-    logger.warn('WhatsApp send failed', { status: res.status, body: body.slice(0, 500) });
+    logger.warn('WhatsApp send failed', { status: res.status, body: scrub(body) });
     // 429 and 5xx are worth retrying; 4xx (bad number, template not approved) are not
     return { status: 'failed', error: `WhatsApp refused it (${res.status}).`, retry: res.status === 429 || res.status >= 500 };
   } catch (e) {
@@ -58,7 +60,7 @@ export async function sendEmail(to: string, subject: string, text: string): Prom
     });
     if (res.ok) return { status: 'sent' };
     const body = await res.text();
-    logger.warn('Email send failed', { status: res.status, body: body.slice(0, 500) });
+    logger.warn('Email send failed', { status: res.status, body: scrub(body) });
     return { status: 'failed', error: `The email service refused it (${res.status}).`, retry: res.status === 429 || res.status >= 500 };
   } catch (e) {
     logger.warn('Email send error', { error: String(e) });
