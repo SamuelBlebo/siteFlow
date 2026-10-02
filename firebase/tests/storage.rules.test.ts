@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { deleteObject, getBytes, ref, uploadBytes, type FirebaseStorage } from 'firebase/storage';
 import { doc, updateDoc, type Firestore } from 'firebase/firestore';
-import { paths, type Role } from '@siteflow/shared';
+import { paths, thumbName, type Role } from '@siteflow/shared';
 import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, USERS, makeEnv, seed } from './setup';
 
 let env: RulesTestEnvironment;
@@ -47,6 +47,22 @@ describe('report photos', () => {
     await assertFails(upload(asRole('supervisor'), paths.photo(C1, S1, 'r1', 'existing.jpg')));
     await assertFails(deleteObject(ref(asRole('supervisor'), paths.photo(C1, S1, 'r1', 'existing.jpg'))));
     await assertSucceeds(deleteObject(ref(asRole('manager'), paths.photo(C1, S1, 'r1', 'existing.jpg'))));
+  });
+  it('small copies (thumbnails) follow the same rules as the photo', async () => {
+    await assertSucceeds(upload(asRole('supervisor'), paths.photo(C1, S1, 'r1', thumbName('1.jpg'))));
+    await assertFails(upload(asRole('viewer'), paths.photo(C1, S1, 'r1', thumbName('2.jpg'))));
+    await assertFails(upload(storageAs(OTHER_OWNER), paths.photo(C1, S1, 'r1', thumbName('3.jpg'))));
+  });
+  it('files of 10 MB or more are refused', async () => {
+    const big = new Uint8Array(10 * 1024 * 1024);
+    await assertFails(uploadBytes(ref(asRole('supervisor'), paths.photo(C1, S1, 'r1', 'huge.jpg')), big, { contentType: 'image/jpeg' }));
+  });
+  it('issue and report photos of another company are closed to every role', async () => {
+    for (const r of ['owner', 'admin', 'manager', 'finance', 'supervisor', 'viewer'] as const) {
+      await assertFails(upload(asRole(r), paths.issuePhoto(C2, S9, 'i1', `${r}.jpg`)));
+      await assertFails(getBytes(ref(asRole(r), paths.issuePhoto(C2, S9, 'i1', '1.jpg'))));
+      await assertFails(getBytes(ref(asRole(r), paths.photo(C2, S9, 'r1', '1.jpg'))));
+    }
   });
   it('no new photos on a closed site', async () => {
     await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore() as unknown as Firestore, paths.site(C1, S1)), { status: 'closed' }));

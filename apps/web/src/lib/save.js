@@ -29,13 +29,15 @@ export const dismiss = (id) => emit({ toasts: state.toasts.filter((t) => t.id !=
 
 export class SaveError extends Error {}
 
-export async function save(promise, label = 'Your change') {
+export async function save(promise, label = 'Your change', { queueAfterMs = QUEUE_AFTER_MS } = {}) {
   emit({ pending: state.pending + 1 });
   let confirmed = false;
   const tracked = promise.then((v) => { confirmed = true; return v; })
     .finally(() => emit({ pending: Math.max(0, state.pending - 1) }));
 
-  const waitLimit = navigator.onLine ? QUEUE_AFTER_MS : 0;
+  // Only a definite "offline" skips the wait (some environments don't report a connection state)
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  const waitLimit = offline ? 0 : queueAfterMs;
   let timer;
   const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve('queued'), waitLimit); });
   try {

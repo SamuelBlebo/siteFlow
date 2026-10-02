@@ -51,5 +51,7 @@ jobs:
       - run: npm --prefix firebase/functions ci
       - name: Firestore and Storage rules tests
         run: npm run test:rules
+      - name: Scheduled jobs (reminders, weekly summary, retries)
+        run: npm run test:functions
       - name: Web data layer against emulators
         run: npm run test:web

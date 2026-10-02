@@ -70,7 +70,7 @@ export async function deliver(d: {
 }
 
 // Every 30 minutes: try again messages that failed for a reason worth retrying (no signal to the provider, busy)
-export const retryNotifications = onSchedule({ schedule: 'every 30 minutes', secrets: SECRETS }, async () => {
+export async function retryFailedNotifications() {
   const snap = await getFirestore().collectionGroup('notifications').where('status', '==', 'failed').where('retry', '==', true).limit(200).get();
   let retried = 0;
   for (const doc of snap.docs) {
@@ -80,4 +80,6 @@ export const retryNotifications = onSchedule({ schedule: 'every 30 minutes', sec
     retried++;
   }
   logger.info('Notification retries', { found: snap.size, retried });
-});
+  return retried;
+}
+export const retryNotifications = onSchedule({ schedule: 'every 30 minutes', secrets: SECRETS }, async () => { await retryFailedNotifications(); });

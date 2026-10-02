@@ -20,10 +20,12 @@
     "deploy:dev": "npm run build:web && firebase deploy --project dev",
     "deploy:prod": "npm run build:web && firebase deploy --project prod",
     "deploy:rules": "firebase deploy --only firestore,storage",
-    "test": "npm run test:shared && npm run test:rules && npm run test:web",
+    "test": "npm run test:shared && npm run test:rules && npm run test:functions && npm run test:web",
     "test:shared": "npm test -w @siteflow/shared",
     "test:rules": "node scripts/test-emulators.mjs firestore,storage \"vitest run --config firebase/tests/vitest.config.ts\"",
-    "test:web": "npm run build:functions && node scripts/test-emulators.mjs auth,firestore,storage,functions \"npm run test:integration -w @siteflow/web\""
+    "test:web": "npm run build:functions && node scripts/test-emulators.mjs auth,firestore,storage,functions \"npm run test:integration -w @siteflow/web\"",
+    "test:functions": "node scripts/test-emulators.mjs firestore \"vitest run --config firebase/functions/vitest.config.ts\"",
+    "coverage": "npm run test:shared -- --coverage && npm test -w @siteflow/mobile -- --coverage --coverage.include=src/lib/**"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

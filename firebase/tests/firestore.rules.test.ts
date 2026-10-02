@@ -4,7 +4,7 @@ import {
   collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, increment, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
   type Firestore,
 } from 'firebase/firestore';
-import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, type Permission, type Role } from '@siteflow/shared';
+import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, type Permission, type Role, type SiteCollection } from '@siteflow/shared';
 import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, seed, site } from './setup';
 
 let env: RulesTestEnvironment;
@@ -91,6 +91,39 @@ describe('tenant isolation', () => {
       await assertFails(getDocs(collection(db, paths.sub(C2, S9, 'reports'))));
       await assertFails(sendReport(db, C2, S9, USERS[role], `${role} user`));
       await assertFails(getDoc(doc(db, paths.user(OTHER_OWNER))));
+    }
+  });
+  it('every collection of another company is closed to every role, for reading and writing', async () => {
+    const siteColls: SiteCollection[] = ['materials', 'materialLogs', 'expenses', 'workers', 'workerPay', 'attendance', 'reports', 'milestones', 'issues',
+      'rfis', 'inspections', 'punchItems', 'incidents', 'toolboxTalks', 'tasks', 'drawings', 'documents', 'changeOrders', 'subcontractors', 'billing'];
+    const companyColls = ['equipment', 'notifications', 'activity'];
+    for (const role of ROLES) {
+      const db = asRole(role);
+      for (const c of siteColls) {
+        await assertFails(getDocs(collection(db, paths.sub(C2, S9, c))));
+        await assertFails(setDoc(doc(db, paths.subDoc(C2, S9, c, 'x')), { createdBy: USERS[role], companyId: C2 }));
+      }
+      for (const c of companyColls) {
+        await assertFails(getDocs(collection(db, `${paths.company(C2)}/${c}`)));
+        await assertFails(setDoc(doc(db, `${paths.company(C2)}/${c}/x`), { createdBy: USERS[role] }));
+      }
+      await assertFails(getDocs(collection(db, paths.issueComments(C2, S9, 'i1'))));
+      await assertFails(getDocs(collection(db, paths.sites(C2))));
+      await assertFails(updateDoc(doc(db, paths.company(C2)), { name: 'Taken over' }));
+      // Company-wide pages use collection-group queries: asking for another company's is refused
+      await assertFails(getDocs(query(collectionGroup(db, 'reports'), where('companyId', '==', C2))));
+      await assertFails(getDocs(query(collectionGroup(db, 'issues'), where('companyId', '==', C2))));
+      // ...and so is asking without saying which company (it could return anyone's)
+      await assertFails(getDocs(collectionGroup(db, 'reports')));
+      await assertFails(getDocs(collectionGroup(db, 'issues')));
+    }
+  });
+  it('nobody can move themselves into another company or raise their own role', async () => {
+    for (const role of ROLES) {
+      const db = asRole(role);
+      await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { companyId: C2 }));
+      if (role !== 'owner') await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { role: 'owner' }));
+      await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { siteIds: [S1, S2, S9] }));
     }
   });
   it('the other company owner cannot read company 1', async () => {
