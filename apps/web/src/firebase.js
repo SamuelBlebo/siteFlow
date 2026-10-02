@@ -30,6 +30,17 @@ export async function getStorage() {
 }
 export const functions = getFunctions(app, 'europe-west1');
 
+// App Check: proves requests come from the real SiteFlow web app, so the team functions can
+// refuse scripts that only have a stolen login. Off until a reCAPTCHA Enterprise site key is set
+// (VITE_APPCHECK_SITE_KEY, docs/OPERATIONS.md). Loaded separately so it costs nothing when off.
+const appCheckKey = import.meta.env.VITE_APPCHECK_SITE_KEY;
+if (appCheckKey && import.meta.env.VITE_USE_EMULATORS !== 'true') {
+  import('firebase/app-check')
+    .then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) =>
+      initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(appCheckKey), isTokenAutoRefreshEnabled: true }))
+    .catch((e) => console.error('App Check could not start', e));
+}
+
 // Emulator ports from firebase.json; the automated tests use firebase.test.json's ports instead
 function port(name, fallback) { return Number(import.meta.env[`VITE_EMULATOR_${name}_PORT`] || fallback); }
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {

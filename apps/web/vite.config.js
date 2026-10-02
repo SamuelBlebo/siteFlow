@@ -12,6 +12,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return undefined;
           // Storage is loaded on demand (photo uploads), so it stays out of the main Firebase file
           if (/[\/]@?firebase[\/]storage/.test(id)) return 'firebase-storage';
+          if (/[\/]@?firebase[\/]app-check/.test(id)) return 'firebase-app-check'; // only when App Check is switched on
           if (id.includes('@firebase') || /[\/]firebase[\/]/.test(id)) return 'firebase';
           if (/node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler)[\/]/.test(id)) return 'react';
           return 'vendor';
