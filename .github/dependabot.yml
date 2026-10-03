@@ -10,22 +10,21 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     ignore:
-      # Expo SDK, React Native and their native modules move together in a planned SDK upgrade
-      # (versions are set by `npx expo install --fix`, not one by one)
+      # The Expo SDK fixes the exact versions of React, React Native and every native module, and
+      # web and mobile share one install, so these only change together in a planned Expo SDK
+      # upgrade (`npx expo install --fix`), never one at a time
       - dependency-name: expo
-        update-types: [version-update:semver-major]
       - dependency-name: 'expo-*'
-        update-types: [version-update:semver-major]
+      - dependency-name: '@expo/*'
+      - dependency-name: react
+      - dependency-name: react-dom
       - dependency-name: react-native
-        update-types: [version-update:semver-major, version-update:semver-minor]
       - dependency-name: 'react-native-*'
-        update-types: [version-update:semver-major]
+      - dependency-name: '@react-native/*'
       - dependency-name: '@react-native-firebase/*'
-        update-types: [version-update:semver-major]
       - dependency-name: '@react-native-community/*'
-        update-types: [version-update:semver-major]
       - dependency-name: '@react-native-async-storage/*'
-        update-types: [version-update:semver-major]
+      - dependency-name: '@react-navigation/*'
       # The test runner and its coverage plugin must stay on the same major
       - dependency-name: vitest
         update-types: [version-update:semver-major]

@@ -85,5 +85,5 @@ Use the dev key only in `development` and the prod key only in `production`, so 
 - **Mobile toolchain (report-only audit).** Expo SDK 53 and React Native 0.79 bring build tools (Metro, the Expo CLI) with published advisories.
   - These tools run on build machines, not in the app.
   - The fix is the Expo SDK upgrade, planned with the mobile release (Stage 19) so it can be tested on devices.
-  - Dependabot holds back Expo, React Native and React Native Firebase majors for the same reason.
+  - Dependabot leaves Expo, React, React Native and every native module alone, at any version step. The Expo SDK fixes their exact versions, and web and mobile share one install, so they move together in the SDK upgrade (`npx expo install --fix`).
 - **Web (report-only audit).** npm counts Firestore's server-only gRPC library and tooling from the shared install. Neither is in what browsers download.
