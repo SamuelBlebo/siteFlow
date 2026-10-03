@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@siteflow/shared": "*",
-    "firebase": "^11.0.0",
+    "firebase": "^12.19.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",

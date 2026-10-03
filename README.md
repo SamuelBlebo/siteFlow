@@ -176,7 +176,7 @@ identifiers, kept out of git). Console setup for each project: `docs/ENVIRONMENT
 
 ## First-time setup
 ```bash
-nvm use                      # Node 20
+nvm use                      # Node 22
 npm run setup                # installs everything, including functions
 npx firebase login           # an account with access to both projects
 npm run config:dev           # writes the web and mobile config for siteflow-dev-gh
@@ -240,8 +240,6 @@ Before the first store release you need: a Google Play developer account, an App
 real icon and splash images, a privacy policy URL, store screenshots, and test logins for the reviewers.
 
 ## CI/CD (GitHub Actions)
-- **CI**: every push and pull request runs the typecheck, all tests (including the security rules on the
-  emulators) and the web, functions and mobile builds.
-- **Deploy web and backend**: manual only, from the Actions tab, choosing dev or prod.
-  Secrets: `FIREBASE_SERVICE_ACCOUNT` and the `VITE_FB_*` values, per GitHub environment.
-- **Mobile build**: run by hand from the Actions tab. Secret: `EXPO_TOKEN`.
+Every push and pull request runs the full checks (one required check: **CI passed**). `main` is deployed to dev
+automatically; production is only deployed by hand, after approval. Setup and the release steps: `docs/CI_CD.md`.
+
