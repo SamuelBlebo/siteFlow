@@ -10,12 +10,26 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     ignore:
-      # Expo SDK, React Native and React Native Firebase move together in a planned SDK upgrade
+      # Expo SDK, React Native and their native modules move together in a planned SDK upgrade
+      # (versions are set by `npx expo install --fix`, not one by one)
       - dependency-name: expo
+        update-types: [version-update:semver-major]
+      - dependency-name: 'expo-*'
         update-types: [version-update:semver-major]
       - dependency-name: react-native
         update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: 'react-native-*'
+        update-types: [version-update:semver-major]
       - dependency-name: '@react-native-firebase/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@react-native-community/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@react-native-async-storage/*'
+        update-types: [version-update:semver-major]
+      # The test runner and its coverage plugin must stay on the same major
+      - dependency-name: vitest
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitest/*'
         update-types: [version-update:semver-major]
   - package-ecosystem: npm
     directory: /firebase/functions
@@ -24,6 +38,12 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Node types follow the functions runtime (Node 22); TypeScript majors are planned upgrades
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }

@@ -31,8 +31,8 @@
     "check:env": "node scripts/check-env.mjs"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.1",
-    "firebase": "^11.10.0",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
     "firebase-tools": "^15.32.1",
     "typescript": "^5.6.3",
     "vitest": "^3.2.7"
