@@ -3,7 +3,7 @@
 // but they are kept out of git so each machine and CI fetches its own.
 //   node scripts/fetch-firebase-config.mjs dev|prod
 // Needs the Firebase CLI to be signed in to an account with access to the project.
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const ENVS = {
@@ -16,7 +16,15 @@ if (!env) {
   process.exit(2);
 }
 
-const cli = (args) => JSON.parse(execSync(`npx firebase ${args} --project ${env.project} --json`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] })).result;
+// The CLI's own JSON answer decides success. (On Windows, firebase-tools can crash while exiting
+// after it has already printed a complete answer; that answer is still good.)
+function cli(args) {
+  const r = spawnSync(`npx firebase ${args} --project ${env.project} --json`, { encoding: 'utf8', shell: true, stdio: ['ignore', 'pipe', 'inherit'] });
+  let out;
+  try { out = JSON.parse(r.stdout.slice(r.stdout.indexOf('{'))); } catch { out = null; }
+  if (out?.status !== 'success') throw new Error(`firebase ${args} failed (exit ${r.status}): ${(out?.error || r.stdout || '').toString().slice(0, 300)}`);
+  return out.result;
+}
 const apps = cli('apps:list');
 const app = (platform) => {
   const a = apps.find((x) => x.platform === platform);
