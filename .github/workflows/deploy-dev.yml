@@ -1,0 +1,69 @@
+# Deploys main to the development project (siteflow-dev-gh) after CI has passed on it.
+# Also runnable by hand from the Actions tab. Never touches production.
+# Skips (with a note) until the FIREBASE_SERVICE_ACCOUNT secret exists in the "development"
+# GitHub environment (docs/CI_CD.md).
+name: Deploy to dev
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false # never stop a deploy half way
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Only a push to main whose CI passed (or a manual run)
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    name: Deploy to siteflow-dev-gh
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: development
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Check the deploy key is set up
+        id: ready
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::notice::Skipped: add FIREBASE_SERVICE_ACCOUNT to the 'development' environment to deploy (docs/CI_CD.md)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.ready.outputs.ok == 'true'
+        with: { ref: '${{ env.SHA }}' }
+      - uses: actions/setup-node@v7
+        if: steps.ready.outputs.ok == 'true'
+        with: { node-version-file: .nvmrc, cache: npm }
+      - name: Install
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          npm ci
+          npm --prefix firebase/functions ci
+      - uses: google-github-actions/auth@v3
+        if: steps.ready.outputs.ok == 'true'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Fetch and check the dev configuration
+        if: steps.ready.outputs.ok == 'true'
+        env:
+          VITE_APPCHECK_SITE_KEY: ${{ vars.VITE_APPCHECK_SITE_KEY }}
+        run: |
+          node scripts/fetch-firebase-config.mjs dev
+          node scripts/check-env.mjs dev
+      - name: Deploy (web, functions, rules, indexes)
+        if: steps.ready.outputs.ok == 'true'
+        run: npx firebase deploy --project dev --non-interactive --force
+      - name: Summary
+        if: steps.ready.outputs.ok == 'true'
+        run: echo "Deployed \`${SHA::7}\` to https://siteflow-dev-gh.web.app" >> "$GITHUB_STEP_SUMMARY"

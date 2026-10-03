@@ -1,3 +1,5 @@
+# Checks every push and pull request. Nothing here deploys anything.
+# Branch protection: require the "CI passed" check on main (see docs/CI_CD.md).
 name: CI
 on:
   pull_request:
@@ -8,19 +10,25 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: Typecheck, unit tests and builds
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version-file: .nvmrc, cache: npm }
-      - run: npm ci
-      - run: npm --prefix firebase/functions ci
+      - name: Install
+        run: |
+          npm ci
+          npm --prefix firebase/functions ci
       - name: Typecheck (shared, functions, rule tests)
         run: npm run typecheck
-      - name: Shared logic tests
+      - name: Shared logic tests (and production config checks)
         run: npm run test:shared
       - name: Mobile logic tests
         run: npm test -w @siteflow/mobile
@@ -36,22 +44,56 @@ jobs:
 
   emulator-tests:
     name: Security rules and integration tests (emulators)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version-file: .nvmrc, cache: npm }
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: '21' }
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ hashFiles('package-lock.json') }}
-      - run: npm ci
-      - run: npm --prefix firebase/functions ci
+      - name: Install
+        run: |
+          npm ci
+          npm --prefix firebase/functions ci
       - name: Firestore and Storage rules tests
         run: npm run test:rules
       - name: Scheduled jobs (reminders, weekly summary, retries)
         run: npm run test:functions
       - name: Web data layer against emulators
         run: npm run test:web
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      # The server side has its own lockfile: any known high-severity issue fails CI
+      - name: Cloud Functions (runs on Google's servers, blocking)
+        run: npm --prefix firebase/functions audit --omit=dev --audit-level=high
+      # The apps share one workspace install, so npm also counts tooling that never ships (Metro,
+      # Vite, React Native pulled in through a peer dependency) and Firestore's server-only gRPC.
+      # Reported, not blocking; Dependabot raises real upgrades as pull requests (docs/CI_CD.md).
+      - name: Web and mobile (report only)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+  passed:
+    name: CI passed
+    if: always()
+    needs: [check, emulator-tests, security]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: All checks passed
+        run: |
+          if [ "${{ needs.check.result }}" != "success" ] || [ "${{ needs.emulator-tests.result }}" != "success" ] || [ "${{ needs.security.result }}" != "success" ]; then
+            echo "check=${{ needs.check.result }} emulator-tests=${{ needs.emulator-tests.result }} security=${{ needs.security.result }}"
+            exit 1
+          fi

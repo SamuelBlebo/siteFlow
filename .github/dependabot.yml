@@ -1,0 +1,29 @@
+# Weekly pull requests for dependency updates. Each one runs the full CI before it can be merged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      # Minor and patch updates together; majors one at a time (they may need code changes)
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Expo SDK, React Native and React Native Firebase move together in a planned SDK upgrade
+      - dependency-name: expo
+        update-types: [version-update:semver-major]
+      - dependency-name: react-native
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: '@react-native-firebase/*'
+        update-types: [version-update:semver-major]
+  - package-ecosystem: npm
+    directory: /firebase/functions
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }

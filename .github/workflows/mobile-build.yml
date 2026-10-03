@@ -1,10 +1,15 @@
-# Builds the mobile app in the cloud with EAS and (optionally) submits to the stores.
-# Run it from the Actions tab.
+# Builds the mobile app in the cloud with EAS. Run it from the Actions tab.
+#  - preview: an installable test build on the DEV project ("SiteFlow Dev"). No approval needed.
+#  - production: the store build on the PRODUCTION project. Waits for approval in the
+#    "production" GitHub environment, like production deploys.
+# Store submission only happens for production builds, only when "submit" is ticked, and only
+# after approval. Nothing is ever submitted to the stores automatically.
 name: Mobile build
 on:
   workflow_dispatch:
     inputs:
       profile:
+        description: Build profile
         type: choice
         options: [preview, production]
         default: preview
@@ -13,21 +18,33 @@ on:
         options: [android, ios, all]
         default: android
       submit:
+        description: Submit to the stores (production only; needs approval)
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: EAS build (${{ inputs.profile }}, ${{ inputs.platform }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ inputs.profile == 'production' && 'production' || 'development' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Submit only with production builds
+        if: inputs.submit && inputs.profile != 'production'
+        run: |
+          echo "::error::Store submission is only for production builds."
+          exit 1
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version-file: .nvmrc, cache: npm }
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - run: npm ci
       - name: Build
         working-directory: apps/mobile
-        run: eas build --profile ${{ inputs.profile }} --platform ${{ inputs.platform }} --non-interactive ${{ inputs.submit && '--auto-submit' || '' }}
+        run: eas build --profile ${{ inputs.profile }} --platform ${{ inputs.platform }} --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}

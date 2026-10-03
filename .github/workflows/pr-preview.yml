@@ -1,0 +1,60 @@
+# A preview of the web app for each pull request, on a temporary address in the DEV project
+# (it reads and writes dev data; rules and functions are not changed by a preview).
+# Only for pull requests from this repository (forks don't get the deploy key), and skipped until
+# FIREBASE_SERVICE_ACCOUNT exists in the "development" environment.
+name: PR preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    name: Web preview on dev
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: development
+    steps:
+      - name: Check the deploy key is set up
+        id: ready
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then echo "::notice::Skipped: no FIREBASE_SERVICE_ACCOUNT in 'development'."; echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v7
+        if: steps.ready.outputs.ok == 'true'
+      - uses: actions/setup-node@v7
+        if: steps.ready.outputs.ok == 'true'
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+        if: steps.ready.outputs.ok == 'true'
+      - uses: google-github-actions/auth@v3
+        if: steps.ready.outputs.ok == 'true'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Build for dev
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          node scripts/fetch-firebase-config.mjs dev
+          node scripts/build-web.mjs siteflow-dev-gh
+      - name: Deploy the preview (expires in 7 days)
+        id: deploy
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          OUT=$(npx firebase hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" --project dev --expires 7d --json)
+          URL=$(echo "$OUT" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s).result;console.log(Object.values(r)[0].url)})")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Comment the link on the pull request
+        if: steps.ready.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none             --body "Preview (dev data, 7 days): ${{ steps.deploy.outputs.url }}"

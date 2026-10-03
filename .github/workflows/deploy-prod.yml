@@ -1,0 +1,92 @@
+# Deploys to PRODUCTION (siteflow-prod-gh). Manual only, never automatic:
+#  1. Someone runs it from the Actions tab and types "deploy production".
+#  2. It only deploys a commit on main whose CI passed.
+#  3. The "production" GitHub environment holds it until an approver says yes (set required
+#     reviewers in GitHub > Settings > Environments > production; docs/CI_CD.md).
+#  4. Each deploy is tagged (prod-YYYYMMDD-HHMM) so it is clear what is live and how to roll back.
+name: Deploy to production
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy production" to confirm'
+        required: true
+      ref:
+        description: Commit on main to deploy (leave empty for the latest main)
+        required: false
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Check the commit is ready
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+    steps:
+      - name: Confirmation
+        if: inputs.confirm != 'deploy production'
+        run: |
+          echo "::error::Not confirmed. Type exactly: deploy production"
+          exit 1
+      - uses: actions/checkout@v7
+        with: { ref: main, fetch-depth: 0 }
+      - name: The commit is on main
+        id: pick
+        run: |
+          SHA=$(git rev-parse "${{ inputs.ref || 'origin/main' }}")
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "::error::$SHA is not on main"; exit 1; }
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+      - name: CI passed for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RESULT=$(gh api "repos/${{ github.repository }}/commits/${{ steps.pick.outputs.sha }}/check-runs?check_name=CI%20passed" --jq '[.check_runs[].conclusion] | if index("success") then "success" else (.[0] // "none") end')
+          echo "CI for ${{ steps.pick.outputs.sha }}: $RESULT"
+          [ "$RESULT" = "success" ] || { echo "::error::CI has not passed for this commit"; exit 1; }
+
+  deploy:
+    name: Deploy to siteflow-prod-gh
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://siteflow-prod-gh.web.app
+    permissions:
+      contents: write # to tag the release
+    steps:
+      - uses: actions/checkout@v7
+        with: { ref: '${{ needs.verify.outputs.sha }}' }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - name: Install
+        run: |
+          npm ci
+          npm --prefix firebase/functions ci
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Fetch and check the production configuration
+        env:
+          VITE_APPCHECK_SITE_KEY: ${{ vars.VITE_APPCHECK_SITE_KEY }}
+        run: |
+          node scripts/fetch-firebase-config.mjs prod
+          node scripts/check-env.mjs prod
+      - name: Deploy (web, functions, rules, indexes)
+        run: npx firebase deploy --project prod --non-interactive
+      - name: Tag the release
+        run: |
+          TAG="prod-$(date -u +%Y%m%d-%H%M)"
+          git tag "$TAG" "${{ needs.verify.outputs.sha }}"
+          git push origin "$TAG"
+          echo "Deployed \`${{ needs.verify.outputs.sha }}\` to production as **$TAG**" >> "$GITHUB_STEP_SUMMARY"
