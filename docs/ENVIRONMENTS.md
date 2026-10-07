@@ -4,9 +4,9 @@ Two Firebase projects on the same account, kept completely apart:
 
 | | Development | Production |
 | --- | --- | --- |
-| Project id | `siteflow-dev-gh` | `siteflow-prod-gh` |
-| Console | https://console.firebase.google.com/project/siteflow-dev-gh | https://console.firebase.google.com/project/siteflow-prod-gh |
-| Web address | https://siteflow-dev-gh.web.app | https://siteflow-prod-gh.web.app (a custom domain can be added later) |
+| Project id | `siteflow-dp-dev` | `siteflow-dp-prod` |
+| Console | https://console.firebase.google.com/project/siteflow-dp-dev | https://console.firebase.google.com/project/siteflow-dp-prod |
+| Web address | https://siteflow-dp-dev.web.app | https://siteflow-dp-prod.web.app (a custom domain can be added later) |
 | Apps registered | Web, Android and iOS `com.digitalprime.siteflow.dev` | Web, Android and iOS `com.digitalprime.siteflow` |
 | Data | Test companies only | Real companies only |
 
@@ -28,7 +28,7 @@ Region: **europe-west1 (Belgium)**, for both Firestore and Functions, and for bo
 
 ## To do in the console (once per project)
 
-Do these for **siteflow-dev-gh** now. Do them for **siteflow-prod-gh** when you are ready to launch.
+Do these for **siteflow-dp-dev** now. Do them for **siteflow-dp-prod** when you are ready to launch.
 
 1. **Blaze plan.** Console > Usage and billing > Modify plan > Blaze, then pick a billing account. Cloud Functions, Storage and scheduled jobs need it.
    - Set a budget alert at the same time (Stage 16, `docs/OPERATIONS.md`).

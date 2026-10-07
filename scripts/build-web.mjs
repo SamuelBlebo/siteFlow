@@ -1,6 +1,6 @@
 // Builds the web app for the Firebase project being deployed to. Firebase runs this before a
 // hosting deploy (firebase.json predeploy) with GCLOUD_PROJECT set to the target project.
-//   siteflow-prod-gh -> vite build (apps/web/.env.production)
+//   siteflow-dp-prod -> vite build (apps/web/.env.production)
 //   anything else    -> vite build --mode development (apps/web/.env.development)
 // Refuses to build if the env file belongs to a different project, so a dev deploy can never
 // ship a web app that talks to production (or the other way round).
@@ -12,7 +12,7 @@ if (!target) {
   console.error('No target project (GCLOUD_PROJECT). Deploy with: firebase deploy --project dev|prod');
   process.exit(1);
 }
-const prod = target === 'siteflow-prod-gh';
+const prod = target === 'siteflow-dp-prod';
 const mode = prod ? 'production' : 'development';
 const file = `apps/web/.env.${mode}`;
 if (!existsSync(file)) {

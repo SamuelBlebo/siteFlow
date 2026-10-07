@@ -1,7 +1,7 @@
 // One config, two environments. APP_ENV is set per build profile in eas.json.
 // Firebase files come from EAS "file" environment variables in the cloud, or from local files
 // in this folder when you build on your machine (node scripts/fetch-firebase-config.mjs dev|prod):
-//   development -> siteflow-dev-gh, production -> siteflow-prod-gh
+//   development -> siteflow-dp-dev, production -> siteflow-dp-prod
 const IS_PROD = process.env.APP_ENV === 'production';
 const ENV = IS_PROD ? 'prod' : 'dev';
 

@@ -1,4 +1,4 @@
-# Deploys to PRODUCTION (siteflow-prod-gh). Manual only, never automatic:
+# Deploys to PRODUCTION (siteflow-dp-prod). Manual only, never automatic:
 #  1. Someone runs it from the Actions tab and types "deploy production".
 #  2. It only deploys a commit on main whose CI passed.
 #  3. The "production" GitHub environment holds it until an approver says yes (set required
@@ -55,13 +55,13 @@ jobs:
           [ "$RESULT" = "success" ] || { echo "::error::CI has not passed for this commit"; exit 1; }
 
   deploy:
-    name: Deploy to siteflow-prod-gh
+    name: Deploy to siteflow-dp-prod
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment:
       name: production
-      url: https://siteflow-prod-gh.web.app
+      url: https://siteflow-dp-prod.web.app
     permissions:
       contents: write # to tag the release
     steps:

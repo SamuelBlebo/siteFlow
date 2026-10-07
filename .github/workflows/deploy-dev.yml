@@ -1,4 +1,4 @@
-# Deploys main to the development project (siteflow-dev-gh) after CI has passed on it.
+# Deploys main to the development project (siteflow-dp-dev) after CI has passed on it.
 # Also runnable by hand from the Actions tab. Never touches production.
 # Skips (with a note) until the FIREBASE_SERVICE_ACCOUNT secret exists in the "development"
 # GitHub environment (docs/CI_CD.md).
@@ -21,7 +21,7 @@ jobs:
   deploy:
     # Only a push to main whose CI passed (or a manual run)
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
-    name: Deploy to siteflow-dev-gh
+    name: Deploy to siteflow-dp-dev
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: development
@@ -66,4 +66,4 @@ jobs:
         run: npx firebase deploy --project dev --non-interactive --force
       - name: Summary
         if: steps.ready.outputs.ok == 'true'
-        run: echo "Deployed \`${SHA::7}\` to https://siteflow-dev-gh.web.app" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Deployed \`${SHA::7}\` to https://siteflow-dp-dev.web.app" >> "$GITHUB_STEP_SUMMARY"

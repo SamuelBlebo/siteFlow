@@ -44,7 +44,7 @@ jobs:
         if: steps.ready.outputs.ok == 'true'
         run: |
           node scripts/fetch-firebase-config.mjs dev
-          node scripts/build-web.mjs siteflow-dev-gh
+          node scripts/build-web.mjs siteflow-dp-dev
       - name: Deploy the preview (expires in 7 days)
         id: deploy
         if: steps.ready.outputs.ok == 'true'

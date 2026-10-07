@@ -7,8 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const ENVS = {
-  dev: { project: 'siteflow-dev-gh', webEnv: 'apps/web/.env.development', suffix: 'dev' },
-  prod: { project: 'siteflow-prod-gh', webEnv: 'apps/web/.env.production', suffix: 'prod' },
+  dev: { project: 'siteflow-dp-dev', webEnv: 'apps/web/.env.development', suffix: 'dev' },
+  prod: { project: 'siteflow-dp-prod', webEnv: 'apps/web/.env.production', suffix: 'prod' },
 };
 const env = ENVS[process.argv[2]];
 if (!env) {

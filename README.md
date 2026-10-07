@@ -48,7 +48,7 @@ siteflow/
 2. **No Firebase SDK in shared.** Web uses the Firebase JS SDK, mobile uses React Native Firebase, functions use the Admin SDK. Shared only has plain TypeScript, so all three can use it.
 3. **Paths from `paths.ts`.** Never hand-type a Firestore path in an app.
 4. **Adding a module:** add its key to `types.ts` and `modules.ts`, its schema to `schemas.ts`, its alerts to `logic/alerts.ts`, its collection to `firestore.rules`, then build the screens in each app.
-5. **Two Firebase projects.** `siteflow-dev` for testing, `siteflow-prod` for customers. Never test on prod.
+5. **Two Firebase projects.** `siteflow-dp-dev` for testing, `siteflow-dp-prod` for customers. Never test on prod.
 6. **Permissions live in `permissions.ts` and the rules.** Hide what a role can't do in the UI *and* block it in
    `firestore.rules` / `storage.rules`. `firebase/tests` checks every role against the permission table.
 7. **Money is kept apart.** Budgets and spending are in `sites/{sid}/finance/summary`, wage rates in
@@ -164,11 +164,11 @@ Sites often have no signal. Nothing a supervisor saves on the phone may be lost.
 ## Environments
 | | Development | Production |
 |---|---|---|
-| Firebase project | `siteflow-dev-gh` (alias `dev`) | `siteflow-prod-gh` (alias `prod`) |
+| Firebase project | `siteflow-dp-dev` (alias `dev`) | `siteflow-dp-prod` (alias `prod`) |
 | Web config | `apps/web/.env.development` | `apps/web/.env.production` |
 | Mobile app id | `com.digitalprime.siteflow.dev` ("SiteFlow Dev") | `com.digitalprime.siteflow` |
 | Mobile config | `apps/mobile/google-services.dev.json`, `GoogleService-Info.dev.plist` | `...prod.json`, `...prod.plist` |
-| Function settings | `firebase/functions/.env.siteflow-dev-gh` | `firebase/functions/.env.siteflow-prod-gh` |
+| Function settings | `firebase/functions/.env.siteflow-dp-dev` | `firebase/functions/.env.siteflow-dp-prod` |
 | Used for | Building and testing, demo data | Real companies only |
 
 Never test or experiment on production. Config files are fetched, not hand-edited (they are public
@@ -179,8 +179,8 @@ identifiers, kept out of git). Console setup for each project: `docs/ENVIRONMENT
 nvm use                      # Node 22
 npm run setup                # installs everything, including functions
 npx firebase login           # an account with access to both projects
-npm run config:dev           # writes the web and mobile config for siteflow-dev-gh
-npm run config:prod          # same for siteflow-prod-gh (only if you release)
+npm run config:dev           # writes the web and mobile config for siteflow-dp-dev
+npm run config:prod          # same for siteflow-dp-prod (only if you release)
 npm run check:env            # checks every config file points at the right project
 ```
 

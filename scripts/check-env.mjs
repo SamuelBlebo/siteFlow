@@ -4,8 +4,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 
 const ENVS = {
-  dev: { project: 'siteflow-dev-gh', web: 'apps/web/.env.development', mobile: 'dev', pkg: 'com.digitalprime.siteflow.dev' },
-  prod: { project: 'siteflow-prod-gh', web: 'apps/web/.env.production', mobile: 'prod', pkg: 'com.digitalprime.siteflow' },
+  dev: { project: 'siteflow-dp-dev', web: 'apps/web/.env.development', mobile: 'dev', pkg: 'com.digitalprime.siteflow.dev' },
+  prod: { project: 'siteflow-dp-prod', web: 'apps/web/.env.production', mobile: 'prod', pkg: 'com.digitalprime.siteflow' },
 };
 const which = process.argv[2] ? [process.argv[2]] : Object.keys(ENVS);
 const WEB_KEYS = ['VITE_FB_API_KEY', 'VITE_FB_AUTH_DOMAIN', 'VITE_FB_PROJECT_ID', 'VITE_FB_STORAGE_BUCKET', 'VITE_FB_MESSAGING_SENDER_ID', 'VITE_FB_APP_ID'];

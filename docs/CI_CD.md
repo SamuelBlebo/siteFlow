@@ -7,9 +7,9 @@ GitHub Actions in `.github/workflows`. The rule: everything is checked automatic
 | Workflow | When it runs | What it does |
 | --- | --- | --- |
 | **CI** (`ci.yml`) | Every push and pull request | Checks the change (details below). Ends in one check, **CI passed** |
-| **Deploy to dev** (`deploy-dev.yml`) | After CI passes on `main`, or by hand | Deploys web, functions, rules and indexes to `siteflow-dev-gh` |
+| **Deploy to dev** (`deploy-dev.yml`) | After CI passes on `main`, or by hand | Deploys web, functions, rules and indexes to `siteflow-dp-dev` |
 | **PR preview** (`pr-preview.yml`) | Each pull request from this repository | Web preview on a temporary dev address (7 days), linked in a PR comment |
-| **Deploy to production** (`deploy-prod.yml`) | By hand only | Deploys a `main` commit that passed CI to `siteflow-prod-gh`, after approval, and tags it `prod-YYYYMMDD-HHMM` |
+| **Deploy to production** (`deploy-prod.yml`) | By hand only | Deploys a `main` commit that passed CI to `siteflow-dp-prod`, after approval, and tags it `prod-YYYYMMDD-HHMM` |
 | **Mobile build** (`mobile-build.yml`) | By hand only | EAS builds. A preview build uses dev. A production build uses prod and needs approval. Submission to the stores only for production, only when ticked, only after approval |
 | **Dependabot** (`dependabot.yml`) | Weekly | Pull requests for updates. Each one goes through CI |
 
@@ -46,11 +46,11 @@ Settings > Branches > Add rule for `main`:
 Settings > Environments:
 
 - **development**
-  - Secret `FIREBASE_SERVICE_ACCOUNT`: a key for a service account in `siteflow-dev-gh` (see below).
+  - Secret `FIREBASE_SERVICE_ACCOUNT`: a key for a service account in `siteflow-dp-dev` (see below).
 - **production**
   - Required reviewers: you, and anyone else who may approve a release.
   - Deployment branches: `main` only.
-  - Secret `FIREBASE_SERVICE_ACCOUNT`: a key for a service account in `siteflow-prod-gh`.
+  - Secret `FIREBASE_SERVICE_ACCOUNT`: a key for a service account in `siteflow-dp-prod`.
   - Secret `EXPO_TOKEN` for production mobile builds.
 - **Optional:** a `VITE_APPCHECK_SITE_KEY` variable in each environment, once App Check is set up (`docs/OPERATIONS.md`).
 - **Repository secret:** `EXPO_TOKEN` (expo.dev > Account > Access tokens) for preview mobile builds.
@@ -74,7 +74,7 @@ Use the dev key only in `development` and the prod key only in `production`, so 
 
 ## Releasing to production
 
-1. **Merge to `main`.** CI runs, then **Deploy to dev** puts it on https://siteflow-dev-gh.web.app.
+1. **Merge to `main`.** CI runs, then **Deploy to dev** puts it on https://siteflow-dp-dev.web.app.
 2. **Check it on dev** with a test company.
 3. **Start the deploy.** Actions > **Deploy to production** > Run workflow. Type `deploy production`; optionally give the commit to deploy (it defaults to the latest `main`).
 4. **Approve it.** An approver approves the waiting deployment on the run page.
