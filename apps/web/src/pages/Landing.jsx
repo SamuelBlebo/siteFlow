@@ -11,9 +11,26 @@ const TIER_LINES = {
   enterprise: 'For larger firms: equipment, client portal, audit trail and links to your accounts system.',
 };
 
+// Product areas, grouped the way construction platforms usually are
+const PILLARS = [
+  { title: 'Project management', text: 'Plan the work, track progress and keep everyone on the latest information.',
+    tools: [['Daily reports and photos'], ['Programme and milestones'], ['Issues and site problems'], ['Drawings and documents', true], ['RFIs', true], ['Submittals', true], ['Meetings', true]] },
+  { title: 'Financial management', text: 'Know where the money goes before it runs ahead of the work.',
+    tools: [['Budgets and cost tracking'], ['Spend against plan, week by week'], ['Change orders', true], ['Subcontractors and retention', true], ['Client billing', true]] },
+  { title: 'Field and workforce', text: 'Simple tools for the site team, on any phone, with or without signal.',
+    tools: [['Attendance and wage sheets'], ['Materials and stock alerts'], ['Offline phone app'], ['Equipment', true]] },
+  { title: 'Quality and safety', text: 'Catch defects and hazards early, and keep the record.',
+    tools: [['Issues with priorities and owners'], ['Inspections and checklists', true], ['Punch lists', true], ['Incidents and toolbox talks', true]] },
+];
+const AUDIENCE = [
+  { title: 'Building contractors', text: 'Houses, estates, offices and schools. Keep several sites on programme and on budget with daily reports from every foreman.' },
+  { title: 'Road and civil contractors', text: 'Roads, drainage, culverts and bridges. Track crews, plant and materials across long, spread-out sites.' },
+  { title: 'Developers and project owners', text: 'See progress, photos and spending on every project you are paying for, without chasing anyone on the phone.' },
+];
+
 // The public front page for people who are not signed in: what SiteFlow does, how it looks, and how to start
 export default function Landing() {
-  useTitle('Construction management for Ghanaian contractors');
+  useTitle('Construction project management for Ghanaian contractors');
   const core = MODULES.filter((m) => m.tier === 'core');
   return (
     <div className="lp">
@@ -21,7 +38,9 @@ export default function Landing() {
         <div className="lp-in">
           <Brand />
           <nav aria-label="Page">
-            <a href="#features">Features</a>
+            <a href="#products">Products</a>
+            <a href="#who">Who it's for</a>
+            <a href="#features">See it</a>
             <a href="#how">How it works</a>
             <a href="#plans">Plans</a>
           </nav>
@@ -36,10 +55,11 @@ export default function Landing() {
         <section className="lp-hero">
           <div className="lp-in lp-hero-in">
             <div className="lp-hero-text">
-              <p className="lp-kicker">Construction management, built in Ghana</p>
-              <h1>Every site, every day, on one screen.</h1>
-              <p className="lp-lead">Daily reports with photos, attendance and wages, materials and budgets. Your foreman sends them from the phone,
-                even without signal, and you see every project from the office, with the problems flagged before they cost you money.</p>
+              <p className="lp-kicker">Construction project management, built in Ghana</p>
+              <h1>Run every construction project from one place.</h1>
+              <p className="lp-lead">One platform for the office and the site: programmes and progress, budgets and costs, daily reports, labour,
+                materials and issues. Your site team works from the phone, even without signal, and you see every project live, with problems
+                flagged before they cost you money.</p>
               <div className="lp-cta">
                 <Link to="/signup" className="btn gold lp-big">Create your company account</Link>
                 <Link to="/login" className="btn lp-big lp-ghost-dark">Sign in</Link>
@@ -56,6 +76,39 @@ export default function Landing() {
         <section className="lp-strip" aria-label="Highlights">
           <div className="lp-in">
             {['Works without signal on site', 'WhatsApp and email reminders', 'Cedis, Ghana time, local trades', 'Houses, roads, civil works and fit-outs'].map((t) => <span key={t}>{t}</span>)}
+          </div>
+        </section>
+
+        <section id="products" className="lp-section lp-products">
+          <div className="lp-in">
+            <h2>One platform for the whole project</h2>
+            <p className="lp-sub">Office, site and money in one place, instead of WhatsApp groups, paper reports and spreadsheets.
+              Switch on the tools you need; they all share the same projects, people and data.</p>
+            <div className="lp-pillars">
+              {PILLARS.map((p) => (
+                <div key={p.title} className="lp-pillar">
+                  <h3>{p.title}</h3>
+                  <p className="muted">{p.text}</p>
+                  <ul>
+                    {p.tools.map(([name, soon]) => <li key={name}>{name}{soon && <small> (coming soon)</small>}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="who" className="lp-section lp-who">
+          <div className="lp-in">
+            <h2>Built for the people who build</h2>
+            <div className="lp-audience">
+              {AUDIENCE.map((a) => (
+                <div key={a.title} className="lp-aud">
+                  <h3>{a.title}</h3>
+                  <p className="muted">{a.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -138,7 +191,7 @@ export default function Landing() {
       <footer className="lp-foot">
         <div className="lp-in">
           <Brand />
-          <span className="muted small">Construction management for Ghanaian contractors. © {new Date().getFullYear()} Digital Prime.</span>
+          <span className="muted small">Construction project management for Ghanaian contractors. © {new Date().getFullYear()} Digital Prime.</span>
           <nav aria-label="Footer"><Link to="/login">Sign in</Link><Link to="/signup">Create account</Link><Link to="/photo-credits">Photo credits</Link></nav>
         </div>
       </footer>

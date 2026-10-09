@@ -619,3 +619,18 @@ main:focus { outline: none; }
   .lp-feature { margin-bottom: 56px; }
   .lp-feature-shot .lp-phone { right: -6px; bottom: -18px; }
 }
+.lp-products { background: var(--surface); border-bottom: 1px solid var(--line); }
+.lp-pillars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
+.lp-pillar { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 20px; border-top: 4px solid var(--brass); }
+.lp-pillar h3 { font-size: 17px; }
+.lp-pillar p { font-size: 14px; margin: 8px 0 12px; }
+.lp-pillar ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; font-size: 14px; }
+.lp-pillar li::before { content: "✓"; color: var(--ok); font-weight: 700; margin-right: 8px; }
+.lp-pillar small { color: var(--muted); }
+.lp-who { padding-bottom: 24px; }
+.lp-audience { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+.lp-aud { background: var(--navy); color: var(--on-navy); border-radius: 14px; padding: 22px; }
+.lp-aud h3 { color: #fff; font-size: 18px; }
+.lp-aud p { color: var(--on-navy-muted) !important; margin-top: 8px; }
+@media (max-width: 1100px) { .lp-pillars { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .lp-pillars, .lp-audience { grid-template-columns: 1fr; } }
