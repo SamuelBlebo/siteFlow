@@ -3,6 +3,7 @@
   --steel: #2F4A57; --steel-ink: #FFFFFF; --tape: #F2B705; --tape-dark: #1D262A;
   --ok: #2E7D4F; --okbg: #E3F0E7; --bad: #B7352A; --badbg: #F8E4E1; --warn: #8A6400; --warnbg: #FBF0CC;
   /* type: Geist for titles and headings, Inter for everything else (UI, tables, forms, figures) */
+  --font-logo: Goldman, var(--font-display);
   --font-display: Geist, Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   /* chart colours: status (ok / bad / neutral) and a one-hue red scale for issue priority */
   --c-ok: #2E7D4F; --c-bad: #B7352A; --c-none: #A9B3B6; --c-done: #2F4A57;
@@ -37,9 +38,9 @@ button { cursor: pointer; }
 /* bar */
 .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
 .bar-in { max-width: 1160px; margin: 0 auto; display: flex; align-items: center; gap: 20px; padding: 10px 20px; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 10px; font: 700 21px/1 "Barlow Semi Condensed", Barlow, sans-serif; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 20px/1 var(--font-logo); text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
 .brand i { width: 22px; height: 22px; border-radius: 4px; background: repeating-linear-gradient(-45deg, var(--tape) 0 5px, var(--tape-dark) 5px 10px); }
-.brand.big { font-size: 30px; justify-content: center; margin-bottom: 20px; }
+.brand.big { font-size: 28px; justify-content: center; margin-bottom: 20px; }
 .brand.big i { width: 30px; height: 30px; }
 .nav { display: flex; gap: 4px; }
 .nav a { text-decoration: none; color: var(--muted); padding: 6px 12px; border-radius: 6px; font-weight: 500; }
@@ -292,7 +293,6 @@ button.chip { cursor: pointer; }
 .spark { list-style: none; padding: 0; margin: 8px 0; display: flex; align-items: flex-end; gap: 3px; height: 80px; }
 .spark li { flex: 1; height: 100%; display: flex; align-items: flex-end; background: var(--sunk); border-radius: 2px; }
 .spark li span { display: block; width: 100%; background: var(--steel); border-radius: 2px; min-height: 1px; }
-.big { font: 600 34px/1.1 var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; margin: 6px 0; }
 
 /* shared helpers (Stage 13): use these instead of inline styles */
 .m0 { margin: 0 !important; }
