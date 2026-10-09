@@ -43,7 +43,7 @@ export default function Signup() {
 
   return (
     <div className="auth">
-      <Brand big />
+      <Brand big home />
       <form className="form card" onSubmit={submit}>
         <h1>Create your company account</h1>
         {err && <p className="err" role="alert">{err}</p>}

@@ -32,7 +32,7 @@ export default function Login() {
 
   return (
     <div className="auth">
-      <Brand big />
+      <Brand big home />
       <form className="form card" onSubmit={submit}>
         <h1>Sign in</h1>
         {msg && <p className="err" role="alert">{msg}</p>}

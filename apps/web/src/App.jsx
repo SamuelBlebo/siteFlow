@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './auth/AuthProvider';
@@ -19,6 +19,7 @@ const Modules = lazy(() => import('./pages/Modules'));
 const Reminders = lazy(() => import('./pages/Reminders'));
 const Welcome = lazy(() => import('./pages/Welcome'));
 const PhotoCredits = lazy(() => import('./pages/PhotoCredits'));
+const Landing = lazy(() => import('./pages/Landing'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NewSite = lazy(() => import('./pages/NewSite'));
 const Sites = lazy(() => import('./pages/Sites'));
@@ -36,8 +37,10 @@ const SiteWorkspace = lazy(() => import('./pages/SiteWorkspace'));
 // Hiding a page is only convenience: the security rules enforce the same permissions.
 function Guard({ perm, children }) {
   const { user, profile, loading, error, active, can } = useAuth();
+  const { pathname } = useLocation();
   if (loading) return <Loading />;
-  if (!user) return <Navigate to="/login" replace />;
+  // Visitors who are not signed in see the public front page at the home address
+  if (!user) return pathname === '/' ? <Landing /> : <Navigate to="/login" replace />;
   if (error) return <section className="wrap narrow"><ErrorState error={error} what="your account" onRetry={() => window.location.reload()} /></section>;
   if (!profile) return <FinishSetup />;
   if (!active) {
