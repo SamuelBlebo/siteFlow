@@ -1,10 +1,6 @@
-// The SiteFlow mark (a house in a brass tile) and the wordmark
+// The SiteFlow mark (yellow-and-black hazard tape) and the wordmark
 export function Mark() {
-  return (
-    <span className="mark" aria-hidden="true">
-      <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6"><path d="M2 14V7l6-4 6 4v7" /><path d="M6 14V9h4v5" /></svg>
-    </span>
-  );
+  return <span className="mark" aria-hidden="true" />;
 }
 
 export default function Brand({ big }) {

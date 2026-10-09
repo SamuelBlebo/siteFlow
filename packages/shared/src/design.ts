@@ -2,7 +2,7 @@
 // by a test) and the mobile app (theme.js). Change a colour here and in styles.css together.
 //
 // The look (from the product prototype): cool light-grey ground, a navy sidebar and headers,
-// brass gold for the brand mark, the main call to action and "you are here", navy-steel for
+// the yellow-and-black hazard-tape logo mark, brass gold for the main call to action and "you are here", navy-steel for
 // links and secondary actions, and green / amber / red only for status.
 
 export const COLORS = {
@@ -10,6 +10,7 @@ export const COLORS = {
   steel: '#18303F', steelInk: '#FFFFFF',
   navy: '#0F1D27', navy2: '#18303F', onNavy: '#E9EEF1', onNavyMuted: '#93A6B3',
   brass: '#B98D45', brassInk: '#FFFFFF', brassSoft: '#F4EBDB',
+  tape: '#F2B705', tapeDark: '#1D262A', // the logo mark (same in dark mode)
   ok: '#1E7A55', okbg: '#E2F2EA', bad: '#B3372B', badbg: '#F9E6E3', warn: '#8F6310', warnbg: '#FAF0D9',
 } as const;
 

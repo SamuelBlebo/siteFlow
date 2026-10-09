@@ -3,6 +3,7 @@
   --steel: #18303F; --steel-ink: #FFFFFF;
   --navy: #0F1D27; --navy2: #18303F; --on-navy: #E9EEF1; --on-navy-muted: #93A6B3;
   --brass: #B98D45; --brass-ink: #FFFFFF; --brass-soft: #F4EBDB;
+  --tape: #F2B705; --tape-dark: #1D262A;
   --ok: #1E7A55; --okbg: #E2F2EA; --bad: #B3372B; --badbg: #F9E6E3; --warn: #8F6310; --warnbg: #FAF0D9;
   --shadow: 0 1px 2px rgba(14, 26, 34, .05), 0 8px 24px rgba(14, 26, 34, .06);
   /* type: Goldman for the logo, Archivo Expanded for titles and headings, Inter for everything else (UI, tables, forms, figures) */
@@ -53,13 +54,11 @@ button { cursor: pointer; }
 .pad { padding: 40px 20px; text-align: center; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
-/* brand: brass house mark and the Goldman wordmark */
+/* brand: the hazard-tape mark and the Goldman wordmark */
 .brand { display: flex; align-items: center; gap: 10px; font: 700 19px/1 var(--font-logo); text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; color: inherit; text-decoration: none; }
-.mark { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, var(--brass), #8C6A33); display: grid; place-items: center; flex: none; }
-.mark svg { width: 16px; height: 16px; }
+.mark { width: 26px; height: 26px; border-radius: 5px; background: repeating-linear-gradient(-45deg, var(--tape) 0 5px, var(--tape-dark) 5px 10px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); flex: none; display: block; }
 .brand.big { font-size: 28px; justify-content: center; margin-bottom: 20px; color: var(--ink); }
-.brand.big .mark { width: 36px; height: 36px; border-radius: 9px; }
-.brand.big .mark svg { width: 20px; height: 20px; }
+.brand.big .mark { width: 34px; height: 34px; border-radius: 6px; background: repeating-linear-gradient(-45deg, var(--tape) 0 7px, var(--tape-dark) 7px 14px); }
 
 /* app shell: navy sidebar + main column */
 .shell { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); min-height: 100dvh; }
@@ -421,8 +420,7 @@ main:focus { outline: none; }
 .pcell { display: flex; align-items: center; gap: 12px; }
 .pthumb { width: 52px; height: 38px; border-radius: 7px; overflow: hidden; flex: none; background: var(--navy2); display: grid; place-items: center; }
 .pthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.pthumb .mark { width: 20px; height: 20px; border-radius: 5px; }
-.pthumb .mark svg { width: 12px; height: 12px; }
+.pthumb .mark { width: 20px; height: 20px; border-radius: 4px; background: repeating-linear-gradient(-45deg, var(--tape) 0 4px, var(--tape-dark) 4px 8px); }
 .ring { display: block; flex: none; }
 .ring text { font: 600 9px var(--font-ui); fill: var(--ink); }
 .mbar { height: 6px; background: var(--sunk); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; width: 110px; }

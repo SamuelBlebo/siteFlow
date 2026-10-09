@@ -20,7 +20,8 @@ The look follows the product prototype (claude.ai artifact "SiteFlow", Owner / S
 Colour meaning:
 
 - **Navy:** the sidebar, header bars and the plan banner.
-- **Brass gold:** the brand mark, the main call to action on a page (`.btn.gold`, e.g. New project) and "you are here" (current nav item, current tab).
+- **Hazard tape (yellow and black):** the logo mark only (`--tape`, `--tape-dark`, the same in dark mode).
+- **Brass gold:** the main call to action on a page (`.btn.gold`, e.g. New project) and "you are here" (current nav item, current tab).
 - **Ink:** ordinary buttons (`.btn`); `.btn.ghost` for secondary ones. Navy-steel for links.
 - **Green / amber / red:** only for status: done or on track, needs attention, problem or overdue.
 - **Charts:** `--c-done` (navy, pale steel in dark mode) for quantities, brass for money and plan lines, status colours only for status.
@@ -39,7 +40,7 @@ Type: Goldman for the wordmark only, Archivo Expanded for page titles and headin
 | Sections | `<Tabs tabs value onChange>{panel}</Tabs>` | bottom tabs |
 | Photos | file input + `PhotoViewer` | `<PhotoPicker>` |
 | Page title bar | `<PageHead title sub>{actions}</PageHead>` | stack header (navy) |
-| Brand | `<Brand big />`, `<Mark />` | brass mark on the login screen |
+| Brand | `<Brand big />`, `<Mark />` (hazard-tape square) | tape mark on the login screen |
 | Headline numbers | `<dl className="tiles">` of `.tile` (dt, dd, `.foot` with `.delta.up/.dn/.nt` and `<Spark>`) | – |
 | Dashboard sections | `.dgrid` with `.panel.c4`…`.c12` (`.panel-h` for title, line and count) | `<Card>` |
 | Progress | `<Ring pct>` | – |
