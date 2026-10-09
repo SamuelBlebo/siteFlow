@@ -4,9 +4,10 @@ import { useDoc, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyIssuesQuery, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
   activityFeed, budgetUsedPct, cedi, dailyTotals, daysBetweenKeys, issueFlow, longToday, materialStatus, prettyDate, recentWorkDays,
-  reportCompliance, scheduleStatus, siteAlerts, siteFinanceSummary, todayKey,
+  BUDGET_WARN_PCT, ISSUE_PRIORITIES, ISSUE_PRIORITY_LABELS, reportCompliance, scheduleStatus, siteAlerts, siteFinanceSummary, todayKey,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
+import { Columns, Donut, Gauge } from '../components/Charts';
 import StatusPill from '../components/StatusPill';
 import { ScheduleBadge } from '../components/ProgressPanel';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -68,6 +69,10 @@ export default function Dashboard() {
   const maxWorkers = Math.max(0, ...perDay.map((d) => d.workers));
   const spentAll = active.reduce((n, s) => n + (finance[s.id]?.spent || 0), 0);
   const budgetAll = active.reduce((n, s) => n + (finance[s.id]?.budget || 0), 0);
+  const usedPct = budgetAll ? Math.round((spentAll / budgetAll) * 100) : null;
+  const states = active.map((s) => scheduleStatus(s, milestones[s.id] || []).state);
+  const countState = (...k) => states.filter((x) => k.includes(x)).length;
+  const prioColor = { critical: 'var(--c-p1)', high: 'var(--c-p2)', medium: 'var(--c-p3)', low: 'var(--c-p4)' };
   const sentPct = Math.round((Object.values(compliance).reduce((n, c) => n + c.sent, 0) / Math.max(1, DAYS * reporting.length)) * 100);
 
   return (
@@ -77,13 +82,36 @@ export default function Dashboard() {
         {can('sites.manage') && <Link to="/sites/new" className="btn ghost">Add a site</Link>}
       </div>
 
-      <dl className="strip">
-        <div><dt>Daily reports in</dt><dd>{reportsIn} of {reporting.length}</dd></div>
-        <div><dt>Workers on site today</dt><dd>{workers}</dd></div>
-        <div><dt>Open issues</dt><dd><Link to="/issues">{openIssues.length}</Link>{criticalOpen ? <small className="neg"> {criticalOpen} critical</small> : null}</dd></div>
-        <div><dt>Sites behind programme</dt><dd>{behind}</dd></div>
-        {money && <div><dt>Spent of budget</dt><dd>{budgetAll ? `${Math.round((spentAll / budgetAll) * 100)}%` : cedi(spentAll)}</dd></div>}
+      <dl className="kpis">
+        <div className="kpi"><dt>Daily reports in</dt><dd>{reportsIn}<small className="muted"> of {reporting.length}</small></dd>
+          <div className="meter"><span style={{ width: `${reporting.length ? (reportsIn / reporting.length) * 100 : 0}%` }} /></div></div>
+        <div className="kpi"><dt>Workers on site today</dt><dd>{workers}</dd><span className="kpi-note">From today's attendance</span></div>
+        <div className={`kpi ${criticalOpen ? 'alert' : ''}`}><dt>Open issues</dt><dd><Link to="/issues">{openIssues.length}</Link></dd>
+          <span className="kpi-note">{criticalOpen ? <span className="neg">{criticalOpen} critical</span> : 'None critical'}</span></div>
+        <div className={`kpi ${behind ? 'alert' : ''}`}><dt>Sites behind programme</dt><dd>{behind}<small className="muted"> of {active.length}</small></dd>
+          <span className="kpi-note">Against planned progress</span></div>
+        {money && <div className="kpi"><dt>Spent of budget</dt><dd>{usedPct != null ? `${usedPct}%` : cedi(spentAll)}</dd>
+          <span className="kpi-note">{cedi(spentAll)}{budgetAll ? ` of ${cedi(budgetAll)}` : ''}</span></div>}
       </dl>
+
+      <div className="charts">
+        <section className="card"><Donut title="Today's reports" totalLabel="sites" parts={[
+          { label: 'Sent', value: reportsIn, color: 'var(--c-ok)' },
+          { label: 'Missing', value: reporting.length - reportsIn, color: 'var(--c-bad)' },
+          { label: 'On hold', value: active.length - reporting.length, color: 'var(--c-none)' },
+        ]} /></section>
+        <section className="card"><Donut title="Open issues by priority" totalLabel="open" empty="No open issues." parts={
+          ISSUE_PRIORITIES.map((p) => ({ label: ISSUE_PRIORITY_LABELS[p], value: openIssues.filter((i) => i.priority === p).length, color: prioColor[p] }))
+        } /></section>
+        <section className="card"><Donut title="Sites against programme" totalLabel="sites" parts={[
+          { label: 'On track or ahead', value: countState('on_track', 'ahead'), color: 'var(--c-ok)' },
+          { label: 'Behind', value: countState('behind'), color: 'var(--c-bad)' },
+          { label: 'Finished', value: countState('finished'), color: 'var(--c-done)' },
+          { label: 'No plan dates', value: countState('no_plan'), color: 'var(--c-none)' },
+        ]} /></section>
+        {money && budgetAll > 0 && <section className="card"><Gauge title="Budget used" pct={usedPct} value={`${usedPct}%`} hot={usedPct >= BUDGET_WARN_PCT}
+          note={`${cedi(spentAll)} spent of ${cedi(budgetAll)} across active sites.`} /></section>}
+      </div>
 
       <div className="dash-grid">
         <AlertsPanel alerts={alerts} />
@@ -147,21 +175,14 @@ export default function Dashboard() {
 
       <h2 className="sec">Last two weeks</h2>
       <div className="dash-grid three">
-        <section className="card">
-          <h3>Workers reported on site</h3>
-          <ul className="spark" aria-label="Workers reported on site per working day">
-            {perDay.map((d) => (
-              <li key={d.date} title={`${prettyDate(d.date)}: ${d.workers} workers in ${d.reports} report${d.reports === 1 ? '' : 's'}`}>
-                <span style={{ height: `${maxWorkers ? (d.workers / maxWorkers) * 100 : 0}%` }} />
-              </li>
-            ))}
-          </ul>
+        <section className="card span2">
+          <Columns title="Workers reported on site" unit="workers"
+            data={perDay.map((d) => ({ key: d.date, value: d.workers, label: prettyDate(d.date).replace(/^w+,?s*/, ''), tip: `${prettyDate(d.date)}, ${d.reports} report${d.reports === 1 ? '' : 's'}` }))} />
           <p className="hint">{prettyDate(perDay[0].date)} to today. Busiest day: {maxWorkers} workers.</p>
         </section>
         <section className="card">
-          <h3>Daily reports sent</h3>
-          <p className="big">{sentPct}%</p>
-          <p className="hint">of expected reports on working days (Sundays not counted). Sites below 70% are marked in the table.</p>
+          <Gauge title="Daily reports sent" pct={sentPct} value={`${sentPct}%`} hot={sentPct < 70}
+            note="Of expected reports on working days (Sundays not counted). Sites below 70% are marked in the table." />
         </section>
         <section className="card">
           <h3>Issues, last 30 days</h3>
