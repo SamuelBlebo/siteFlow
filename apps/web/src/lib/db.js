@@ -40,6 +40,8 @@ export const activityQuery = (cid, n = 20) => query(collection(db, paths.activit
 export const updateMyProfile = (uid, { name, phone }) => updateDoc(userDoc(uid), { name, phone, updatedAt: serverTimestamp() });
 export const clearMustChangePassword = (uid) => updateDoc(userDoc(uid), { mustChangePassword: false, updatedAt: serverTimestamp() });
 export const updateCompany = (cid, { name, phone, location }) => updateDoc(companyDoc(cid), { name, phone, location, updatedAt: serverTimestamp() });
+// Owner: country, currency and time zone (validated companyLocaleInput)
+export const updateCompanyLocale = (cid, { country, currency, timeZone }) => updateDoc(companyDoc(cid), { country, currency, timeZone, updatedAt: serverTimestamp() });
 
 // ---------- writes ----------
 // Each returns the Firestore promise. Wrap calls in save() from ./save so failures reach the user.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate } from '@siteflow/shared';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useTitle } from '../lib/hooks';
 import { companyDoc, updateMyProfile } from '../lib/db';
@@ -49,7 +49,7 @@ export default function Account() {
         {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
         <div className="grid2">
           <div className="field"><label htmlFor="a-n">Name</label><input id="a-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
-          <div className="field"><label htmlFor="a-p">WhatsApp number</label><input id="a-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="024 000 0000" />
+          <div className="field"><label htmlFor="a-p">WhatsApp number</label><input id="a-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder={getLocale().phoneExample} />
             <p className="hint">Used for SiteFlow alerts on WhatsApp.</p></div>
         </div>
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>

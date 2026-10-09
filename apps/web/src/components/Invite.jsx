@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, friendlyError, inviteInput, isSiteScoped, validate, waPhone } from '@siteflow/shared';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, friendlyError, inviteInput, isSiteScoped, validate, waPhone, getLocale } from '@siteflow/shared';
 import { team } from '../lib/account';
 
 // Adding a team member (Team page and the setup steps), and the login to pass on to them
@@ -53,7 +53,7 @@ export function InviteForm({ roles, sites, onInvited }) {
       <div className="grid3">
         <div className="field"><label htmlFor="t-n">Name</label><input id="t-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
         <div className="field"><label htmlFor="t-e">Email (used to sign in)</label><input id="t-e" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
-        <div className="field"><label htmlFor="t-p">WhatsApp number</label><input id="t-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="024 000 0000" /></div>
+        <div className="field"><label htmlFor="t-p">WhatsApp number</label><input id="t-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder={getLocale().phoneExample} /></div>
       </div>
       <div className="field"><label htmlFor="t-r">Role</label>
         <select id="t-r" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>

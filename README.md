@@ -75,6 +75,17 @@ Owners also get **Modules** (switch built modules on or off; the `setModule` fun
 built yet show as Coming soon) and **Reminders** (which alerts go by WhatsApp and email, and the message log). Materials, Labour
 and Budget screens follow the modules, on web and mobile; switching a module off keeps its data.
 
+## Countries, currency and time zone
+SiteFlow works in any country (`packages/shared/src/locale.ts`: Ghana, Nigeria, Kenya, South Africa and 28 more). Each company picks its
+country at sign-up (guessed from the device), which sets its **currency**, **time zone** and **dialling code**; the owner can change all
+three on the Company page. Companies from before this have none stored and count as Ghana.
+- **Apps:** the signed-in company is loaded with the profile and `setLocale()` is called before screens render, so `money()` / `big()`,
+  `todayKey()`, form labels like "Budget (KSh)" and phone examples all follow it.
+- **Server:** passes each company's currency and time zone explicitly (one function instance serves many companies). The missing-report
+  reminder and weekly summary run every hour and act at 6 pm (Monday to Saturday) and 5 pm Friday in each company's own time zone.
+- **Phone numbers:** any country, local or international. WhatsApp turns local numbers into international ones with the company's code.
+- **Sample projects** move to the company's country: its cities, local names, and money scaled to its currency.
+
 ## Onboarding and sample projects
 - **Sign-up** opens **Set up SiteFlow** (`/welcome`): company details, features (modules), the team, then the first project. Every step can be skipped and reopened from Company.
 - **Getting started** on the dashboard: company details, first project, team, first daily report, budget. Worked out from real data; it disappears when done, or with Hide (per browser).

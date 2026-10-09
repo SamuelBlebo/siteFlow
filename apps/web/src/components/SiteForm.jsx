@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import StageField from './StageField';
-import { STAGES, siteDetailsInput, siteInput, validate } from '@siteflow/shared';
+import { STAGES, siteDetailsInput, siteInput, validate, currencySymbol, getLocale } from '@siteflow/shared';
 
 // Site details form, for a new site (withBudget) and for site settings
 export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, onSubmit }) {
@@ -29,8 +29,8 @@ export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, 
   return (
     <form className="form card" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
-      {input('sf-n', 'Site or project name', 'name', { placeholder: 'e.g. Adenta 4-bedroom house, Kasoa road phase 2' })}
-      {input('sf-l', 'Location', 'location', { placeholder: 'e.g. Adenta, Accra' })}
+      {input('sf-n', 'Site or project name', 'name', { placeholder: `e.g. ${getLocale().cities[0].split(',')[0]} 4-bedroom house, ${getLocale().cities[2].split(',')[0]} road phase 2` })}
+      {input('sf-l', 'Location', 'location', { placeholder: `e.g. ${getLocale().cities[0]}` })}
       <div className="grid2">
         <StageField id="sf-s" withType value={f.stage} onChange={(stage) => setF((x) => ({ ...x, stage }))} />
       </div>
@@ -40,14 +40,14 @@ export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, 
       </div>
       {withBudget && (
         <>
-          {input('sf-b', 'Budget (GH₵)', 'budget', { type: 'number', min: 0 })}
+          {input('sf-b', `Budget (${currencySymbol()})`, 'budget', { type: 'number', min: 0 })}
           <p className="hint">The budget is only shown to owners, admins, project managers and finance.</p>
         </>
       )}
       <h3 className="sub">Foreman on site</h3>
       <div className="grid3">
         {input('sf-fn', 'Name', 'foremanName')}
-        {input('sf-fp', 'WhatsApp number', 'foremanPhone', { type: 'tel', placeholder: '024 000 0000' })}
+        {input('sf-fp', 'WhatsApp number', 'foremanPhone', { type: 'tel', placeholder: getLocale().phoneExample })}
         {input('sf-fe', 'Email', 'foremanEmail', { type: 'email' })}
       </div>
       <h3 className="sub">Client</h3>

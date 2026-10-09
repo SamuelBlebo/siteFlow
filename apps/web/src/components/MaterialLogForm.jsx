@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { logMaterial } from '../lib/db';
 import { save, savedText } from '../lib/save';
-import { materialLogInput, validate } from '@siteflow/shared';
+import { materialLogInput, validate, currencySymbol } from '@siteflow/shared';
 import { Empty } from './States';
 
 // Record what was used or received. Deliveries take supplier, waybill and (finance roles) cost.
@@ -58,7 +58,7 @@ export default function MaterialLogForm({ cid, sid, materials }) {
         <div className="grid3">
           <div className="field"><label htmlFor="m-s">Supplier</label><input id="m-s" value={f.supplier} onChange={set('supplier')} placeholder="e.g. Ghacem depot, Tema" /></div>
           <div className="field"><label htmlFor="m-r">Waybill or invoice no.</label><input id="m-r" value={f.ref} onChange={set('ref')} /></div>
-          {withCost && <div className="field"><label htmlFor="m-c">Total cost (GH₵)</label><input id="m-c" type="number" min="0" value={f.cost} onChange={set('cost')} /></div>}
+          {withCost && <div className="field"><label htmlFor="m-c">Total cost ({currencySymbol()})</label><input id="m-c" type="number" min="0" value={f.cost} onChange={set('cost')} /></div>}
         </div>
       ) : (
         <div className="field"><label htmlFor="m-n">Used for (optional)</label><input id="m-n" value={f.note} onChange={set('note')} placeholder="e.g. Column casting, first floor" /></div>

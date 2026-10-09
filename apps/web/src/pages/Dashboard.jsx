@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useExpenses, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
-  big, budgetUsedPct, cedi, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
+  big, budgetUsedPct, cedi, getLocale, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
   scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
@@ -276,7 +276,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             ) : <p className="empty mt-sm">{period === 'today' ? 'No reports yet today.' : 'No reports in this period.'}</p>}
           </section>
         </div>
-        {money && spentAll > 0 && <p className="hint mt">Figures in cedis. Spending comes from recorded expenses ({cedi(spentAll)} in total across active projects).</p>}
+        {money && spentAll > 0 && <p className="hint mt">Figures in {getLocale().currency}. Spending comes from recorded expenses ({cedi(spentAll)} in total across active projects).</p>}
       </div>
     </>
   );

@@ -81,3 +81,37 @@ describe('sample projects on any day', () => {
     }
   });
 });
+
+describe('sample projects in other countries', () => {
+  const ke = buildDemo({ companyId: 'c', photoBase: 'x', now, country: 'KE' });
+  const gh = buildDemo({ companyId: 'c', photoBase: 'x', now });
+  it('use the country\x27s places and the company name on every record', () => {
+    expect(ke.map((s) => s.site.location)).toEqual(['Karen, Nairobi', 'Westlands, Nairobi', 'Athi River, Machakos']);
+    expect(ke[1].site.name).toBe('Westlands office complex');
+    expect(ke[1].reports.every((r) => r.doc.siteName === 'Westlands office complex')).toBe(true);
+    expect(ke[2].issues.every((r) => r.doc.siteName === ke[2].site.name)).toBe(true);
+  });
+  it('scale money to the currency and round it like real prices, keeping the same story', () => {
+    const ratio = ke[0].finance.budget / gh[0].finance.budget;
+    expect(ratio).toBeGreaterThan(10); expect(ratio).toBeLessThan(13); // about 129 KSh to 11 GH₵
+    expect(String(ke[0].finance.budget)).toMatch(/^\d{2}0+$/);           // two significant figures
+    expect(ke[0].expenses.every((e) => (e.doc.amount as number) > 0)).toBe(true);
+    expect(ke[0].materialLogs.every((l) => !String(l.doc.supplier).includes('Ghacem'))).toBe(true);
+    expect(ke.map((s) => s.materials.map((m) => m.doc.stock))).toEqual(gh.map((s) => s.materials.map((m) => m.doc.stock)));
+  });
+});
+
+describe('sample people', () => {
+  it('foremen and crews have local names in every record, and Ghana keeps its own', () => {
+    const ke = buildDemo({ companyId: 'c', photoBase: 'x', now, country: 'KE' });
+    const gh = buildDemo({ companyId: 'c', photoBase: 'x', now });
+    expect(ke.map((s) => s.site.foremanName)).toEqual(['James Mwangi', 'Peter Otieno', 'Grace Wanjiku']);
+    expect(ke[0].workers[0].doc.name).toBe('Brian Kiprop');
+    const ghanaNames = new Set([...gh.map((s) => s.site.foremanName), ...gh.flatMap((s) => s.workers.map((w) => w.doc.name))]);
+    const anyName = (docs: { doc: Record<string, unknown> }[]) => docs.flatMap((d) => Object.entries(d.doc).filter(([k]) => k === 'name' || k.endsWith('Name')).map(([, v]) => v));
+    for (const s of ke) {
+      for (const v of [...anyName(s.reports), ...anyName(s.issues), ...anyName(s.expenses), ...anyName(s.materialLogs), ...anyName(s.workers)]) expect(ghanaNames.has(v as string), String(v)).toBe(false);
+    }
+    expect(gh[0].site.foremanName).toBe('Kwame Mensah');
+  });
+});

@@ -9,6 +9,7 @@ import { issueDoc } from './logic/issues';
 import { overallProgress, standardMilestones } from './logic/progress';
 import { materialsUsed, reportDoc, reportId } from './logic/reports';
 import { siteFields } from './logic/sites';
+import { DEFAULT_COUNTRY, countryOf, type Country } from './locale';
 import type { IssuePriority, IssueStatus, MaterialLogType } from './types';
 
 export const SAMPLE_PREFIX = 'sample-';
@@ -98,7 +99,7 @@ const PLANS: Plan[] = [
     work: ['Laid 60 m of precast kerbs on the left side, chainage 2+300 to 2+360.', 'Box culvert walls at chainage 2+150 cast.',
       'Excavated the drain trench, 45 m.', 'Compacted the laterite base on the service lane.', 'Wing walls for culvert C3 formed and poured.', 'Backfilled behind the new kerbs.'],
     issues: [
-      { title: 'Water main exposed during drain excavation', priority: 'high', category: 'Site condition', location: 'Chainage 2+410', status: 'open', daysAgo: 2, description: 'GWCL line found 0.8 m down. Work stopped on that stretch until GWCL confirms the depth.' },
+      { title: 'Water main exposed during drain excavation', priority: 'high', category: 'Site condition', location: 'Chainage 2+410', status: 'open', daysAgo: 2, description: 'A water main was found 0.8 m down. Work stopped on that stretch until the water company confirms the depth.' },
       { title: 'Traffic signs knocked down overnight', priority: 'medium', category: 'Safety', location: 'Diversion at 2+200', status: 'resolved', daysAgo: 6, description: 'Signs replaced and weighted down.' },
     ],
     weekly: { Equipment: 9800, Transport: 3600 },
@@ -120,7 +121,14 @@ export interface DemoSite {
 }
 
 // photoBase: where the sample photos are served, e.g. https://siteflow-dp-dev.web.app/demo
-export function buildDemo({ companyId, photoBase, now = new Date() }: { companyId: string; photoBase: string; now?: Date }): DemoSite[] {
+// The sample projects for a company: built with Ghana's figures, then moved to the company's country
+// (its cities, and money scaled to its currency so amounts look right there).
+export function buildDemo({ companyId, photoBase, now = new Date(), country = DEFAULT_COUNTRY }: { companyId: string; photoBase: string; now?: Date; country?: string }): DemoSite[] {
+  const base = buildGhana({ companyId, photoBase, now });
+  return country === DEFAULT_COUNTRY ? base : localiseDemo(base, countryOf(country));
+}
+
+function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: string; photoBase: string; now?: Date }): DemoSite[] {
   const today = key(now);
   return PLANS.map((p, pi) => {
     const r = rng(now.getFullYear() * 1000 + now.getMonth() * 40 + now.getDate() + pi * 7919);
@@ -274,3 +282,241 @@ export function buildDemo({ companyId, photoBase, now = new Date() }: { companyI
 
 // How old a sample record is, for its createdAt (so feeds and timelines read in order)
 export const sampleTime = (date: string, time = '17:00') => new Date(`${date}T${time}:00`).getTime() || Date.now() - DAY;
+
+// Money looks local: scaled from cedis by rough exchange rates, then rounded the way people quote
+// prices (3 significant figures; budgets 2). Names and places follow the country's cities.
+const nice = (n: number, sig = 3) => {
+  if (!(n > 0)) return 0;
+  const step = 10 ** Math.max(0, Math.floor(Math.log10(n)) - (sig - 1));
+  return Math.round(n / step) * step;
+};
+const place = (city: string) => city.split(',')[0];
+// People in the sample projects, by region (same order as the Ghana set: 3 foremen, then each crew)
+const PEOPLE: Record<string, string[]> = {
+  'west': [
+    'Chinedu Okafor',
+    'Babatunde Adeyemi',
+    'Ngozi Eze',
+    'Emeka Nwosu',
+    'Tunde Bakare',
+    'Ibrahim Musa',
+    'Femi Adebayo',
+    'Uche Obi',
+    'Sani Bello',
+    'Kelechi Udeh',
+    'Segun Ojo',
+    'Aliyu Danjuma',
+    'Yusuf Garba',
+    'Chioma Okeke',
+    'Bayo Alade',
+    'Obinna Eze',
+    'Musa Abdullahi',
+    'Ifeanyi Nnaji',
+    'Blessing Okon',
+    'Danladi Haruna',
+    'Funmi Ogunleye',
+    'Gbenga Akin'
+  ],
+  'east': [
+    'James Mwangi',
+    'Peter Otieno',
+    'Grace Wanjiku',
+    'Brian Kiprop',
+    'Joseph Kamau',
+    'Daniel Ochieng',
+    'Samuel Mutua',
+    'Faith Achieng',
+    'John Njoroge',
+    'Kevin Omondi',
+    'David Kariuki',
+    'Hassan Juma',
+    'Moses Wekesa',
+    'Mercy Chebet',
+    'Paul Mugo',
+    'Eric Barasa',
+    'Dennis Kibet',
+    'Joyce Nyambura',
+    'Collins Odhiambo',
+    'Isaac Maina',
+    'Felix Ruto',
+    'Ann Wairimu'
+  ],
+  'south': [
+    'Sipho Ndlovu',
+    'Thabo Mokoena',
+    'Lerato Dlamini',
+    'Bongani Khumalo',
+    'Mandla Zulu',
+    'Themba Nkosi',
+    'Kagiso Molefe',
+    'Nomsa Mthembu',
+    'Pieter van Wyk',
+    'Lwazi Mahlangu',
+    'Tshepo Sithole',
+    'Johan Botha',
+    'Vusi Mabaso',
+    'Zanele Ngcobo',
+    'Sibusiso Shabalala',
+    'Neo Phiri',
+    'Teboho Radebe',
+    'Ayanda Cele',
+    'Musa Banda',
+    'Kabelo Seabi',
+    'Ruan Pretorius',
+    'Palesa Mokoena'
+  ],
+  'mena': [
+    'Ahmed Hassan',
+    'Omar Khalil',
+    'Youssef Benali',
+    'Mohamed Ali',
+    'Khaled Mansour',
+    'Tariq Aziz',
+    'Hamza Saleh',
+    'Karim Haddad',
+    'Mustafa Nour',
+    'Ali Rahman',
+    'Samir Fathi',
+    'Rashid Omar',
+    'Bilal Yusuf',
+    'Nabil Kamal',
+    'Hassan Farouk',
+    'Imran Qureshi',
+    'Faisal Hamid',
+    'Walid Said',
+    'Adel Mahmoud',
+    'Zaid Kareem',
+    'Sami Darwish',
+    'Majid Salem'
+  ],
+  'southasia': [
+    'Rajesh Kumar',
+    'Imran Khan',
+    'Suresh Patel',
+    'Amit Sharma',
+    'Vikram Singh',
+    'Ravi Verma',
+    'Mohammed Asif',
+    'Sunil Yadav',
+    'Deepak Joshi',
+    'Arjun Reddy',
+    'Sanjay Gupta',
+    'Farhan Ali',
+    'Manoj Nair',
+    'Rahul Mehta',
+    'Ajay Chauhan',
+    'Kiran Rao',
+    'Naveen Pillai',
+    'Pradeep Das',
+    'Usman Tariq',
+    'Vijay Iyer',
+    'Harish Shetty',
+    'Anil Desai'
+  ],
+  'ph': [
+    'Jose Santos',
+    'Mark Reyes',
+    'Maria Cruz',
+    'Juan dela Cruz',
+    'Ramon Garcia',
+    'Paolo Bautista',
+    'Carlo Mendoza',
+    'Rodel Aquino',
+    'Jun Villanueva',
+    'Allan Ramos',
+    'Dennis Castillo',
+    'Rey Navarro',
+    'Arnel Torres',
+    'Jessa Flores',
+    'Noel Pascual',
+    'Ricky Domingo',
+    'Joel Fernandez',
+    'Gilbert Morales',
+    'Ronnie Salazar',
+    'Edwin Lopez',
+    'Ana Rivera',
+    'Marvin Gomez'
+  ],
+  'caribbean': [
+    'Andre Campbell',
+    'Marlon Brown',
+    'Keisha Williams',
+    'Devon Thompson',
+    'Ricardo Clarke',
+    'Shane Henry',
+    'Omar Gordon',
+    'Dwayne Morgan',
+    'Kemar Reid',
+    'Damian Lewis',
+    'Jermaine Grant',
+    'Ravi Maharaj',
+    'Kevin Ali',
+    'Tricia Joseph',
+    'Anthony Baptiste',
+    'Jason Charles',
+    'Rohan Persad',
+    'Dexter Phillip',
+    'Nigel Samuel',
+    'Curtis Bailey',
+    'Shanice Walker',
+    'Garfield Hall'
+  ],
+  'anglo': [
+    'Mike Thompson',
+    "Dave O'Connor",
+    'Sarah Mitchell',
+    'Tom Harris',
+    'Chris Walker',
+    'Liam Murphy',
+    'Jake Wilson',
+    'Emma Clarke',
+    'Ryan Hughes',
+    'Ben Taylor',
+    'Sean Kelly',
+    'Matt Robinson',
+    'Josh Turner',
+    'Kate Bennett',
+    'Dan Cooper',
+    'Luke Edwards',
+    'Sam Wright',
+    'Connor Doyle',
+    'Nick Stewart',
+    'Adam Price',
+    'Laura Brooks',
+    'Jack Morris'
+  ]
+};
+const REGION: Record<string, string> = {'NG':'west', 'SL':'west', 'LR':'west', 'GM':'west', 'CI':'west', 'SN':'west', 'CM':'west', 'KE':'east', 'UG':'east', 'TZ':'east', 'RW':'east', 'ET':'east', 'ZA':'south', 'ZM':'south', 'BW':'south', 'NA':'south', 'MW':'south', 'EG':'mena', 'MA':'mena', 'AE':'mena', 'SA':'mena', 'IN':'southasia', 'PK':'southasia', 'PH':'ph', 'JM':'caribbean', 'TT':'caribbean', 'GB':'anglo', 'IE':'anglo', 'US':'anglo', 'CA':'anglo', 'AU':'anglo'};
+function nameMap(code: string) {
+  const local = PEOPLE[REGION[code]];
+  if (!local) return new Map<string, string>();
+  const ghana = [...PLANS.map((p) => p.foremanName), ...PLANS.flatMap((p) => p.crew.map(([n]) => n))];
+  return new Map(ghana.map((n, i) => [n, local[i] ?? n]));
+}
+
+function localiseDemo(sites: DemoSite[], c: Country): DemoSite[] {
+  const ghana = countryOf(DEFAULT_COUNTRY);
+  const who = nameMap(c.code);
+  // Every name field on a record (createdByName, assignedToName, resolvedByName, a worker's name)
+  const rename = <T extends { doc: Record<string, unknown> }>(x: T): T => ({
+    ...x, doc: Object.fromEntries(Object.entries(x.doc).map(([key, v]) => [key, (key === 'name' || key.endsWith('Name')) && typeof v === 'string' && who.has(v) ? who.get(v) : v])),
+  });
+  const k = c.perUSD / ghana.perUSD;
+  const names = [`${place(c.cities[0])} 4-bedroom residence`, `${place(c.cities[1])} office complex`, `${place(c.cities[2])} road drainage, phase 2`];
+  const generic: Record<string, string> = { 'Ghacem depot, Tema': 'Cement depot', 'Kasoa building materials': 'Building materials yard', 'Department of Urban Roads': 'Roads authority' };
+  return sites.map((s, i) => {
+    const siteName = names[i] ?? (s.site.name as string);
+    const withName = <T extends { doc: Record<string, unknown> }>(x: T): T => { const r = rename(x); return { ...r, doc: { ...r.doc, ...('siteName' in r.doc ? { siteName } : {}) } }; };
+    const client = s.site.client as { name: string } | null;
+    return {
+      ...s,
+      site: { ...s.site, name: siteName, location: c.cities[i] ?? s.site.location, foremanName: who.get(s.site.foremanName as string) ?? s.site.foremanName, client: client ? { ...client, name: generic[client.name] ?? client.name } : null },
+      finance: { budget: nice(s.finance.budget * k, 2), budgetByCategory: Object.fromEntries(Object.entries(s.finance.budgetByCategory).map(([cat, v]) => [cat, nice(v * k, 2)])) },
+      workers: s.workers.map((w) => ({ ...rename(w), dailyRate: nice(w.dailyRate * k, 2) })),
+      materialLogs: s.materialLogs.map((l0) => rename(l0)).map((l) => ({ ...l, doc: { ...l.doc, cost: nice((l.doc.cost as number) * k), supplier: generic[l.doc.supplier as string] ?? l.doc.supplier } })),
+      expenses: s.expenses.map((e0) => rename(e0)).map((e) => ({ ...e, doc: { ...e.doc, amount: nice((e.doc.amount as number) * k), payee: generic[e.doc.payee as string] ?? e.doc.payee } })),
+      reports: s.reports.map(withName),
+      issues: s.issues.map(withName),
+    };
+  });
+}

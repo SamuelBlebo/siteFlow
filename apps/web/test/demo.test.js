@@ -5,7 +5,7 @@ import { getDoc, getDocs, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { SAMPLE_PREFIX } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
-import { createSite, financeDoc, notificationsQuery, siteDoc, sitesCol, sub } from '../src/lib/db';
+import { companyDoc, createSite, financeDoc, notificationsQuery, siteDoc, sitesCol, sub } from '../src/lib/db';
 import { changePassword, loadDemo, removeDemo, team } from '../src/lib/account';
 
 globalThis.navigator ??= {};
@@ -65,5 +65,20 @@ describe('sample projects', () => {
     expect((await getDocs(sub(cid, `${SAMPLE_PREFIX}legon`, 'reports'))).size).toBe(0);
     expect((await getDoc(siteDoc(cid, real))).exists()).toBe(true);
     expect((await getDoc(financeDoc(cid, `${SAMPLE_PREFIX}legon`))).exists()).toBe(false);
+  });
+});
+
+describe('a company in another country', () => {
+  it('gets its currency and time zone at sign-up, and sample projects in its own cities', async () => {
+    await signOut(auth);
+    const { user } = await createUserWithEmailAndPassword(auth, `ng-${run}@example.com`, 'naija-pass-1');
+    await httpsCallable(functions, 'createCompany')({ companyName: 'Okafor Construction', name: 'Ada Okafor', country: 'NG' });
+    const c = (await getDoc(companyDoc(user.uid))).data();
+    expect(c).toMatchObject({ country: 'NG', currency: 'NGN', timeZone: 'Africa/Lagos' });
+    await loadDemo();
+    const sites = (await getDocs(sitesCol(user.uid))).docs.map((d) => d.data());
+    expect(sites.map((s) => s.location).sort()).toEqual(['Ikorodu, Lagos', 'Lekki, Lagos', 'Wuse II, Abuja']);
+    expect((await getDoc(financeDoc(user.uid, `${SAMPLE_PREFIX}adenta`))).data().budget).toBeGreaterThan(50_000_000); // naira, not cedis
+    await removeDemo();
   });
 });

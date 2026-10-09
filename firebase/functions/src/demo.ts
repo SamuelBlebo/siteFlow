@@ -31,7 +31,9 @@ export const loadDemo = onCall({ ...callOpts, timeoutSeconds: 300, memory: '512M
   const cid = me.companyId;
   if ((await db.doc(paths.site(cid, SAMPLE_IDS[0])).get()).exists) return { loaded: false, reason: 'already' };
 
-  const demo = buildDemo({ companyId: cid, photoBase: `${APP_URL}/demo` });
+  const company = (await db.doc(paths.company(cid)).get()).data();
+  // In the company's own country: its cities and its currency
+  const demo = buildDemo({ companyId: cid, photoBase: `${APP_URL}/demo`, country: company?.country });
   const w = db.bulkWriter();
   w.onWriteError((e) => e.failedAttempts < 3);
   for (const s of demo) {

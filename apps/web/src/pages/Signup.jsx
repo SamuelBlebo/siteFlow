@@ -2,17 +2,18 @@ import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
-import { companySetupInput, friendlyError, validate } from '@siteflow/shared';
+import { companySetupInput, friendlyError, validate, guessCountry } from '@siteflow/shared';
 import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
 import Brand from '../components/Brand';
+import { CountrySelect } from '../components/CountryFields';
 
 export default function Signup() {
   useTitle('Create your account');
   const { user } = useAuth();
-  const [f, setF] = useState({ company: '', name: '', email: '', password: '' });
+  const [f, setF] = useState(() => ({ company: '', name: '', email: '', password: '', country: guessCountry() }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(false);
@@ -22,7 +23,7 @@ export default function Signup() {
 
   async function submit(e) {
     e.preventDefault();
-    const v = validate(companySetupInput, { companyName: f.company, name: f.name });
+    const v = validate(companySetupInput, { companyName: f.company, name: f.name, country: f.country });
     if (!v.ok) return setErr(v.error);
     if (f.password.length < 8) return setErr('Use a password with at least 8 characters.');
     setBusy(true); setErr('');
@@ -49,6 +50,8 @@ export default function Signup() {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="field"><label htmlFor="c">Company name</label><input id="c" value={f.company} onChange={set('company')} /></div>
         <div className="field"><label htmlFor="n">Your name</label><input id="n" value={f.name} onChange={set('name')} /></div>
+        <div className="field"><label htmlFor="sc">Country</label><CountrySelect id="sc" value={f.country} onChange={({ country }) => setF({ ...f, country })} />
+          <p className="hint">Sets your currency, time zone and phone format. You can change it later.</p></div>
         <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="email" value={f.email} onChange={set('email')} /></div>
         <div className="field"><label htmlFor="p">Password</label><PasswordInput id="p" autoComplete="new-password" value={f.password} onChange={set('password')} /></div>
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>

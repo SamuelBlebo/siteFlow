@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate } from '@siteflow/shared';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { companyRef, exists } from '../lib/db';
 import { updateMyProfile } from '../lib/account';
@@ -61,7 +61,7 @@ export default function AccountScreen({ navigation }) {
       <H2>Your details</H2>
       {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
       <Field label="Name" value={name} onChangeText={setName} />
-      <Field label="WhatsApp number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="024 000 0000" hint="Used for SiteFlow alerts on WhatsApp." />
+      <Field label="WhatsApp number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder={getLocale().phoneExample} hint="Used for SiteFlow alerts on WhatsApp." />
       <Button title="Save details" onPress={save} />
 
       <H2>Password</H2>

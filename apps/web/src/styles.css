@@ -405,7 +405,7 @@ main:focus { outline: none; }
 .dlist li { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; border-top: 1px solid var(--line); }
 .dlist li:first-child { border-top: 0; }
 .dlist i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-.dlist b { margin-left: auto; font-weight: 600; }
+.dlist b { margin-left: auto; font-weight: 600; white-space: nowrap; }
 .legend2 { display: flex; gap: 14px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
 .legend2 i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 

@@ -5,8 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { addWorker, attendanceRangeQuery, attendanceRef, exists, markAttendance, toList, updateWorker } from '../lib/db';
 import {
   ATTENDANCE_LABELS, ATTENDANCE_STATUSES, TRADES, cedi, countByStatus, dailyWages, markAllPresent, prettyDate, todayKey, validate,
-  workerInput, workerPayInput,
-} from '@siteflow/shared';
+  workerInput, workerPayInput, currencySymbol, getLocale } from '@siteflow/shared';
 import { Button, Card, Choice, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
@@ -114,9 +113,9 @@ function AddWorker({ cid, sid, uid, withPay }) {
       {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
       <Field label="Name" value={name} onChangeText={setName} />
       <Choice label="Trade" options={TRADES} value={trade} onChange={setTrade} />
-      <Field label="Phone (optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="024 000 0000" />
+      <Field label="Phone (optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder={getLocale().phoneExample} />
       {withPay
-        ? <Field label="Daily rate (GH₵)" value={rate} onChangeText={setRate} keyboardType="number-pad" />
+        ? <Field label={`Daily rate (${currencySymbol()})`} value={rate} onChangeText={setRate} keyboardType="number-pad" />
         : <Muted style={{ marginBottom: 12 }}>The office sets the daily rate.</Muted>}
       <Button title="Add worker" variant="ghost" onPress={add} />
     </>

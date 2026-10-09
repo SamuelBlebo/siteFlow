@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import auth from '@react-native-firebase/auth';
-import { can as roleCan, isRole } from '@siteflow/shared';
-import { exists, userRef } from '../lib/db';
+import { can as roleCan, isRole, setLocale } from '@siteflow/shared';
+import { companyRef, exists, userRef } from '../lib/db';
 import { setSyncUser } from '../lib/sync';
 
 const AuthCtx = createContext(null);
@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
     let unsubProfile = () => {};
@@ -39,12 +40,20 @@ export function AuthProvider({ children }) {
   // A switched-off account or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);
   const role = active ? profile.role : null;
+  const cid = active ? profile.companyId : null;
+
+  // The company's country sets currency, time zone and phone format on the phone too
+  useEffect(() => {
+    if (!cid) { setLocale(null); setCompany(null); return undefined; }
+    return companyRef(cid).onSnapshot((s) => { const c = exists(s) ? { id: s.id, ...s.data() } : null; setLocale(c); setCompany(c); },
+      (e) => console.warn('Could not load company', e));
+  }, [cid]);
   // One value object per change, so screens using it only re-render when something in it changes
   const value = useMemo(() => ({
-    user, profile, loading, error, active, role, cid: active ? profile.companyId : null,
+    user, profile, loading, error, active, role, cid, company,
     can: (permission) => roleCan(role, permission),
     signOut: () => auth().signOut(),
-  }), [user, profile, loading, error, active, role]);
+  }), [user, profile, loading, error, active, role, cid, company]);
   return (
     <AuthCtx.Provider value={value}>
       {children}

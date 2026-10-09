@@ -1,3 +1,4 @@
+import { currencySymbol } from '../locale';
 import { HIGH_USAGE_FACTOR } from '../constants';
 import type { Material, MaterialLog, MaterialLogType } from '../types';
 
@@ -56,7 +57,7 @@ export function materialTotals(logs: Pick<MaterialLog, 'type' | 'materialId' | '
 // Material log as CSV (newest first as given)
 export function materialLogCsv(logs: Pick<MaterialLog, 'date' | 'type' | 'materialName' | 'unit' | 'qty' | 'supplier' | 'note' | 'ref' | 'createdByName' | 'cost'>[], withCost = false) {
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const head = ['Date', 'Entry', 'Material', 'Quantity', 'Unit', 'Supplier', 'Waybill / ref', 'Note', 'By', ...(withCost ? ['Cost (GH₵)'] : [])];
+  const head = ['Date', 'Entry', 'Material', 'Quantity', 'Unit', 'Supplier', 'Waybill / ref', 'Note', 'By', ...(withCost ? [`Cost (${currencySymbol()})`] : [])];
   const rows = logs.map((l) => [l.date, MATERIAL_LOG_LABELS[l.type], l.materialName, l.type === 'usage' ? -l.qty : l.qty, l.unit,
     l.supplier, l.ref, l.note, l.createdByName, ...(withCost ? [l.cost || 0] : [])]);
   return [head, ...rows].map((r) => r.map(esc).join(',')).join('\n');

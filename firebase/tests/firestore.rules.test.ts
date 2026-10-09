@@ -190,6 +190,16 @@ describe('company', () => {
     await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { modules: { portal: true } }));
     await assertFails(updateDoc(doc(asRole('admin'), paths.company(C1)), { name: 'Admin Renamed' }));
   });
+  it('the owner sets the country, currency and time zone; badly shaped values and other roles are refused', async () => {
+    const owner = doc(asRole('owner'), paths.company(C1));
+    await assertSucceeds(updateDoc(owner, { country: 'KE', currency: 'KES', timeZone: 'Africa/Nairobi', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(owner, { timeZone: 'America/Argentina/Buenos_Aires' }));
+    await assertFails(updateDoc(owner, { country: 'Kenya' }));
+    await assertFails(updateDoc(owner, { currency: 'shillings' }));
+    await assertFails(updateDoc(owner, { timeZone: '<script>' }));
+    await assertFails(updateDoc(doc(asRole('admin'), paths.company(C1)), { currency: 'USD' }));
+    await assertSucceeds(updateDoc(owner, { country: 'GH', currency: 'GHS', timeZone: 'Africa/Accra' }));
+  });
   it('the owner edits company contact details', async () => {
     await assertSucceeds(updateDoc(doc(asRole('owner'), paths.company(C1)), { name: 'Mensah Builders Ltd', phone: '0302123456', location: 'Accra', updatedAt: serverTimestamp() }));
     await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { name: 'M' }));

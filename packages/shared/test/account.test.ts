@@ -11,7 +11,7 @@ describe('profile', () => {
     expect(validate(profileInput, { name: 'Ama Mensah', phone: '024 123 4567' })).toMatchObject({ ok: true, data: { phone: '0241234567' } });
   });
   it('rejects bad numbers and names', () => {
-    expect(validate(profileInput, { name: 'Ama', phone: '12345' })).toEqual({ ok: false, error: 'Enter a Ghana number, e.g. 024 000 0000.' });
+    expect(validate(profileInput, { name: 'Ama', phone: '12345' })).toEqual({ ok: false, error: 'Enter a phone number, e.g. 024 000 0000 or +44 7700 900123.' });
     expect(validate(profileInput, { name: 'A', phone: '' }).ok).toBe(false);
     expect(validate(profileInput, { name: 'x'.repeat(101) }).ok).toBe(false);
   });

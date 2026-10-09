@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MODULES, PLAN_LABELS, companySettingsInput, friendlyError, isOn, planFor, validate } from '@siteflow/shared';
+import { MODULES, PLAN_LABELS, companyLocale, companyLocaleInput, companySettingsInput, friendlyError, getLocale, isOn, planFor, validate } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useTitle } from '../lib/hooks';
-import { companyDoc, sitesCol, teamQuery, updateCompany } from '../lib/db';
+import { companyDoc, sitesCol, teamQuery, updateCompany, updateCompanyLocale } from '../lib/db';
+import CountryFields from '../components/CountryFields';
 import { loadDemo, removeDemo } from '../lib/account';
 import { toast } from '../lib/save';
 import { save, savedText } from '../lib/save';
@@ -67,11 +68,14 @@ export default function Company() {
         {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
         <div className="field"><label htmlFor="c-n">Company name</label><input id="c-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
         <div className="grid2">
-          <div className="field"><label htmlFor="c-p">Phone</label><input id="c-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="030 000 0000" /></div>
-          <div className="field"><label htmlFor="c-l">Office location</label><input id="c-l" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="e.g. East Legon, Accra" /></div>
+          <div className="field"><label htmlFor="c-p">Phone</label><input id="c-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder={getLocale().phoneExample} /></div>
+          <div className="field"><label htmlFor="c-l">Office location</label><input id="c-l" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder={`e.g. ${getLocale().cities[1]}`} /></div>
         </div>
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save company details'}</button>
       </form>
+
+      <h2 className="sub">Country, currency and time zone</h2>
+      <LocaleCard cid={cid} company={company} />
 
       <h2 className="sub">Settings</h2>
       <ul className="list">
@@ -90,5 +94,29 @@ export default function Company() {
       </div>
     </section>
     </>
+  );
+}
+
+// Where the company works: money, dates, reminder times and phone numbers follow it
+function LocaleCard({ cid, company }) {
+  const start = () => { const l = companyLocale(company); return { country: l.country, currency: l.currency, timeZone: l.timeZone }; };
+  const [f, setF] = useState(start);
+  const [busy, setBusy] = useState(false);
+  const changed = JSON.stringify(f) !== JSON.stringify(start());
+  async function submit(e) {
+    e.preventDefault();
+    const v = validate(companyLocaleInput, f);
+    if (!v.ok) return toast(v.error, 'err');
+    setBusy(true);
+    try { await save(updateCompanyLocale(cid, v.data), 'Country settings'); toast('Saved. Money, dates and reminders now follow these settings.'); }
+    catch (e2) { toast(e2.message, 'err'); } finally { setBusy(false); }
+  }
+  return (
+    <form className="form card" onSubmit={submit}>
+      <p className="muted mb">Money is shown in this currency, "today" and the reminder times (6 pm missing reports, Friday 5 pm summary) follow this time zone,
+        and phone numbers typed without a country code get this country's code. Amounts already entered are not converted.</p>
+      <CountryFields value={f} onChange={setF} idPrefix="co" />
+      <button type="submit" className="btn" disabled={busy || !changed}>{busy ? 'Saving…' : 'Save country settings'}</button>
+    </form>
   );
 }

@@ -7,8 +7,7 @@ import {
 import { save, toast } from '../lib/save';
 import {
   EXPENSE_CATEGORIES, PAYMENT_METHODS, budgetLinesInput, budgetVariance, cedi, expenseCsv, expenseInput, prettyDate, siteFinanceSummary,
-  spendByMonth, todayKey, validate, wageSheet, weekStart,
-} from '@siteflow/shared';
+  spendByMonth, todayKey, validate, wageSheet, weekStart, currencySymbol } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from './States';
 
 const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
@@ -106,7 +105,7 @@ function BudgetForm({ cid, sid, f, onDone }) {
   return (
     <form className="form inline" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
-      <div className="field"><label htmlFor="bt">Total budget (GH₵)</label><input id="bt" type="number" min="0" value={total} onChange={(e) => setTotal(e.target.value)} /></div>
+      <div className="field"><label htmlFor="bt">Total budget ({currencySymbol()})</label><input id="bt" type="number" min="0" value={total} onChange={(e) => setTotal(e.target.value)} /></div>
       <div className="grid3">
         {EXPENSE_CATEGORIES.map((c) => (
           <div className="field" key={c}><label htmlFor={`bl-${c}`}>{c}</label>
@@ -162,7 +161,7 @@ function expenseFields(f, set, prefix) {
     <div className="grid3">
       <div className="field"><label htmlFor={`${prefix}-d`}>Date paid</label><input id={`${prefix}-d`} type="date" max={todayKey()} value={f.date} onChange={set('date')} /></div>
       <div className="field"><label htmlFor={`${prefix}-c`}>Category</label><select id={`${prefix}-c`} value={f.category} onChange={set('category')}>{[...new Set([...EXPENSE_CATEGORIES, f.category])].map((c) => <option key={c}>{c}</option>)}</select></div>
-      <div className="field"><label htmlFor={`${prefix}-a`}>Amount (GH₵)</label><input id={`${prefix}-a`} type="number" min="0" step="0.01" value={f.amount} onChange={set('amount')} /></div>
+      <div className="field"><label htmlFor={`${prefix}-a`}>Amount ({currencySymbol()})</label><input id={`${prefix}-a`} type="number" min="0" step="0.01" value={f.amount} onChange={set('amount')} /></div>
       <div className="field"><label htmlFor={`${prefix}-n`}>Details</label><input id={`${prefix}-n`} value={f.note} onChange={set('note')} placeholder="e.g. Tipper truck, two trips" /></div>
       <div className="field"><label htmlFor={`${prefix}-p`}>Paid to</label><input id={`${prefix}-p`} value={f.payee} onChange={set('payee')} /></div>
       <div className="field"><label htmlFor={`${prefix}-m`}>Paid by</label><select id={`${prefix}-m`} value={f.method} onChange={set('method')}><option value="">–</option>{PAYMENT_METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>

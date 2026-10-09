@@ -3,7 +3,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
 import { logMaterial } from '../lib/db';
-import { MATERIAL_LOG_LABELS, daysLeft, materialLogInput, materialStatus, validate } from '@siteflow/shared';
+import { MATERIAL_LOG_LABELS, daysLeft, materialLogInput, materialStatus, validate, currencySymbol } from '@siteflow/shared';
 import { Button, Card, Empty, ErrorText, ErrorView, Field, H1, H2, Muted, Notice, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 
@@ -91,7 +91,7 @@ export default function MaterialsScreen() {
             <>
               <Field label="Supplier" value={f.supplier} onChangeText={set('supplier')} placeholder="e.g. Ghacem depot, Tema" />
               <Field label="Waybill or invoice no. (optional)" value={f.ref} onChangeText={set('ref')} />
-              {withCost && <Field label="Total cost (GH₵)" value={f.cost} onChangeText={set('cost')} keyboardType="number-pad" />}
+              {withCost && <Field label={`Total cost (${currencySymbol()})`} value={f.cost} onChangeText={set('cost')} keyboardType="number-pad" />}
             </>
           )}
           <Button title={type === 'usage' ? 'Save usage' : 'Save delivery'} onPress={record} />

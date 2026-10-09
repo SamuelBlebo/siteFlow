@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { addWorker, setWorkerActive, setWorkerRate, updateWorker } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
-import { TRADES, cedi, validate, workerInput, workerPayInput } from '@siteflow/shared';
+import { TRADES, cedi, validate, workerInput, workerPayInput, currencySymbol, getLocale } from '@siteflow/shared';
 import { Empty } from './States';
 
 // The site's workers: add, fix details, set daily rates (finance), switch off (site managers)
@@ -83,8 +83,8 @@ function AddWorker({ cid, sid }) {
       <div className="grid3">
         <div className="field"><label htmlFor="aw-n">Name</label><input id="aw-n" value={f.name} onChange={set('name')} /></div>
         <div className="field"><label htmlFor="aw-t">Trade</label><select id="aw-t" value={f.trade} onChange={set('trade')}>{TRADES.map((t) => <option key={t}>{t}</option>)}</select></div>
-        <div className="field"><label htmlFor="aw-p">Phone (optional)</label><input id="aw-p" type="tel" value={f.phone} onChange={set('phone')} placeholder="024 000 0000" /></div>
-        {withPay && <div className="field"><label htmlFor="aw-r">Daily rate (GH₵)</label><input id="aw-r" type="number" min="0" value={f.rate} onChange={set('rate')} /></div>}
+        <div className="field"><label htmlFor="aw-p">Phone (optional)</label><input id="aw-p" type="tel" value={f.phone} onChange={set('phone')} placeholder={getLocale().phoneExample} /></div>
+        {withPay && <div className="field"><label htmlFor="aw-r">Daily rate ({currencySymbol()})</label><input id="aw-r" type="number" min="0" value={f.rate} onChange={set('rate')} /></div>}
       </div>
       {!withPay && <p className="hint">The office sets the daily rate.</p>}
       <button type="submit" className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Add worker'}</button>
@@ -130,7 +130,7 @@ function EditWorker({ cid, sid, w, pay, onDone }) {
         <div className="field"><label htmlFor={`ew-t-${w.id}`}>Trade</label>
           <select id={`ew-t-${w.id}`} value={f.trade} onChange={set('trade')}>{[...new Set([...TRADES, f.trade])].map((t) => <option key={t}>{t}</option>)}</select></div>
         <div className="field"><label htmlFor={`ew-p-${w.id}`}>Phone</label><input id={`ew-p-${w.id}`} type="tel" value={f.phone} onChange={set('phone')} /></div>
-        {can('finance.edit') && <div className="field"><label htmlFor={`ew-r-${w.id}`}>Daily rate (GH₵)</label><input id={`ew-r-${w.id}`} type="number" min="0" value={f.rate} onChange={set('rate')} /></div>}
+        {can('finance.edit') && <div className="field"><label htmlFor={`ew-r-${w.id}`}>Daily rate ({currencySymbol()})</label><input id={`ew-r-${w.id}`} type="number" min="0" value={f.rate} onChange={set('rate')} /></div>}
       </div>
       <div className="actions">
         <button type="submit" className="btn" disabled={busy}>Save</button>

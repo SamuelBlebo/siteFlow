@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CO_REASONS, INCIDENT_TYPES, STAGE_MAX } from './constants';
+import { COUNTRIES, DEFAULT_COUNTRY, isCountry } from './locale';
 import { ROLES } from './permissions';
 import { REPORT_PHOTO_LIMIT, WEATHER } from './logic/reports';
 import { ISSUE_PHOTO_LIMIT } from './logic/issues';
@@ -7,10 +8,14 @@ import { ISSUE_PHOTO_LIMIT } from './logic/issues';
 // Validation used by the forms (web and mobile) and again in Cloud Functions.
 const money = z.coerce.number({ invalid_type_error: 'Enter an amount.' }).nonnegative('Amount cannot be negative.');
 const positive = (label: string) => z.coerce.number().positive(`Enter a ${label} above zero.`);
-// Ghana mobile numbers: 024 000 0000, 0240000000, +233 24 000 0000. Empty is allowed.
-const phone = z.string().transform((v) => v.replace(/[\s-]/g, ''))
-  .pipe(z.string().regex(/^((\+?233)\d{9}|0\d{9})?$/, 'Enter a Ghana number, e.g. 024 000 0000.'))
+// Phone numbers in any country: local (024 000 0000, 0712 345 678) or international (+44 7700 900123).
+// Spaces, dashes, dots and brackets are dropped; WhatsApp links add the company's dialling code. Empty is allowed.
+const phone = z.string().transform((v) => v.replace(/[\s\-().]/g, ''))
+  .pipe(z.string().regex(/^(\+?\d{6,15})?$/, 'Enter a phone number, e.g. 024 000 0000 or +44 7700 900123.'))
   .optional().default('');
+const countryCode = z.string().refine(isCountry, 'Choose your country.');
+const timeZone = z.string().max(60).refine((t) => { try { new Intl.DateTimeFormat('en', { timeZone: t }); return true; } catch { return false; } }, 'Choose a time zone.');
+const currency = z.string().refine((x) => COUNTRIES.some((c) => c.currency === x), 'Choose a currency.');
 const personName = z.string().trim().min(2, 'Enter a name.').max(100, 'Keep the name under 100 characters.');
 
 const dateKey = z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date.').optional().default('');
@@ -111,6 +116,7 @@ export const inviteInput = z.object({
 export const companySetupInput = z.object({
   companyName: z.string().trim().min(2, 'Enter your company name.').max(100),
   name: personName,
+  country: countryCode.optional().default(DEFAULT_COUNTRY),
 });
 
 // Account and organisation
@@ -123,6 +129,8 @@ export const companySettingsInput = z.object({
   phone,
   location: z.string().trim().max(200).optional().default(''),
 });
+// Country, currency and time zone (owner, Company page). Currency and time zone usually follow the country.
+export const companyLocaleInput = z.object({ country: countryCode, currency, timeZone });
 export const passwordInput = z.object({
   password: z.string().min(8, 'Use at least 8 characters.').max(128),
   confirm: z.string(),

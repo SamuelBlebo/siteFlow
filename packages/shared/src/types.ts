@@ -19,6 +19,9 @@ export interface Company {
   plan?: Plan;
   modules: Partial<Record<ModuleKey, boolean>>;
   notifications?: Partial<Record<NotificationKey, NotificationRule>>;
+  country?: string;   // ISO code; missing means Ghana (companies from before countries existed)
+  currency?: string;  // ISO code, e.g. GHS, NGN, KES
+  timeZone?: string;  // IANA zone, e.g. Africa/Accra
 }
 
 export interface UserProfile {

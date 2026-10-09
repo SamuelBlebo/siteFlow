@@ -24,5 +24,4 @@ export const HIGH_USAGE_FACTOR = 1.3;      // usage above 130% of usual daily us
 export const BUDGET_WARN_PCT = 90;         // budget nearly used
 export const OVERSPEND_GAP_PCT = 15;       // budget used ahead of progress by this much
 export const BEHIND_GAP_PCT = 8;           // progress behind plan by this much
-export const APPROVAL_LIMITS = { changeOrder: 50000, payment: 20000, materialOrder: 10000 }; // GH₵, MD approval above
-export const TIMEZONE = 'Africa/Accra';     // UTC+0, no daylight saving
+export const APPROVAL_LIMITS = { changeOrder: 50000, payment: 20000, materialOrder: 10000 }; // in the company's currency, MD approval above

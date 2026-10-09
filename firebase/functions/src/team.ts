@@ -9,7 +9,7 @@ import { checkLimit } from './limits';
 // (docs/OPERATIONS.md). The mobile app doesn't call these functions.
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 import {
-  DEFAULT_MODULES, MODULES, ROLE_LABELS, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isRole, isSiteScoped,
+  DEFAULT_MODULES, MODULES, countryOf, ROLE_LABELS, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isRole, isSiteScoped,
   can, memberActiveInput, memberRefInput, memberUpdateInput, paths, siteAssignInput, validate,
   type Role, type UserProfile,
 } from '@siteflow/shared';
@@ -67,7 +67,8 @@ async function logActivity(db: Firestore, actor: UserProfile & { id: string }, w
 // modules can't be chosen by the client. Safe to call again if the first attempt failed.
 export const createCompany = onCall(callOpts, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
-  const { companyName, name } = parse(companySetupInput, req.data);
+  const { companyName, name, country } = parse(companySetupInput, req.data);
+  const where = countryOf(country); // currency and time zone follow the country; the owner can change them later
   const uid = req.auth.uid;
   await checkLimit(uid, 'createCompany');
   const db = getFirestore();
@@ -84,7 +85,10 @@ export const createCompany = onCall(callOpts, async (req) => {
       if (p.companyId === uid && p.role === 'owner') return; // already set up
       throw new HttpsError('already-exists', 'This account already belongs to a company.');
     }
-    t.set(companyRef, { name: companyName, ownerId: uid, plan: 'starter', modules: DEFAULT_MODULES, createdAt: FieldValue.serverTimestamp() });
+    t.set(companyRef, {
+      name: companyName, ownerId: uid, plan: 'starter', modules: DEFAULT_MODULES,
+      country: where.code, currency: where.currency, timeZone: where.timeZone, createdAt: FieldValue.serverTimestamp(),
+    });
     t.set(userRef, {
       companyId: uid, role: 'owner', name, email: req.auth?.token.email ?? '', siteIds: [], active: true,
       createdAt: FieldValue.serverTimestamp(),

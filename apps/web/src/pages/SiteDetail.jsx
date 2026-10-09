@@ -10,8 +10,7 @@ import { team } from '../lib/account';
 import {
   ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, big, budgetInput, budgetUsedPct, cedi, isOn,
   friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
-  validate, waPhone,
-} from '@siteflow/shared';
+  validate, waPhone, currencySymbol } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import ReportHistory from '../components/ReportHistory';
 import MaterialsPanel from '../components/MaterialsPanel';
@@ -263,7 +262,7 @@ function SettingsTab({ cid, sid, site }) {
           <h3 className="sub">Budget</h3>
           <form className="form inline" onSubmit={saveBudget}>
             <p>Current budget: <b>{finance ? cedi(finance.budget) : '–'}</b></p>
-            <div className="field"><label htmlFor="st-b">New budget (GH₵)</label><input id="st-b" type="number" min="0" value={budget} onChange={(e) => setBudgetValue(e.target.value)} /></div>
+            <div className="field"><label htmlFor="st-b">New budget ({currencySymbol()})</label><input id="st-b" type="number" min="0" value={budget} onChange={(e) => setBudgetValue(e.target.value)} /></div>
             <button type="submit" className="btn ghost">Save budget</button>
           </form>
         </>

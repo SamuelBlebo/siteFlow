@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MODULES, assignableRoles, companySettingsInput, friendlyError, isOn, validate } from '@siteflow/shared';
+import { MODULES, assignableRoles, companyLocale, companyLocaleInput, companySettingsInput, friendlyError, getLocale, isOn, validate } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useTitle } from '../lib/hooks';
-import { companyDoc, sitesCol, updateCompany } from '../lib/db';
+import { companyDoc, sitesCol, updateCompany, updateCompanyLocale } from '../lib/db';
+import CountryFields from '../components/CountryFields';
 import { loadDemo, setModule } from '../lib/account';
 import { save, toast } from '../lib/save';
 import Brand from '../components/Brand';
@@ -50,14 +51,17 @@ export default function Welcome() {
 
 function CompanyStep({ cid, company, onDone }) {
   const [f, setF] = useState({ name: company.name || '', phone: company.phone || '', location: company.location || '' });
+  const [loc, setLoc] = useState(() => { const l = companyLocale(company); return { country: l.country, currency: l.currency, timeZone: l.timeZone }; });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(e) {
     e.preventDefault();
     const v = validate(companySettingsInput, f);
     if (!v.ok) return setErr(v.error);
+    const l = validate(companyLocaleInput, loc);
+    if (!l.ok) return setErr(l.error);
     setBusy(true); setErr('');
-    try { await save(updateCompany(cid, v.data), 'Company details'); onDone(); } catch (e2) { setErr(e2.message); } finally { setBusy(false); }
+    try { await save(updateCompany(cid, v.data), 'Company details'); await save(updateCompanyLocale(cid, l.data), 'Country settings'); onDone(); } catch (e2) { setErr(e2.message); } finally { setBusy(false); }
   }
   return (
     <form className="form" onSubmit={submit}>
@@ -66,9 +70,11 @@ function CompanyStep({ cid, company, onDone }) {
       {err && <p className="err" role="alert">{err}</p>}
       <div className="field"><label htmlFor="w-n">Company name</label><input id="w-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
       <div className="grid2">
-        <div className="field"><label htmlFor="w-p">Office phone</label><input id="w-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="030 000 0000" /></div>
-        <div className="field"><label htmlFor="w-l">Office location</label><input id="w-l" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="e.g. East Legon, Accra" /></div>
+        <div className="field"><label htmlFor="w-p">Office phone</label><input id="w-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder={getLocale().phoneExample} /></div>
+        <div className="field"><label htmlFor="w-l">Office location</label><input id="w-l" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder={`e.g. ${getLocale().cities[1]}`} /></div>
       </div>
+      <CountryFields value={loc} onChange={setLoc} idPrefix="w" />
+      <p className="hint">Your currency, time zone and phone format. Reminders go out at 6 pm in this time zone.</p>
       <div className="actions"><button type="submit" className="btn gold" disabled={busy}>{busy ? 'Saving…' : 'Save and continue'}</button>
         <button type="button" className="btn ghost" onClick={onDone}>Skip</button></div>
     </form>

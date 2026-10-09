@@ -8,6 +8,7 @@ export * from './paths';
 export * from './schemas';
 export * from './dates';
 export * from './format';
+export * from './locale';
 export * from './design';
 export * from './logic/alerts';
 export * from './logic/materials';

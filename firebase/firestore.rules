@@ -77,9 +77,13 @@ service cloud.firestore {
       allow read: if member(cid);
       // Created by the createCompany function. plan and modules are set by the server only.
       allow create, delete: if false;
-      allow update: if companySettings(cid) && onlyChanges(['name', 'phone', 'location', 'notifications', 'updatedAt'])
+      // country, currency and time zone: the owner's local settings (codes checked in the app; shape checked here)
+      allow update: if companySettings(cid) && onlyChanges(['name', 'phone', 'location', 'notifications', 'country', 'currency', 'timeZone', 'updatedAt'])
         && isText(data().name, 2, 100) && optText('phone', 20) && optText('location', 200)
-        && (!('notifications' in data()) || (data().notifications is map && data().notifications.size() <= 20));
+        && (!('notifications' in data()) || (data().notifications is map && data().notifications.size() <= 20))
+        && (!('country' in data()) || (data().country is string && data().country.matches('^[A-Z]{2}$')))
+        && (!('currency' in data()) || (data().currency is string && data().currency.matches('^[A-Z]{3}$')))
+        && (!('timeZone' in data()) || (data().timeZone is string && data().timeZone.matches('^[A-Za-z_+-]+(/[A-Za-z0-9_+-]+){0,2}$')));
 
       match /equipment/{id} {
         allow read: if member(cid);

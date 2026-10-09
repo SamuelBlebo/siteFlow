@@ -2,7 +2,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { getFirestore, FieldValue, Timestamp, type DocumentReference } from 'firebase-admin/firestore';
 import {
-  NOTIFICATIONS, maskContact, notificationRule, notificationText, paths, templateParams,
+  NOTIFICATIONS, companyLocale, maskContact, notificationRule, notificationText, paths, templateParams, waPhone,
   type Company, type Member, type NotificationKind, type UserProfile,
 } from '@siteflow/shared';
 import { SECRETS, sendEmail, sendWhatsAppTemplate, type SendResult } from './notify';
@@ -47,13 +47,14 @@ export async function deliver(d: {
   const db = getFirestore();
   const company = (await db.doc(paths.company(d.cid)).get()).data() as Company | undefined;
   const rule = notificationRule(company, d.kind);
+  const dial = companyLocale(company).dial; // local numbers (024...) get the company's country code
   const params = templateParams(d.kind, d.values);
   const text = notificationText(d.kind, d.values);
   let sent = 0;
   for (const r of d.recipients) {
     for (const channel of ['whatsapp', 'email'] as const) {
       if (!rule[channel]) continue;
-      const address = channel === 'whatsapp' ? r.phone : r.email;
+      const address = channel === 'whatsapp' ? (r.phone ? `+${waPhone(r.phone, dial)}` : '') : r.email;
       if (!address) continue;
       const ref = db.collection(paths.notifications(d.cid)).doc(docId(`${d.key}_${r.id || address}_${channel}`));
       const emailText = d.emailText || text;

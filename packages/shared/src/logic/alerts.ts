@@ -16,6 +16,7 @@ export interface AlertContext {
   openIssues?: Pick<Issue, 'title' | 'priority' | 'status' | 'assignedToName'>[];
   finance?: (SiteFinance & { budgetByCategory?: Record<string, number>; byCategory?: Record<string, number> }) | null;                 // only passed for roles that can see money
   now?: Date;
+  timeZone?: string;   // the company's; the apps set it once, the server passes it
 }
 
 // All alerts for one site. Same rules on the dashboard, in the weekly digest and in reminders.
@@ -25,7 +26,7 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   const a: Alert[] = [];
 
   // Only active sites are expected to report daily (on-hold and closed sites are not chased)
-  if (site.status === 'active' && site.lastReportDate !== todayKey(now)) {
+  if (site.status === 'active' && site.lastReportDate !== todayKey(now, ctx.timeZone)) {
     a.push({ kind: 'report', severity: 'bad', title: 'No daily report yet', detail: `${site.foremanName || 'The site team'} hasn't sent today's report.` });
   }
   if (on('materials')) {
@@ -52,7 +53,7 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   if (site.status === 'active') {
     const st = scheduleStatus(site, ctx.milestones ?? [], now);
     if (st.state === 'behind') a.push({ kind: 'schedule', severity: 'warn', title: 'Behind programme', detail: `${st.actual}% done against ${st.planned}% planned${st.weeksBehind ? `, about ${st.weeksBehind} week${st.weeksBehind === 1 ? '' : 's'} behind` : ''}.`, tab: 'progress' });
-    for (const m of overdueMilestones(ctx.milestones ?? [], todayKey(now))) a.push({ kind: 'schedule', severity: 'warn', title: `${m.name} is overdue`, detail: `Planned to finish ${m.plannedEnd}, now ${m.percentDone || 0}% done.`, tab: 'progress' });
+    for (const m of overdueMilestones(ctx.milestones ?? [], todayKey(now, ctx.timeZone))) a.push({ kind: 'schedule', severity: 'warn', title: `${m.name} is overdue`, detail: `Planned to finish ${m.plannedEnd}, now ${m.percentDone || 0}% done.`, tab: 'progress' });
   }
   // Problems reported on site: critical ones first, high ones as warnings
   for (const i of ctx.openIssues ?? []) {

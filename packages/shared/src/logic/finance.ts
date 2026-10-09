@@ -1,3 +1,5 @@
+import { currencySymbol } from '../locale';
+import { todayKey } from '../dates';
 import { EXPENSE_CATEGORIES, OVERSPEND_GAP_PCT } from '../constants';
 import type { Expense, SiteFinance } from '../types';
 
@@ -72,9 +74,9 @@ export function spendByMonth(expenses: Pick<Expense, 'amount' | 'date'>[]) {
   return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, amount]) => ({ month, amount }));
 }
 
-// Monday of the week a date falls in (weekly digest "spent this week")
-export function weekStart(d: Date = new Date()) {
-  const x = new Date(d);
+// Monday of the week a date falls in (weekly digest "spent this week"), in a time zone when given
+export function weekStart(d: Date = new Date(), tz?: string) {
+  const x = new Date(`${todayKey(d, tz)}T00:00`);
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
 }
@@ -82,7 +84,7 @@ export function weekStart(d: Date = new Date()) {
 type CsvExpense = Pick<Expense, 'date' | 'category' | 'note' | 'amount'> & { payee?: string; method?: string; ref?: string; siteName?: string };
 export function expenseCsv(list: CsvExpense[], withSite = false) {
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const head = [...(withSite ? ['Site'] : []), 'Date', 'Category', 'Details', 'Paid to', 'Paid by', 'Receipt / ref', 'Amount (GH₵)'];
+  const head = [...(withSite ? ['Site'] : []), 'Date', 'Category', 'Details', 'Paid to', 'Paid by', 'Receipt / ref', `Amount (${currencySymbol()})`];
   const rows = list.map((e) => [...(withSite ? [e.siteName] : []), e.date, e.category, e.note, e.payee, e.method, e.ref, e.amount]);
   return [head, ...rows].map((r) => r.map(esc).join(',')).join('\n');
 }
