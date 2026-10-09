@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
 import Brand from '../components/Brand';
+import GoogleButton from '../components/GoogleButton';
 import { CountrySelect } from '../components/CountryFields';
 
 export default function Signup() {
@@ -48,6 +49,10 @@ export default function Signup() {
       <form className="form card" onSubmit={submit}>
         <h1>Create your company account</h1>
         {err && <p className="err" role="alert">{err}</p>}
+        <GoogleButton onError={setErr} />
+        <p className="hint">With Google you'll add your company name and country next.</p>
+        <div className="or"><span>or</span></div>
+
         <div className="field"><label htmlFor="c">Company name</label><input id="c" value={f.company} onChange={set('company')} /></div>
         <div className="field"><label htmlFor="n">Your name</label><input id="n" value={f.name} onChange={set('name')} /></div>
         <div className="field"><label htmlFor="sc">Country</label><CountrySelect id="sc" value={f.country} onChange={({ country }) => setF({ ...f, country })} />

@@ -660,3 +660,8 @@ main:focus { outline: none; }
 .requests .list .it { flex-wrap: wrap; }
 .request-banner p + p { margin-top: 6px; }
 .chip input { accent-color: var(--brass); }
+
+/* sign in with Google */
+.btn.google { gap: 10px; font-weight: 600; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 14px 0; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }

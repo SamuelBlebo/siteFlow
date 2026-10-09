@@ -7,6 +7,7 @@ import { friendlyError } from '@siteflow/shared';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
 import Brand from '../components/Brand';
+import GoogleButton from '../components/GoogleButton';
 
 export default function Login() {
   useTitle('Sign in');
@@ -36,6 +37,9 @@ export default function Login() {
       <form className="form card" onSubmit={submit}>
         <h1>Sign in</h1>
         {msg && <p className="err" role="alert">{msg}</p>}
+        <GoogleButton onError={setMsg} />
+        <div className="or"><span>or</span></div>
+
         <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="field"><label htmlFor="p">Password</label><PasswordInput id="p" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
