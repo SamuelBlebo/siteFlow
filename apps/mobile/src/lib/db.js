@@ -18,6 +18,10 @@ const serverDoc = async (path) => {
 export const exists = (snap) => (typeof snap.exists === 'function' ? snap.exists() : snap.exists);
 export const toList = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
 export const userRef = (uid) => firestore().doc(paths.user(uid));
+// A person's role and sites in one company (one login can belong to several)
+export const memberRef = (cid, uid) => firestore().doc(paths.member(cid, uid));
+// Look at another company this person belongs to (the rules check they are a member)
+export const switchCompany = (uid, cid) => userRef(uid).update({ companyId: cid, updatedAt: firestore.FieldValue.serverTimestamp() });
 export const companyRef = (cid) => firestore().doc(paths.company(cid));
 export const sitesCol = (cid) => firestore().collection(paths.sites(cid));
 export const siteRef = (cid, sid) => firestore().doc(paths.site(cid, sid));

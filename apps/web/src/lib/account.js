@@ -40,3 +40,6 @@ export const acceptInvite = call('acceptInvite');
 // Asking people for a report (owners, admins and project managers), and cancelling a request
 export const requestReport = call('requestReport');
 export const cancelReportRequest = call('cancelReportRequest');
+
+// Accounts made before one login could belong to several companies are moved over on first sign-in
+export const migrateAccount = call('migrateAccount');

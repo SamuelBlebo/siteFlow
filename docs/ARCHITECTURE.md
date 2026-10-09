@@ -24,8 +24,11 @@ flowchart TB
 
 **Data model** (multi-tenant, every company is isolated by security rules):
 ```
-users/{uid}                                   role, companyId, siteIds, active (created by functions)
+users/{uid}                                   the person: name, email, phone, companyIds, companyId
+                                              (the company they are looking at); created by functions
 companies/{cid}                               name, plan, modules (server-set), notifications
+companies/{cid}/members/{uid}                 role, siteIds, active, invitation, per company
+                                              (one login, several companies; functions write)
 companies/{cid}/equipment/{id}
 companies/{cid}/activity/{id}                 audit trail (functions write)
 companies/{cid}/sites/{sid}                   project (one project = one site); no money fields

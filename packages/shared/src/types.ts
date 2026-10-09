@@ -32,16 +32,20 @@ export interface Company {
   timeZone?: string;  // IANA zone, e.g. Africa/Accra
 }
 
+// What the apps work with: the person (users/{uid}) joined with their membership in the company
+// they are looking at (companies/{cid}/members/{uid}). One login can belong to several companies,
+// with a different role in each.
 export interface UserProfile {
   id: string;
-  companyId: string;
+  companyId: string;             // the company this membership is in (users/{uid}.companyId: the one being looked at)
+  companyIds?: string[];         // users/{uid}: every company the person belongs to
   role: Role;
   name: string;
   email: string;
   phone?: string;
   siteIds: string[];
   active?: boolean;              // false = switched off; treated as having no access
-  mustChangePassword?: boolean;  // set when an admin issues a temporary password (before invitation links)
+  mustChangePassword?: boolean;  // users/{uid}; set when an admin issues a temporary password (before invitation links)
   invitePending?: boolean;       // invited (or sent a reset link) and hasn't set a password from the link yet
   inviteKind?: 'invite' | 'reset';
   inviteExpiresAt?: unknown;     // Firestore timestamp

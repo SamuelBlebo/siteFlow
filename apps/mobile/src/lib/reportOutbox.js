@@ -155,7 +155,7 @@ async function sendIssue(item) {
   const already = await withTimeout(firestore().doc(issuePath).get({ source: 'server' }));
   if (exists(already)) return;
   const { urls: photos, thumbs } = await uploadPhotos(item, (i) => paths.issuePhoto(item.cid, item.sid, item.issueId, `${i + 1}.jpg`));
-  const profile = await withTimeout(firestore().doc(paths.user(item.uid)).get({ source: 'server' }));
+  const profile = await withTimeout(firestore().doc(paths.member(item.cid, item.uid)).get({ source: 'server' }));
   const site = await withTimeout(firestore().doc(paths.site(item.cid, item.sid)).get({ source: 'server' }));
   const now = firestore.FieldValue.serverTimestamp();
   await withTimeout(firestore().doc(issuePath).set({
@@ -176,8 +176,8 @@ async function sendOne(item) {
 
   const { urls: photoUrls, thumbs } = await uploadPhotos(item, (i) => paths.photo(item.cid, item.sid, item.rid, `${i + 1}.jpg`));
 
-  // The rules check the author name against the profile, so use the current one
-  const profile = await withTimeout(firestore().doc(paths.user(item.uid)).get({ source: 'server' }));
+  // The rules check the author name against the membership in that company, so use the current one
+  const profile = await withTimeout(firestore().doc(paths.member(item.cid, item.uid)).get({ source: 'server' }));
   const name = profile.data()?.name || item.name;
   const site = await withTimeout(firestore().doc(paths.site(item.cid, item.sid)).get({ source: 'server' }));
   const last = site.data()?.lastReportDate;

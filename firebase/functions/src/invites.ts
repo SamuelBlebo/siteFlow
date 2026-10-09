@@ -8,9 +8,11 @@ import {
   type Company, type Role, type UserProfile,
 } from '@siteflow/shared';
 import { EMAIL_KEY, sendEmail } from './notify';
+import { migrateCompany } from './members';
 
 // Invitation links. A new team member (or someone who needs a new password) gets a one-time link,
-// valid for INVITE_DAYS, to set their own password. Only a hash of the token is stored, in
+// valid for INVITE_DAYS, to set their own password. The invitation belongs to the membership in the
+// company that sent it (companies/{cid}/members/{uid}). Only a hash of the token is stored, in
 // invites/{hash}, which no app can read (no security rule opens it). A newer link replaces the older one.
 
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
@@ -28,19 +30,20 @@ export type InviteKind = 'invite' | 'reset';
 export interface IssuedInvite { link: string; expiresAt: string; email: 'sent' | 'failed' | 'skipped' }
 
 // Makes a fresh link for a member, replaces any earlier one, and emails it
-export async function issueInvite(db: Firestore, member: UserProfile & { id: string }, by: { name: string }, kind: InviteKind): Promise<IssuedInvite> {
+type Invitee = Pick<UserProfile, 'companyId' | 'email' | 'name' | 'role'> & { id: string };
+export async function issueInvite(db: Firestore, member: Invitee, by: { name: string }, kind: InviteKind): Promise<IssuedInvite> {
   const token = randomBytes(32).toString('base64url');
   const hash = hashOf(token);
   const expires = Timestamp.fromMillis(Date.now() + INVITE_DAYS * 24 * 60 * 60 * 1000);
-  const userRef = db.doc(paths.user(member.id));
-  const before = (await userRef.get()).data() as (UserProfile & { inviteHash?: string }) | undefined;
+  const memberRef = db.doc(paths.member(member.companyId, member.id));
+  const before = (await memberRef.get()).data() as (UserProfile & { inviteHash?: string }) | undefined;
   const batch = db.batch();
   if (before?.inviteHash) batch.delete(invitesCol(db).doc(before.inviteHash));
   batch.set(invitesCol(db).doc(hash), {
     uid: member.id, companyId: member.companyId, email: member.email, name: member.name, role: member.role, kind,
     createdBy: by.name, createdAt: FieldValue.serverTimestamp(), expiresAt: expires,
   });
-  batch.update(userRef, { invitePending: true, inviteKind: kind, inviteHash: hash, inviteExpiresAt: expires, mustChangePassword: false, updatedAt: FieldValue.serverTimestamp() });
+  batch.update(memberRef, { invitePending: true, inviteKind: kind, inviteHash: hash, inviteExpiresAt: expires, updatedAt: FieldValue.serverTimestamp() });
   await batch.commit();
 
   const link = `${APP_URL}/invite/${token}`;
@@ -76,18 +79,24 @@ export const acceptInvite = onCall(callOpts, async (req) => {
   const db = getFirestore();
   const hash = hashOf(token);
   const ref = invitesCol(db).doc(hash);
+  // Links sent before memberships: move that company to the new layout first
+  const pending = (await ref.get()).data();
+  if (pending && 'role' in ((await db.doc(paths.user(pending.uid)).get()).data() || {})) await migrateCompany(db, pending.companyId);
   const result = await db.runTransaction(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw new HttpsError('not-found', 'This link has already been used or was replaced by a newer one. Ask for a new invitation.');
     const inv = snap.data()!;
     if ((inv.expiresAt as Timestamp).toMillis() < Date.now()) throw new HttpsError('deadline-exceeded', 'This link has expired. Ask your manager to send a new one.');
+    const memberRef = db.doc(paths.member(inv.companyId, inv.uid));
     const userRef = db.doc(paths.user(inv.uid));
-    const profile = (await t.get(userRef)).data() as (UserProfile & { inviteHash?: string }) | undefined;
+    const profile = (await t.get(memberRef)).data() as (UserProfile & { inviteHash?: string }) | undefined;
+    const account = await t.get(userRef);
     if (!profile || profile.inviteHash !== hash) throw new HttpsError('not-found', 'This link was replaced by a newer one. Use the latest invitation.');
     if (profile.active === false) throw new HttpsError('permission-denied', 'Your access has been switched off. Ask your manager.');
     t.delete(ref);
-    t.update(userRef, {
-      invitePending: false, inviteHash: FieldValue.delete(), inviteExpiresAt: FieldValue.delete(), mustChangePassword: false,
+    if (account.exists) t.update(userRef, { mustChangePassword: false, updatedAt: FieldValue.serverTimestamp() });
+    t.update(memberRef, {
+      invitePending: false, inviteHash: FieldValue.delete(), inviteExpiresAt: FieldValue.delete(),
       ...(inv.kind === 'invite' && !profile.joinedAt ? { joinedAt: FieldValue.serverTimestamp() } : {}), updatedAt: FieldValue.serverTimestamp(),
     });
     return { uid: inv.uid as string, email: inv.email as string, kind: inv.kind as InviteKind, name: inv.name as string, companyId: inv.companyId as string };
@@ -101,7 +110,7 @@ export const acceptInvite = onCall(callOpts, async (req) => {
 });
 
 // Removes a member's open invitation (when they are removed from the company)
-export async function dropInvite(db: Firestore, uid: string) {
-  const p = (await db.doc(paths.user(uid)).get()).data() as { inviteHash?: string } | undefined;
+export async function dropInvite(db: Firestore, cid: string, uid: string) {
+  const p = (await db.doc(paths.member(cid, uid)).get()).data() as { inviteHash?: string } | undefined;
   if (p?.inviteHash) await invitesCol(db).doc(p.inviteHash).delete().catch(() => {});
 }

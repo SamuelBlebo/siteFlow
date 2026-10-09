@@ -8,7 +8,7 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../src/firebase';
 import {
   addExpense, addMaterial, addWorker, attendanceDoc, createSite, financeDoc, logMaterial, markAttendance, myReportId,
-  sendReport, siteDoc, sub, subDoc, uploadPhotos, userDoc,
+  memberDoc, sendReport, siteDoc, sub, subDoc, uploadPhotos, userDoc,
 } from '../src/lib/db';
 import { save, SaveError } from '../src/lib/save';
 import { waitFor } from './wait';
@@ -32,8 +32,8 @@ afterAll(async () => { await signOut(auth); await terminate(db); });
 
 describe('owner', () => {
   it('sign-up creates the company and owner profile on the server', async () => {
-    const p = (await getDoc(userDoc(cid))).data();
-    expect(p).toMatchObject({ companyId: cid, role: 'owner', name: 'Ama Mensah', active: true });
+    expect((await getDoc(userDoc(cid))).data()).toMatchObject({ companyId: cid, companyIds: [cid], name: 'Ama Mensah' });
+    expect((await getDoc(memberDoc(cid, cid))).data()).toMatchObject({ role: 'owner', name: 'Ama Mensah', active: true });
     // Calling again is harmless (retry after a half-finished sign-up)
     await expect(call('createCompany', { companyName: 'Mensah Builders', name: 'Ama Mensah' })).resolves.toEqual({ companyId: cid });
   });
@@ -68,7 +68,7 @@ describe('owner', () => {
     const s = await call('inviteMember', { name: 'Kofi Asante', email: `super-${run}@example.com`, role: 'supervisor', siteIds: [sid, 'not-a-site'] });
     const v = await call('inviteMember', { name: 'Esi Viewer', email: `viewer-${run}@example.com`, role: 'viewer', siteIds: [sid] });
     supervisorPw = await join(s, 'supervisor-pass-1'); viewerPw = await join(v, 'viewer-pass-1');
-    expect((await getDoc(userDoc(s.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [sid] });
+    expect((await getDoc(memberDoc(cid, s.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [sid] });
     await expect(call('inviteMember', { name: 'Bad', email: `bad-${run}@example.com`, role: 'owner' })).rejects.toThrow();
   });
 });

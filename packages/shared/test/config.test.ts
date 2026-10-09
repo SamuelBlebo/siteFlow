@@ -21,7 +21,8 @@ describe('web hosting', () => {
   it('the content security policy only runs the app’s own scripts and lets Firebase work', () => {
     const csp = Object.fromEntries(header('Content-Security-Policy').split(';').map((d) => d.trim().split(/\s+/)).map(([k, ...v]) => [k, v]));
     // the app's own files, plus reCAPTCHA for App Check; never inline or eval
-    expect(csp['script-src']).toEqual(["'self'", 'https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/']);
+    // apis.google.com: the Google sign-in pop-up (Firebase Auth loads its helper from there)
+    expect(csp['script-src']).toEqual(["'self'", 'https://apis.google.com', 'https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/']);
     expect(csp['script-src']).not.toContain("'unsafe-inline'");
     expect(csp['object-src']).toEqual(["'none'"]);
     expect(csp['frame-ancestors']).toEqual(["'none'"]);

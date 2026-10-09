@@ -1,8 +1,9 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
-import { SAMPLE_PREFIX, buildDemo, can, isRole, paths, round2, sampleTime, type UserProfile } from '@siteflow/shared';
+import { SAMPLE_PREFIX, buildDemo, can, paths, round2, sampleTime } from '@siteflow/shared';
 import { checkLimit } from './limits';
+import { actorOf } from './members';
 
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
@@ -10,13 +11,9 @@ const SAMPLE_IDS = ['adenta', 'legon', 'road'].map((k) => `${SAMPLE_PREFIX}${k}`
 
 // The signed-in owner (only the owner adds or removes sample data)
 async function owner(uid: string | undefined) {
-  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.');
-  const snap = await getFirestore().doc(paths.user(uid)).get();
-  const me = snap.data() as UserProfile | undefined;
-  if (!me || me.active === false || !isRole(me.role) || !can(me.role, 'company.settings')) {
-    throw new HttpsError('permission-denied', 'Only the owner can add or remove sample data.');
-  }
-  return { ...me, id: snap.id };
+  const me = await actorOf(getFirestore(), uid);
+  if (!can(me.role, 'company.settings')) throw new HttpsError('permission-denied', 'Only the owner can add or remove sample data.');
+  return me;
 }
 
 const at = (date: string, time?: string) => Timestamp.fromMillis(sampleTime(date, time));
@@ -84,7 +81,7 @@ export const removeDemo = onCall({ ...callOpts, timeoutSeconds: 300, memory: '51
     removed++;
   }
   // People who were assigned to a sample project keep their other projects
-  const assigned = await db.collection(paths.users()).where('companyId', '==', cid).get();
+  const assigned = await db.collection(paths.members(cid)).get();
   for (const u of assigned.docs) {
     const ids = (u.data().siteIds || []) as string[];
     if (ids.some((x) => x.startsWith(SAMPLE_PREFIX))) await u.ref.update({ siteIds: ids.filter((x) => !x.startsWith(SAMPLE_PREFIX)) });

@@ -5,12 +5,12 @@ import { useOutbox } from '../lib/useOutbox';
 import { outboxKey } from '../lib/reportOutbox';
 import { exists, openIssuesQuery, siteRef, sitesCol, toList } from '../lib/db';
 import { ALERT_LABELS, SITE_STATUS_LABELS, isSiteScoped, rankAlerts, siteAlerts, todayKey } from '@siteflow/shared';
-import { Card, Empty, ErrorView, Loading, Muted, Pill, Screen, s } from '../components/ui';
+import { Card, Choice, Empty, ErrorView, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import WelcomeIntro from '../components/WelcomeIntro';
 import { colors } from '../theme';
 
 export default function SitesScreen({ navigation }) {
-  const { cid, profile, can, role, user } = useAuth();
+  const { cid, profile, can, role, user, companies, switchCompany } = useAuth();
   const outbox = useOutbox();
   const autoOpened = useRef(false);
   const all = can('sites.all');
@@ -61,6 +61,8 @@ export default function SitesScreen({ navigation }) {
   return (
     <Screen>
       <WelcomeIntro uid={user.uid} name={profile?.name} />
+      {/* People in more than one company pick which one to work in; each has its own role and sites */}
+      {companies.length > 1 ? <Choice label="Company" options={companies.map((c) => ({ value: c.id, label: c.name }))} value={cid} onChange={switchCompany} /> : null}
       <Muted style={{ marginBottom: 12 }}>Hi {profile.name?.split(' ')[0]}. Pick a site to work on.</Muted>
       {error ? <ErrorView error={error} what="your sites" /> : null}
       {all && loaded ? <Attention sites={list} openIssues={openIssues} navigation={navigation} /> : null}

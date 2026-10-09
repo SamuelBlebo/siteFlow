@@ -3,20 +3,20 @@ rules_version = '2';
 // Role lists mirror packages/shared/src/permissions.ts. Tested in firebase/tests/storage.rules.test.ts.
 service firebase.storage {
   match /b/{bucket}/o {
-    function profile() { return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data; }
+    // The person's role, projects and switch in this company (companies/{cid}/members/{uid})
+    function memberPath(cid) { return /databases/(default)/documents/companies/$(cid)/members/$(request.auth.uid); }
+    function profile(cid) { return firestore.get(memberPath(cid)).data; }
     function member(cid) {
-      return request.auth != null
-        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-        && profile().companyId == cid && profile().get('active', true) != false;
+      return request.auth != null && firestore.exists(memberPath(cid)) && profile(cid).get('active', true) != false;
     }
     function onSite(cid, sid) {
-      return member(cid) && (profile().role in ['owner', 'admin', 'manager', 'finance'] || sid in profile().siteIds);
+      return member(cid) && (profile(cid).role in ['owner', 'admin', 'manager', 'finance'] || sid in profile(cid).siteIds);
     }
     function siteOpen(cid, sid) { return firestore.get(/databases/(default)/documents/companies/$(cid)/sites/$(sid)).data.status != 'closed'; }
     function siteWork(cid, sid) {
-      return onSite(cid, sid) && profile().role in ['owner', 'admin', 'manager', 'supervisor'] && siteOpen(cid, sid);
+      return onSite(cid, sid) && profile(cid).role in ['owner', 'admin', 'manager', 'supervisor'] && siteOpen(cid, sid);
     }
-    function siteManager(cid) { return member(cid) && profile().role in ['owner', 'admin', 'manager']; }
+    function siteManager(cid) { return member(cid) && profile(cid).role in ['owner', 'admin', 'manager']; }
 
     // Daily report photos: paths.photo(cid, sid, reportId, file)
     match /companies/{cid}/sites/{sid}/reports/{reportId}/{file} {

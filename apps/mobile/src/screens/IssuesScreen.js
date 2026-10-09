@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import {
   ISSUE_CATEGORIES, ISSUE_PHOTO_LIMIT, ISSUE_PRIORITIES, ISSUE_PRIORITY_HINTS, ISSUE_PRIORITY_LABELS, ISSUE_STATUS_LABELS, filterIssues, isOpenIssue,
   issueInput, prettyDate, sortIssues, validate,
@@ -10,7 +10,7 @@ import { siteIssuesQuery, toList } from '../lib/db';
 import { deleteReport, queueIssue, retryReport } from '../lib/reportOutbox';
 import { useOutbox } from '../lib/useOutbox';
 import { clearDraft, readDraft, writeDraft } from '../lib/drafts';
-import { Button, Card, Choice, Empty, ErrorText, ErrorView, Field, H1, H2, Loading, Muted, Notice, Pill, Screen, s } from '../components/ui';
+import { Button, Card, Choice, Empty, ErrorText, ErrorView, Field, H1, Loading, Muted, Notice, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 import PhotoPicker from '../components/PhotoPicker';
 

@@ -10,8 +10,9 @@ export const LIMITS = {
   resetPassword: { max: 20, windowMs: 60 * 60 * 1000 },    // temporary passwords per hour
   teamChange: { max: 200, windowMs: 60 * 60 * 1000 },      // role, site, on/off and removal changes per hour
   settings: { max: 100, windowMs: 60 * 60 * 1000 },        // module switches per hour
-  demo: { max: 10, windowMs: 60 * 60 * 1000 },
-  requests: { max: 60, windowMs: 60 * 60 * 1000 },         // report requests per hour             // adding or removing the sample projects per hour
+  demo: { max: 10, windowMs: 60 * 60 * 1000 },             // adding or removing the sample projects per hour
+  requests: { max: 60, windowMs: 60 * 60 * 1000 },         // report requests per hour
+  migrate: { max: 20, windowMs: 60 * 60 * 1000 },          // moving an account to company memberships
 } as const;
 export type LimitKey = keyof typeof LIMITS;
 

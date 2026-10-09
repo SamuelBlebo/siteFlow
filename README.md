@@ -188,9 +188,24 @@ Mobile shows managers the top five items on the sites screen.
   nothing is emailed and the Team page says so and shows the link to share.
 - **Team changes** (role, sites, switch off/on, password link, remove) go through Cloud Functions
   (`updateMember`, `setMemberActive`, `resetMemberPassword`, `removeMember`). They apply the role rules and
-  write the company activity log. Switching someone off also blocks their login and signs them out.
+  write the company activity log. Switching someone off also blocks their login and signs them out
+  (unless they still have another company).
 - **Everyone** can edit their own name and WhatsApp number and change their password (web Account page,
   mobile Account screen).
+- **One login, several companies.** The same email can be, say, project manager in one company and admin in
+  another. The person is `users/{uid}` (name, email, phone, `companyIds`, and `companyId`: the company they are
+  looking at). Their role, projects, on/off switch and invitation in each company are in
+  `companies/{cid}/members/{uid}`, and the security rules check the membership for the company in the path.
+  - Adding an email that already has a SiteFlow login adds a membership to that login: no new password and no
+    link. They get an email and see the company in the **company switcher** (top of the sidebar on the web,
+    top of the Sites screen on the phone).
+  - Switching someone off or removing them affects only that company. Their login is locked or deleted only
+    when no other company has them. A password link can't be sent for a login shared with another company;
+    the person uses "Forgot password?".
+  - Name and phone changes are copied to each company by `onAccountChanged`.
+  - Accounts from before memberships (role on `users/{uid}`) are moved per company by `migrateCompany`.
+    This happens on the first web sign-in (`migrateAccount`), when an old invitation link is used, or at the
+    latest on the next hourly reminder run.
 
 ## Working offline (mobile)
 

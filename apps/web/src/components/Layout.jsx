@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
@@ -17,7 +17,8 @@ const late = (s) => s.status === 'active' && s.lastReportDate !== todayKey();
 // The app shell: navy sidebar (company, menu, projects, you) and the page beside it.
 // On phones the sidebar folds into a top bar with a sideways-scrolling menu.
 export default function Layout() {
-  const { cid, profile, role, can } = useAuth();
+  const { cid, profile, role, can, companies, switchCompany } = useAuth();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
   const main = useRef(null);
   const all = can('sites.all');
@@ -40,10 +41,19 @@ export default function Layout() {
       <a className="skip" href="#main">Skip to content</a>
       <aside className="side">
         <Brand />
-        {company && (
+        {company && (companies.length > 1 ? (
+          // People in more than one company: pick which one to work in. Each keeps its own role and projects.
+          <div className="org pick">
+            <label htmlFor="org-pick" className="visually-hidden">Company</label>
+            <select id="org-pick" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
+              {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <span>{role ? ROLE_LABELS[role] : ''}, {companies.length} companies</span>
+          </div>
+        ) : (
           <div className="org"><b>{company.name}</b>
             <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : 'Site workspace'}</span></div>
-        )}
+        ))}
         <nav className="snav" aria-label="Main">
           {all && <NavLink to="/" end>Dashboard</NavLink>}
           {all && <NavLink to="/sites" end>Projects</NavLink>}

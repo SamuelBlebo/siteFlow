@@ -93,7 +93,7 @@ const fresh = () => import('../src/lib/reportOutbox');
 
 describe('report outbox', () => {
   beforeEach(() => {
-    server.docs.set('users/u1', { name: 'Kofi Mensah' });
+    server.docs.set('companies/c1/members/u1', { name: 'Kofi Mensah' });
     server.docs.set('companies/c1/sites/s1', { name: 'Adenta house', lastReportDate: '2026-01-01' });
   });
 
@@ -285,7 +285,7 @@ describe('issues in the outbox', () => {
   const issuePath = 'companies/c1/sites/s1/issues/iss1';
   const issueInput = { title: 'Water pipe burst', description: '', priority: 'critical', category: 'Utilities', location: 'Store', dueDate: '' };
   beforeEach(() => {
-    server.docs.set('users/u1', { name: 'Kofi Mensah' });
+    server.docs.set('companies/c1/members/u1', { name: 'Kofi Mensah' });
     server.docs.set('companies/c1/sites/s1', { name: 'Adenta house' });
   });
   it('an issue with a photo is saved offline and sent when signal returns', async () => {

@@ -7,13 +7,15 @@ service cloud.firestore {
 
     // ---------- who is asking ----------
     function signedIn() { return request.auth != null; }
-    function myPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
-    function me() { return get(myPath()).data; }
+    // One login can belong to several companies. companies/{cid}/members/{uid} holds the person's
+    // role, projects and on/off switch in that company; users/{uid} holds the person themselves.
+    function memberPath(cid) { return /databases/$(database)/documents/companies/$(cid)/members/$(request.auth.uid); }
+    function meIn(cid) { return get(memberPath(cid)).data; }
     // Member of this company, and not switched off
     function member(cid) {
-      return signedIn() && exists(myPath()) && me().companyId == cid && me().get('active', true) != false;
+      return signedIn() && exists(memberPath(cid)) && meIn(cid).get('active', true) != false;
     }
-    function hasRole(cid, roles) { return member(cid) && me().role in roles; }
+    function hasRole(cid, roles) { return member(cid) && meIn(cid).role in roles; }
 
     // ---------- permissions (see PERMISSIONS in shared) ----------
     function companySettings(cid) { return hasRole(cid, ['owner']); }
@@ -24,12 +26,12 @@ service cloud.firestore {
     function financeEdit(cid) { return hasRole(cid, ['owner', 'admin', 'manager', 'finance']); }
     function auditView(cid) { return hasRole(cid, ['owner', 'admin']); }
 
-    function onSite(cid, sid) { return allSites(cid) || (member(cid) && sid in me().siteIds); }
+    function onSite(cid, sid) { return allSites(cid) || (member(cid) && sid in meIn(cid).siteIds); }
     // Closed sites are read-only for daily work
     function siteOpen(cid, sid) { return get(sitePath(cid, sid)).data.status != 'closed'; }
     // Daily site work: reports, attendance, material logs, adding workers
     function siteWork(cid, sid) {
-      return onSite(cid, sid) && me().role in ['owner', 'admin', 'manager', 'supervisor'] && siteOpen(cid, sid);
+      return onSite(cid, sid) && meIn(cid).role in ['owner', 'admin', 'manager', 'supervisor'] && siteOpen(cid, sid);
     }
 
     // ---------- helpers ----------
@@ -47,19 +49,21 @@ service cloud.firestore {
     function optDate(field) { return !(field in data()) || data()[field] == null || isDateKey(data()[field]); }
     function sitePath(cid, sid) { return /databases/$(database)/documents/companies/$(cid)/sites/$(sid); }
 
-    // ---------- users ----------
-    // Profiles are created and changed only by Cloud Functions (createCompany, inviteMember,
-    // updateMember, setMemberActive, resetMemberPassword, removeMember), which check the role
-    // rules and write the audit trail. People may edit their own name and phone, and clear
-    // the "must change password" flag after setting a new password.
+    // ---------- people ----------
+    // A person's own record: name, email, phone, the companies they belong to (companyIds) and the
+    // one they are looking at (companyId). Created and joined to companies only by Cloud Functions
+    // (createCompany, inviteMember, removeMember). People may edit their name and phone (a function
+    // copies them to each company), clear the old "must change password" flag, and switch to
+    // another company they belong to.
     match /users/{uid} {
-      // Project managers also see the team, to assign people to their sites
-      allow read: if signedIn() && (request.auth.uid == uid || teamManager(resource.data.companyId) || siteManager(resource.data.companyId));
+      allow read: if signedIn() && request.auth.uid == uid;
       allow create, delete: if false;
-      allow update: if signedIn() && request.auth.uid == uid && member(resource.data.companyId)
-        && onlyChanges(['name', 'phone', 'mustChangePassword', 'updatedAt'])
+      allow update: if signedIn() && request.auth.uid == uid
+        && onlyChanges(['name', 'phone', 'mustChangePassword', 'companyId', 'updatedAt'])
         && isText(data().name, 2, 100) && optText('phone', 20)
-        && data().get('mustChangePassword', false) == false;
+        && data().get('mustChangePassword', false) == false
+        && (data().get('companyId', '') == resource.data.get('companyId', '')
+            || (data().companyId in resource.data.get('companyIds', []) && member(data().companyId)));
     }
 
     // Company-wide reports page: one collection-group query, filtered by companyId
@@ -84,6 +88,13 @@ service cloud.firestore {
         && (!('country' in data()) || (data().country is string && data().country.matches('^[A-Z]{2}$')))
         && (!('currency' in data()) || (data().currency is string && data().currency.matches('^[A-Z]{3}$')))
         && (!('timeZone' in data()) || (data().timeZone is string && data().timeZone.matches('^[A-Za-z_+-]+(/[A-Za-z0-9_+-]+){0,2}$')));
+
+      // Team: role, projects and switch per person. Written by Cloud Functions only (they check the
+      // role rules and keep the audit trail). Project managers see the team to assign people to sites.
+      match /members/{uid} {
+        allow read: if (signedIn() && request.auth.uid == uid) || siteManager(cid);
+        allow write: if false;
+      }
 
       match /equipment/{id} {
         allow read: if member(cid);
@@ -181,7 +192,7 @@ service cloud.firestore {
             // Delivery cost is a money figure: finance roles only, deliveries only
             && isAmount(data().cost) && (data().cost == 0 || (financeEdit(cid) && data().type == 'delivery'))
             && isDateKey(data().date) && optText('supplier', 120) && optText('ref', 60) && optText('note', 500)
-            && data().createdByName == me().name
+            && data().createdByName == meIn(cid).name
             && getAfter(/databases/$(database)/documents/companies/$(cid)/sites/$(sid)/materials/$(data().materialId)).data.lastLogId == id;
           allow update, delete: if false;
         }
@@ -195,7 +206,7 @@ service cloud.firestore {
               && isDateKey(data().date);
           }
           allow read: if financeView(cid);
-          allow create: if financeEdit(cid) && byMe() && validExpense() && data().createdByName == me().name;
+          allow create: if financeEdit(cid) && byMe() && validExpense() && data().createdByName == meIn(cid).name;
           allow update: if financeEdit(cid) && validExpense() && !data().diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdByName', 'createdAt']);
           allow delete: if financeEdit(cid);
         }
@@ -259,10 +270,10 @@ service cloud.firestore {
               && data().photos is list && data().photos.size() <= 8 && validThumbs()
               && (!('photoCount' in data()) || (data().photoCount is int && data().photoCount >= 0 && data().photoCount <= 8))
               && data().source in ['app', 'web']
-              && data().createdByName == me().name
+              && data().createdByName == meIn(cid).name
               // the sender's role and email, as they are on their profile (shown on the report)
-              && (!('createdByRole' in data()) || data().createdByRole == me().role)
-              && (!('createdByEmail' in data()) || data().createdByEmail == me().get('email', ''));
+              && (!('createdByRole' in data()) || data().createdByRole == meIn(cid).role)
+              && (!('createdByEmail' in data()) || data().createdByEmail == meIn(cid).get('email', ''));
           }
           allow read: if onSite(cid, sid);
           allow create: if siteWork(cid, sid) && byMe() && validReport();
@@ -291,7 +302,7 @@ service cloud.firestore {
           allow update: if validMilestone() && (siteManager(cid)
             || (siteWork(cid, sid)
                 && onlyChanges(['status', 'percentDone', 'actualStart', 'actualEnd', 'note', 'updatedBy', 'updatedByName', 'updatedAt'])
-                && data().updatedBy == request.auth.uid && data().updatedByName == me().name));
+                && data().updatedBy == request.auth.uid && data().updatedByName == meIn(cid).name));
         }
 
         // Problems reported on site. Mirrors issueActions in shared:
@@ -319,12 +330,12 @@ service cloud.firestore {
           function only(keys) { return data().diff(resource.data).affectedKeys().hasOnly(keys); }
           // The person given the issue must belong to this company
           function validAssignee() {
-            return data().assignedTo == null || get(/databases/$(database)/documents/users/$(data().assignedTo)).data.companyId == cid;
+            return data().assignedTo == null || exists(/databases/$(database)/documents/companies/$(cid)/members/$(data().assignedTo));
           }
           // Whoever marks it resolved is recorded as the resolver
           function resolverIsMe() {
             return !(changed(['status']) && data().status == 'resolved')
-              || (data().resolvedBy == request.auth.uid && data().resolvedByName == me().name);
+              || (data().resolvedBy == request.auth.uid && data().resolvedByName == meIn(cid).name);
           }
           function assigneeStep() {
             return resource.data.assignedTo == request.auth.uid
@@ -343,7 +354,7 @@ service cloud.firestore {
           allow read: if onSite(cid, sid);
           allow create: if siteWork(cid, sid) && byMe() && validIssue()
             && data().status == 'open' && data().commentCount == 0 && data().resolution == '' && data().resolvedBy == null
-            && data().createdByName == me().name
+            && data().createdByName == meIn(cid).name
             && (data().assignedTo == null || (siteManager(cid) && validAssignee()));
           allow update: if siteWork(cid, sid) && validIssue()
             && !changed(['companyId', 'siteId', 'siteName', 'date', 'createdBy', 'createdByName', 'createdAt'])
@@ -358,7 +369,7 @@ service cloud.firestore {
             allow create: if siteWork(cid, sid) && byMe()
               && data().keys().hasOnly(['text', 'kind', 'createdBy', 'createdByName', 'createdAt'])
               && isText(data().text, 1, 2000) && data().kind in ['comment', 'update']
-              && data().createdByName == me().name;
+              && data().createdByName == meIn(cid).name;
             allow update, delete: if false;
           }
         }

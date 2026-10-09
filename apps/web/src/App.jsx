@@ -37,7 +37,7 @@ const SiteWorkspace = lazy(() => import('./pages/SiteWorkspace'));
 // Signed in, with an active profile, and (optionally) a permission.
 // Hiding a page is only convenience: the security rules enforce the same permissions.
 function Guard({ perm, children }) {
-  const { user, profile, loading, error, active, can } = useAuth();
+  const { user, profile, loading, error, active, can, companies, switchCompany } = useAuth();
   const { pathname } = useLocation();
   if (loading) return <Loading />;
   // Visitors who are not signed in see the public front page at the home address
@@ -47,8 +47,13 @@ function Guard({ perm, children }) {
   if (!active) {
     return (
       <section className="wrap narrow">
-        <h1>Account switched off</h1>
-        <p className="muted lead">Your access to SiteFlow has been switched off. Ask your company's owner or admin.</p>
+        <h1>Access switched off</h1>
+        <p className="muted lead">Your access to this company has been switched off. Ask its owner or admin.</p>
+        {companies.length > 1 && (
+          <div className="actions mb">{companies.filter((c) => c.id !== profile.companyId).map((c) => (
+            <button key={c.id} type="button" className="btn gold" onClick={() => switchCompany(c.id)}>Go to {c.name}</button>
+          ))}</div>
+        )}
         <button type="button" className="btn ghost" onClick={() => signOut(auth)}>Sign out</button>
       </section>
     );

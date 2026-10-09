@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } f
 import { getDoc, getDocs, terminate, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../src/firebase';
-import { activityQuery, companyDoc, createSite, teamQuery, updateCompany, updateMyProfile, userDoc } from '../src/lib/db';
+import { activityQuery, companyDoc, createSite, memberDoc, switchCompany, teamQuery, updateCompany, updateMyProfile, userDoc } from '../src/lib/db';
 import { acceptInvite, changePassword, inviteInfo, setModule, team } from '../src/lib/account';
 import { join, tokenOf } from './join';
 import { save, SaveError } from '../src/lib/save';
@@ -38,7 +38,7 @@ describe('invites and first sign-in', () => {
     expect(inv.super.link).toMatch(/\/invite\/[A-Za-z0-9_-]{43}$/);
     expect(inv.super.tempPassword).toBeUndefined();
     expect(inv.super.email).toBe('skipped'); // the emulator never sends email
-    expect((await getDoc(userDoc(inv.super.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [s1], phone: '0241234567', invitePending: true, inviteKind: 'invite' });
+    expect((await getDoc(memberDoc(cid, inv.super.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [s1], phone: '0241234567', invitePending: true, inviteKind: 'invite' });
   });
 
   it('the link shows who invited them, sets their password once, and then stops working', async () => {
@@ -47,8 +47,8 @@ describe('invites and first sign-in', () => {
     expect(await code(acceptInvite({ token: tokenOf(inv.super), password: 'short' }))).toBe('functions/invalid-argument');
     pw.super = await join(inv.super, 'kofi-own-pass');
     const u = await as('super');
-    expect((await getDoc(userDoc(u.uid))).data()).toMatchObject({ invitePending: false });
-    expect((await getDoc(userDoc(u.uid))).data().joinedAt).toBeTruthy();
+    expect((await getDoc(memberDoc(cid, u.uid))).data()).toMatchObject({ invitePending: false });
+    expect((await getDoc(memberDoc(cid, u.uid))).data().joinedAt).toBeTruthy();
     expect(await code(acceptInvite({ token: tokenOf(inv.super), password: 'hijack-pass-1' }))).toBe('functions/not-found');
     expect(await code(inviteInfo({ token: 'x'.repeat(43) }))).toBe('functions/not-found');
   });
@@ -132,7 +132,7 @@ describe('switch off, reset, remove', () => {
     await as('owner');
     const first = await team.resetPassword({ uid: ids.super });
     const second = await team.resetPassword({ uid: ids.super });
-    expect((await getDoc(userDoc(ids.super))).data()).toMatchObject({ invitePending: true, inviteKind: 'reset' });
+    expect((await getDoc(memberDoc(cid, ids.super))).data()).toMatchObject({ invitePending: true, inviteKind: 'reset' });
     await expect(as('super')).resolves.toBeTruthy(); // not locked out while the link is waiting
     expect(await code(acceptInvite({ token: tokenOf(first), password: 'older-link-pass' }))).toBe('functions/not-found');
     await signOut(auth);
@@ -166,6 +166,44 @@ describe('switch off, reset, remove', () => {
     expect(await code(team.update({ uid: ids.super, role: 'viewer' }))).toBe('functions/not-found');
     expect(await code(team.setActive({ uid: ids.super, active: false }))).toBe('functions/not-found');
     expect(await code(team.remove({ uid: ids.admin }))).toBe('functions/not-found');
+  });
+});
+
+// Case 2: the same email is a supervisor in one company and a project manager in another
+describe('one login in several companies', () => {
+  let rivalCid;
+  it('another company adds our supervisor by email: same login, no link, added straight away', async () => {
+    rivalCid = (await as('rival', 'rival-pass-1')).uid;
+    const r = await team.invite({ name: 'Someone Else', email: email('super'), role: 'manager' });
+    expect(r).toMatchObject({ uid: ids.super, existing: true });
+    expect(r.link).toBeUndefined();
+    // Their own name, not the one typed by the other company
+    expect((await getDoc(memberDoc(rivalCid, ids.super))).data()).toMatchObject({ role: 'manager', name: 'Kofi Asante', invitePending: false });
+    expect(await code(team.invite({ name: 'Again', email: email('super'), role: 'viewer' }))).toBe('functions/already-exists');
+  });
+
+  it('they switch between companies, with their role in each', async () => {
+    const u = await as('super');
+    const me = (await getDoc(userDoc(u.uid))).data();
+    expect([...me.companyIds].sort()).toEqual([cid, rivalCid].sort());
+    expect(me.companyId).toBe(cid); // still looking at the first one
+    await expect(getDocs(teamQuery(cid))).rejects.toThrow(); // a supervisor here
+    await switchCompany(u.uid, rivalCid);
+    expect((await getDocs(teamQuery(rivalCid))).size).toBe(2); // a project manager there
+    await switchCompany(u.uid, cid);
+  });
+
+  it("a manager can't send a password link for a login shared with another company", async () => {
+    await as('owner');
+    expect(await code(team.resetPassword({ uid: ids.super }))).toBe('functions/failed-precondition');
+  });
+
+  it('removing them from one company keeps their login and the other company', async () => {
+    await as('rival', 'rival-pass-1');
+    await team.remove({ uid: ids.super });
+    const u = await as('super');
+    expect((await getDoc(userDoc(u.uid))).data()).toMatchObject({ companyIds: [cid], companyId: cid });
+    expect((await getDoc(memberDoc(cid, u.uid))).data().role).toBe('supervisor');
   });
 });
 

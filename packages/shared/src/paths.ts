@@ -11,6 +11,9 @@ export const paths = {
   user: (uid: string) => `users/${uid}`,
   companies: () => 'companies',
   company: (cid: string) => `companies/${cid}`,
+  // A person's role, projects and switch in one company (one login can belong to several)
+  members: (cid: string) => `companies/${cid}/members`,
+  member: (cid: string, uid: string) => `companies/${cid}/members/${uid}`,
   equipment: (cid: string) => `companies/${cid}/equipment`,
   activity: (cid: string) => `companies/${cid}/activity`,
   notifications: (cid: string) => `companies/${cid}/notifications`,

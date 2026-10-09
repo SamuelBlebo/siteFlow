@@ -9,7 +9,8 @@ import { resizePhoto, thumbnail } from './photos';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
 export const userDoc = (uid) => doc(db, paths.user(uid));
-export const usersCol = () => collection(db, paths.users());
+// A person's role, projects and switch in one company (one login can belong to several)
+export const memberDoc = (cid, uid) => doc(db, paths.member(cid, uid));
 export const companyDoc = (cid) => doc(db, paths.company(cid));
 export const sitesCol = (cid) => collection(db, paths.sites(cid));
 export const siteDoc = (cid, sid) => doc(db, paths.site(cid, sid));
@@ -33,11 +34,14 @@ export function companyReportsQuery(cid, { siteId = '', author = '', from = '', 
 export const reportRef = (cid, sid, rid) => doc(db, paths.subDoc(cid, sid, 'reports', rid));
 export const expensesQuery = (cid, sid, from = '', n = 500) =>
   query(sub(cid, sid, 'expenses'), ...(from ? [where('date', '>=', from)] : []), orderBy('date', 'desc'), limit(n));
-export const teamQuery = (cid) => query(usersCol(), where('companyId', '==', cid));
+export const teamQuery = (cid) => collection(db, paths.members(cid));
 export const activityQuery = (cid, n = 20) => query(collection(db, paths.activity(cid)), orderBy('at', 'desc'), limit(n));
 
 // ---------- account and company ----------
+// Name and phone live on the person; a Cloud Function copies them to each company they belong to
 export const updateMyProfile = (uid, { name, phone }) => updateDoc(userDoc(uid), { name, phone, updatedAt: serverTimestamp() });
+// Look at another company this person belongs to (the rules check they are a member)
+export const switchCompany = (uid, cid) => updateDoc(userDoc(uid), { companyId: cid, updatedAt: serverTimestamp() });
 export const clearMustChangePassword = (uid) => updateDoc(userDoc(uid), { mustChangePassword: false, updatedAt: serverTimestamp() });
 export const updateCompany = (cid, { name, phone, location }) => updateDoc(companyDoc(cid), { name, phone, location, updatedAt: serverTimestamp() });
 // Owner: country, currency and time zone (validated companyLocaleInput)

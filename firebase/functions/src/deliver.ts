@@ -5,6 +5,7 @@ import {
   NOTIFICATIONS, companyLocale, maskContact, notificationRule, notificationText, paths, templateParams, waPhone,
   type Company, type Member, type NotificationKind, type UserProfile,
 } from '@siteflow/shared';
+import { migrateCompany } from './members';
 import { SECRETS, sendEmail, sendWhatsAppTemplate, type SendResult } from './notify';
 
 const MAX_ATTEMPTS = 3;
@@ -13,9 +14,12 @@ const MAX_ATTEMPTS = 3;
 const KEEP_DAYS = 180;
 export type Recipient = Pick<Member, 'name' | 'phone' | 'email'> & { id?: string };
 
-// Active members of a company, as notification recipients
+// Members of a company, as notification recipients. A company nobody has signed in to since
+// memberships came in is moved to them first.
 export async function companyMembers(cid: string): Promise<Member[]> {
-  const snap = await getFirestore().collection(paths.users()).where('companyId', '==', cid).get();
+  const col = getFirestore().collection(paths.members(cid));
+  let snap = await col.get();
+  if (snap.empty && await migrateCompany(getFirestore(), cid)) snap = await col.get();
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<UserProfile, 'id'>) }));
 }
 

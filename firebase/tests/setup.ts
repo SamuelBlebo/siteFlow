@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, setDoc, setLogLevel } from 'firebase/firestore';
+import { doc, setDoc, setLogLevel, type Firestore } from 'firebase/firestore';
 import { paths, reportDoc, reportId, type Role } from '@siteflow/shared';
 
 export const PROJECT_ID = 'demo-siteflow';
@@ -21,6 +21,7 @@ export const USERS: Record<Role, string> = {
 };
 export const OTHER_OWNER = 'owner2';
 export const OFF_USER = 'off1';  // supervisor on s1, switched off
+export const MULTI = 'multi1';   // one login in both companies: admin in c1, supervisor on s9 in c2
 export const SEEDED_REPORT = reportId('2026-06-01', 'super1'); // by the supervisor, on every site
 
 export async function makeEnv(): Promise<RulesTestEnvironment> {
@@ -37,6 +38,17 @@ export const site = (name: string) => ({
   name, location: 'Accra', stage: 'Foundation', progress: 10, status: 'active', lastReportDate: null,
 });
 
+// A person (users/{uid}) and their membership in each company (companies/{cid}/members/{uid})
+type Seat = { role: Role; siteIds?: string[]; active?: boolean };
+export async function putPerson(db: Firestore, uid: string, name: string, seats: Record<string, Seat>) {
+  const ids = Object.keys(seats);
+  const email = `${uid}@example.com`;
+  await setDoc(doc(db, paths.user(uid)), { name, email, companyIds: ids, companyId: ids[0] });
+  for (const [cid, s] of Object.entries(seats)) {
+    await setDoc(doc(db, paths.member(cid, uid)), { name, email, role: s.role, siteIds: s.siteIds ?? [], ...(s.active === false ? { active: false } : {}) });
+  }
+}
+
 export async function seed(env: RulesTestEnvironment) {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
@@ -46,10 +58,11 @@ export async function seed(env: RulesTestEnvironment) {
     await put(paths.company(C2), { name: 'Other Co', ownerId: OTHER_OWNER, plan: 'starter', modules: {} });
     for (const [role, uid] of Object.entries(USERS)) {
       const scoped = role === 'supervisor' || role === 'viewer';
-      await put(paths.user(uid), { companyId: C1, role, name: `${role} user`, email: `${uid}@example.com`, siteIds: scoped ? [S1] : [] });
+      await putPerson(db as unknown as Firestore, uid, `${role} user`, { [C1]: { role: role as Role, siteIds: scoped ? [S1] : [] } });
     }
-    await put(paths.user(OFF_USER), { companyId: C1, role: 'supervisor', name: 'Off user', email: 'off@example.com', siteIds: [S1], active: false });
-    await put(paths.user(OTHER_OWNER), { companyId: C2, role: 'owner', name: 'Other owner', email: 'o2@example.com', siteIds: [] });
+    await putPerson(db as unknown as Firestore, OFF_USER, 'Off user', { [C1]: { role: 'supervisor', siteIds: [S1], active: false } });
+    await putPerson(db as unknown as Firestore, OTHER_OWNER, 'Other owner', { [C2]: { role: 'owner' } });
+    await putPerson(db as unknown as Firestore, MULTI, 'Ebo Mensah', { [C1]: { role: 'admin' }, [C2]: { role: 'supervisor', siteIds: [S9] } });
 
     for (const [cid, sid] of [[C1, S1], [C1, S2], [C2, S9]]) {
       await put(paths.site(cid, sid), site(`Site ${sid}`));

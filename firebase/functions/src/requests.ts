@@ -1,10 +1,11 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import {
-  ROLE_LABELS, SAMPLE_PREFIX, can, isRole, isSiteScoped, paths, prettyDate, reportRequestInput, reportRequestRefInput, validate,
-  type Role, type UserProfile,
+  ROLE_LABELS, SAMPLE_PREFIX, can, isSiteScoped, paths, prettyDate, reportRequestInput, reportRequestRefInput, validate,
+  type Role,
 } from '@siteflow/shared';
 import { checkLimit } from './limits';
+import { actorOf } from './members';
 import { companyMembers, deliver } from './deliver';
 import { SECRETS } from './notify';
 
@@ -22,13 +23,9 @@ function parse<T extends Parameters<typeof validate>[0]>(schema: T, data: unknow
 }
 
 async function requester(db: Firestore, uid: string | undefined) {
-  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.');
-  const snap = await db.doc(paths.user(uid)).get();
-  const me = snap.data() as UserProfile | undefined;
-  if (!me || me.active === false || !isRole(me.role) || !can(me.role, 'sites.manage')) {
-    throw new HttpsError('permission-denied', 'Only owners, admins and project managers can ask for reports.');
-  }
-  return { ...me, id: snap.id };
+  const me = await actorOf(db, uid);
+  if (!can(me.role, 'sites.manage')) throw new HttpsError('permission-denied', 'Only owners, admins and project managers can ask for reports.');
+  return me;
 }
 
 export const requestReport = onCall({ ...callOpts, secrets: SECRETS }, async (req) => {

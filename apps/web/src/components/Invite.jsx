@@ -13,6 +13,7 @@ const until = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { weekda
 // After inviting someone (or sending a password link): what happened, and the link to share another way
 export function IssuedLogin({ issued, onDone }) {
   const [copied, setCopied] = useState(false);
+  if (issued.existing) return <AddedExisting issued={issued} onDone={onDone} />;
   const emailed = issued.email === 'sent';
   const copy = async () => { try { await navigator.clipboard.writeText(issued.link); setCopied(true); } catch { setCopied(false); } };
   return (
@@ -24,6 +25,23 @@ export function IssuedLogin({ issued, onDone }) {
       <div className="linkbox"><code>{issued.link}</code><button type="button" className="btn sm ghost" onClick={copy}>{copied ? 'Copied' : 'Copy link'}</button></div>
       <div className="actions mt-sm">
         <a className="btn sm" target="_blank" rel="noreferrer" href={waLink(issued.phone, linkText(issued.name, issued.link, issued.kind))}>Send on WhatsApp</a>
+        <button type="button" className="btn sm ghost" onClick={onDone}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+// Someone who already uses SiteFlow with another company: added straight away, same login
+function AddedExisting({ issued, onDone }) {
+  const emailed = issued.email === 'sent';
+  const text = `Hi ${issued.name.split(' ')[0]}, I have added you to our company on SiteFlow. Sign in as usual with ${issued.to} and choose our company from the list at the top of the menu: ${window.location.origin}/login`;
+  return (
+    <div className="notice ok mt invite-sent" role="status">
+      <p><b>{issued.name} added</b></p>
+      <p className="small">{issued.to} already has a SiteFlow login (with another company), so they were added straight away with the same login.
+        They pick your company from the list at the top of the menu. {emailed ? 'We emailed them to let them know.' : 'Email is not set up yet, so let them know yourself.'}</p>
+      <div className="actions mt-sm">
+        {!emailed && <a className="btn sm" target="_blank" rel="noreferrer" href={waLink(issued.phone, text)}>Tell them on WhatsApp</a>}
         <button type="button" className="btn sm ghost" onClick={onDone}>Done</button>
       </div>
     </div>
@@ -45,7 +63,7 @@ export function InviteForm({ roles, sites, onInvited }) {
     setBusy(true); setErr('');
     try {
       const res = await team.invite(v.data);
-      onInvited({ name: v.data.name, to: v.data.email, phone: v.data.phone, link: res.link, email: res.email, expiresAt: res.expiresAt, kind: 'invite' });
+      onInvited({ name: v.data.name, to: v.data.email, phone: v.data.phone, link: res.link, email: res.email, expiresAt: res.expiresAt, kind: 'invite', existing: !!res.existing });
       setF(blank);
     } catch (e2) {
       console.error('inviteMember failed', e2);

@@ -5,7 +5,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, type Permission, type Role, type SiteCollection } from '@siteflow/shared';
-import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, seed, site } from './setup';
+import { C1, C2, MULTI, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, putPerson, seed, site } from './setup';
 
 let env: RulesTestEnvironment;
 beforeAll(async () => { env = await makeEnv(); });
@@ -91,12 +91,14 @@ describe('tenant isolation', () => {
       await assertFails(getDocs(collection(db, paths.sub(C2, S9, 'reports'))));
       await assertFails(sendReport(db, C2, S9, USERS[role], `${role} user`));
       await assertFails(getDoc(doc(db, paths.user(OTHER_OWNER))));
+      await assertFails(getDoc(doc(db, paths.member(C2, OTHER_OWNER))));
+      await assertFails(getDocs(collection(db, paths.members(C2))));
     }
   });
   it('every collection of another company is closed to every role, for reading and writing', async () => {
     const siteColls: SiteCollection[] = ['materials', 'materialLogs', 'expenses', 'workers', 'workerPay', 'attendance', 'reports', 'milestones', 'issues',
       'rfis', 'inspections', 'punchItems', 'incidents', 'toolboxTalks', 'tasks', 'drawings', 'documents', 'changeOrders', 'subcontractors', 'billing'];
-    const companyColls = ['equipment', 'notifications', 'activity'];
+    const companyColls = ['equipment', 'notifications', 'activity', 'members'];
     for (const role of ROLES) {
       const db = asRole(role);
       for (const c of siteColls) {
@@ -124,12 +126,17 @@ describe('tenant isolation', () => {
       await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { companyId: C2 }));
       if (role !== 'owner') await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { role: 'owner' }));
       await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { siteIds: [S1, S2, S9] }));
+      await assertFails(updateDoc(doc(db, paths.user(USERS[role])), { companyIds: [C1, C2] }));
+      // Memberships are written by Cloud Functions only
+      await assertFails(updateDoc(doc(db, paths.member(C1, USERS[role])), { role: 'owner' }));
+      await assertFails(setDoc(doc(db, paths.member(C2, USERS[role])), { role: 'owner', name: 'x', email: 'x@x.com', siteIds: [] }));
     }
   });
   it('the other company owner cannot read company 1', async () => {
     const db = as(OTHER_OWNER);
     await assertFails(getDoc(doc(db, paths.site(C1, S1))));
     await assertFails(getDocs(query(collection(db, 'users'), where('companyId', '==', C1))));
+    await assertFails(getDocs(collection(db, paths.members(C1))));
   });
   it('signed-out users get nothing', async () => {
     await assertFails(getDoc(doc(anon(), paths.company(C1))));
@@ -150,9 +157,15 @@ describe('users and team', () => {
     await assertFails(setDoc(doc(as('newbie'), paths.user('newbie')), { companyId: 'newbie', role: 'owner', name: 'N', email: 'n@x.com', siteIds: [] }));
     await assertFails(setDoc(doc(as('newbie'), paths.user('newbie')), { companyId: C1, role: 'admin', name: 'N', email: 'n@x.com', siteIds: [] }));
   });
-  it('team managers list the company', async () => {
-    await assertSucceeds(getDocs(query(collection(asRole('admin'), 'users'), where('companyId', '==', C1))));
-    await assertFails(getDocs(query(collection(asRole('viewer'), 'users'), where('companyId', '==', C1))));
+  it('team managers and project managers list the team; others see only themselves', async () => {
+    await assertSucceeds(getDocs(collection(asRole('admin'), paths.members(C1))));
+    await assertSucceeds(getDocs(collection(asRole('manager'), paths.members(C1))));
+    await assertFails(getDocs(collection(asRole('viewer'), paths.members(C1))));
+    await assertFails(getDocs(collection(asRole('supervisor'), paths.members(C1))));
+    await assertSucceeds(getDoc(doc(asRole('supervisor'), paths.member(C1, USERS.supervisor))));
+    await assertFails(getDoc(doc(asRole('supervisor'), paths.member(C1, USERS.viewer))));
+    // People's own records are private: the team list comes from memberships
+    await assertFails(getDoc(doc(asRole('admin'), paths.user(USERS.viewer))));
   });
   it('people edit their own name and phone, nothing else', async () => {
     const db = asRole('supervisor');
@@ -178,8 +191,43 @@ describe('users and team', () => {
     await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.viewer)), { active: false }));
     await assertFails(updateDoc(doc(asRole('owner'), paths.user(USERS.viewer)), { name: 'Renamed by owner' }));
   });
-  it('a switched-off user cannot edit their profile', async () => {
-    await assertFails(updateDoc(doc(as(OFF_USER), paths.user(OFF_USER)), { name: 'Still here' }));
+  it('a switched-off member still sees their own membership (to be told they are switched off)', async () => {
+    await assertSucceeds(getDoc(doc(as(OFF_USER), paths.member(C1, OFF_USER))));
+    await assertFails(getDoc(doc(as(OFF_USER), paths.company(C1))));
+  });
+});
+
+describe('one login in several companies', () => {
+  const me = () => as(MULTI);
+  it('has the role of each company in that company', async () => {
+    // Admin in c1: every site, finance and the team
+    await assertSucceeds(getDoc(doc(me(), paths.site(C1, S2))));
+    await assertSucceeds(getDoc(doc(me(), paths.finance(C1, S1))));
+    await assertSucceeds(getDocs(collection(me(), paths.members(C1))));
+    // Supervisor on s9 in c2: that site only, no money, no team list, no company settings
+    await assertSucceeds(getDoc(doc(me(), paths.site(C2, S9))));
+    await assertFails(getDoc(doc(me(), paths.finance(C2, S9))));
+    await assertFails(getDocs(collection(me(), paths.members(C2))));
+    await assertFails(updateDoc(doc(me(), paths.company(C2)), { name: 'Renamed' }));
+    await assertSucceeds(sendReport(me(), C2, S9, MULTI, 'Ebo Mensah'));
+  });
+  it('switches between companies they belong to, and nowhere else', async () => {
+    const ref = doc(me(), paths.user(MULTI));
+    await assertSucceeds(updateDoc(ref, { companyId: C2, updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { companyId: C1 }));
+    await assertFails(updateDoc(ref, { companyId: 'c3' }));
+    await assertFails(updateDoc(doc(asRole('admin'), paths.user(USERS.admin)), { companyId: C2 }));
+  });
+  it('cannot switch into a company where they are switched off', async () => {
+    await env.withSecurityRulesDisabled((ctx) => putPerson(ctx.firestore() as unknown as Firestore, 'multi2', 'Ama Owusu',
+      { [C1]: { role: 'viewer', siteIds: [S1] }, [C2]: { role: 'viewer', siteIds: [S9], active: false } }));
+    await assertFails(updateDoc(doc(as('multi2'), paths.user('multi2')), { companyId: C2 }));
+    await assertFails(getDoc(doc(as('multi2'), paths.site(C2, S9))));
+  });
+  it('switching off in one company leaves the other alone', async () => {
+    await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), paths.member(C2, MULTI)), { active: false }));
+    await assertFails(getDoc(doc(me(), paths.site(C2, S9))));
+    await assertSucceeds(getDoc(doc(me(), paths.site(C1, S1))));
   });
 });
 
@@ -278,9 +326,9 @@ describe('site status, details and team', () => {
     await assertFails(updateDoc(doc(db, paths.site(C1, S1)), { client: { name: 'X', bank: '123' } }));
   });
   it('project managers see the team to assign people; site roles do not', async () => {
-    await assertSucceeds(getDocs(query(collection(asRole('manager'), 'users'), where('companyId', '==', C1))));
-    await assertFails(getDocs(query(collection(asRole('finance'), 'users'), where('companyId', '==', C1))));
-    await assertFails(getDocs(query(collection(asRole('supervisor'), 'users'), where('companyId', '==', C1))));
+    await assertSucceeds(getDocs(collection(asRole('manager'), paths.members(C1))));
+    await assertFails(getDocs(collection(asRole('finance'), paths.members(C1))));
+    await assertFails(getDocs(collection(asRole('supervisor'), paths.members(C1))));
   });
 });
 
@@ -547,7 +595,7 @@ describe('issues', () => {
     await seedIssue('x');
     await assertSucceeds(updateDoc(ref(asRole('manager'), 'x'), { assignedTo: USERS.supervisor, assignedToName: 'supervisor user', priority: 'high' }));
     await assertFails(updateDoc(ref(asRole('manager'), 'x'), { assignedTo: OTHER_OWNER }));
-    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), paths.user('super2')), { companyId: C1, role: 'supervisor', name: 'super2 user', email: 's2@x.com', siteIds: [S1] }));
+    await env.withSecurityRulesDisabled((ctx) => putPerson(ctx.firestore() as unknown as Firestore, 'super2', 'super2 user', { [C1]: { role: 'supervisor', siteIds: [S1] } }));
     await assertFails(updateDoc(ref(as('super2'), 'x'), { priority: 'low' }));
     await assertFails(updateDoc(ref(as('super2'), 'x'), { assignedTo: 'super2', assignedToName: 'super2 user' }));
   });
