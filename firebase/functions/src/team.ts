@@ -4,6 +4,8 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { randomBytes } from 'node:crypto';
 import { checkLimit } from './limits';
+import { EMAIL_KEY } from './notify';
+import { dropInvite, issueInvite } from './invites';
 
 // Set ENFORCE_APP_CHECK=true in firebase/functions/.env.<project> once the web app has App Check
 // (docs/OPERATIONS.md). The mobile app doesn't call these functions.
@@ -14,11 +16,6 @@ import {
   type Role, type UserProfile,
 } from '@siteflow/shared';
 
-// Temporary passwords: 12 characters, no look-alike letters, easy to read out over the phone
-const tempPassword = () => {
-  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-  return Array.from(randomBytes(12), (b) => chars[b % chars.length]).join('');
-};
 const roleName = (r: Role) => ROLE_LABELS[r].toLowerCase();
 
 function parse<T extends Parameters<typeof validate>[0]>(schema: T, data: unknown) {
@@ -99,7 +96,7 @@ export const createCompany = onCall(callOpts, async (req) => {
 
 // Owner or admin adds a team member. Returns a temporary password to share with them;
 // they are asked to choose their own password when they first sign in.
-export const inviteMember = onCall(callOpts, async (req) => {
+export const inviteMember = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
   await checkLimit(me.id, 'invite');
@@ -108,10 +105,10 @@ export const inviteMember = onCall(callOpts, async (req) => {
   if (!assignableRoles(me.role).includes(role)) throw new HttpsError('permission-denied', `You can't add someone as ${roleName(role)}.`);
 
   const sites = await validSites(db, me.companyId, role, siteIds);
-  const password = tempPassword();
+  // A strong random password nobody sees: the person sets their own from the invitation link
   let uid: string;
   try {
-    uid = (await getAuth().createUser({ email, password, displayName: name })).uid;
+    uid = (await getAuth().createUser({ email, password: randomBytes(24).toString('base64url'), displayName: name })).uid;
   } catch (e: any) {
     if (e?.code === 'auth/email-already-exists') throw new HttpsError('already-exists', 'That email already has a SiteFlow account.');
     if (e?.code === 'auth/invalid-email') throw new HttpsError('invalid-argument', 'Enter a valid email.');
@@ -121,15 +118,16 @@ export const inviteMember = onCall(callOpts, async (req) => {
   try {
     await db.doc(paths.user(uid)).set({
       companyId: me.companyId, role, name, email, ...(phone ? { phone } : {}), siteIds: sites, active: true,
-      mustChangePassword: true, createdAt: FieldValue.serverTimestamp(),
+      invitePending: true, createdAt: FieldValue.serverTimestamp(),
     });
   } catch (e) {
     await getAuth().deleteUser(uid).catch(() => {}); // don't leave a login with no profile behind
     logger.error('inviteMember: profile write failed', e);
     throw new HttpsError('internal', 'Could not create the account.');
   }
-  await logActivity(db, me, `added ${name} as ${roleName(role)}`);
-  return { uid, tempPassword: password };
+  await logActivity(db, me, `invited ${name} as ${roleName(role)}`);
+  const issued = await issueInvite(db, { id: uid, companyId: me.companyId, role, name, email, siteIds: sites, active: true } as UserProfile & { id: string }, me, 'invite');
+  return { uid, ...issued };
 });
 
 // Change a member's role and assigned sites
@@ -163,18 +161,17 @@ export const setMemberActive = onCall(callOpts, async (req) => {
 });
 
 // New temporary password for someone who forgot theirs (site teams often have no email access)
-export const resetMemberPassword = onCall(callOpts, async (req) => {
+export const resetMemberPassword = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, async (req) => {
   const db = getFirestore();
   const me = await teamActor(db, req);
   await checkLimit(me.id, 'resetPassword');
   const { uid } = parse(memberRefInput, req.data);
   const m = await changeableMember(db, me, uid);
-  const password = tempPassword();
-  await getAuth().updateUser(uid, { password });
-  await getAuth().revokeRefreshTokens(uid); // signs them out everywhere
-  await db.doc(paths.user(uid)).update({ mustChangePassword: true, updatedAt: FieldValue.serverTimestamp() });
-  await logActivity(db, me, `issued a new temporary password for ${m.name}`);
-  return { tempPassword: password };
+  // Someone who never accepted their invitation gets a fresh invitation; everyone else a password link
+  const kind = m.invitePending && m.inviteKind !== 'reset' ? 'invite' : 'reset';
+  const issued = await issueInvite(db, m, me, kind);
+  await logActivity(db, me, kind === 'invite' ? `sent ${m.name} a new invitation link` : `sent ${m.name} a link to set a new password`);
+  return issued;
 });
 
 // Remove someone from the company for good. Their reports and logs stay, with their name.
@@ -184,6 +181,7 @@ export const removeMember = onCall(callOpts, async (req) => {
   await checkLimit(me.id, 'teamChange');
   const { uid } = parse(memberRefInput, req.data);
   const m = await changeableMember(db, me, uid);
+  await dropInvite(db, uid); // an open invitation link stops working
   await db.doc(paths.user(uid)).delete();
   await getAuth().deleteUser(uid).catch((e) => {
     if (e?.code !== 'auth/user-not-found') throw e;

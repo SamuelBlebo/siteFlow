@@ -12,6 +12,7 @@ import {
 } from '../src/lib/db';
 import { save, SaveError } from '../src/lib/save';
 import { waitFor } from './wait';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -66,7 +67,7 @@ describe('owner', () => {
   it('invites a supervisor and a viewer', async () => {
     const s = await call('inviteMember', { name: 'Kofi Asante', email: `super-${run}@example.com`, role: 'supervisor', siteIds: [sid, 'not-a-site'] });
     const v = await call('inviteMember', { name: 'Esi Viewer', email: `viewer-${run}@example.com`, role: 'viewer', siteIds: [sid] });
-    supervisorPw = s.tempPassword; viewerPw = v.tempPassword;
+    supervisorPw = await join(s, 'supervisor-pass-1'); viewerPw = await join(v, 'viewer-pass-1');
     expect((await getDoc(userDoc(s.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [sid] });
     await expect(call('inviteMember', { name: 'Bad', email: `bad-${run}@example.com`, role: 'owner' })).rejects.toThrow();
   });

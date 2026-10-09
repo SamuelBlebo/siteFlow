@@ -5,7 +5,8 @@ import { getDoc, getDocs, terminate, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../src/firebase';
 import { activityQuery, companyDoc, createSite, teamQuery, updateCompany, updateMyProfile, userDoc } from '../src/lib/db';
-import { changePassword, setModule, team } from '../src/lib/account';
+import { acceptInvite, changePassword, inviteInfo, setModule, team } from '../src/lib/account';
+import { join, tokenOf } from './join';
 import { save, SaveError } from '../src/lib/save';
 
 globalThis.navigator ??= {};
@@ -15,6 +16,7 @@ const run = `${Date.now()}-t`;
 const email = (who) => `${who}-${run}@example.com`;
 const pw = { owner: 'owner-pass-1' };
 const ids = {};
+const inv = {};
 let cid, s1, s2;
 const as = async (who, password = pw[who]) => { await signOut(auth); return (await signInWithEmailAndPassword(auth, email(who), password)).user; };
 const code = (p) => p.then(() => 'ok', (e) => e.code);
@@ -29,21 +31,26 @@ beforeAll(async () => {
 afterAll(async () => { await signOut(auth); await terminate(db); });
 
 describe('invites and first sign-in', () => {
-  it('owner invites an admin and a supervisor; they must choose a password', async () => {
-    const admin = await team.invite({ name: 'Kwame Admin', email: email('admin'), role: 'admin' });
-    const sup = await team.invite({ name: 'Kofi Supervisor', email: email('super'), phone: '024 123 4567', role: 'supervisor', siteIds: [s1] });
-    ids.admin = admin.uid; ids.super = sup.uid;
-    pw.admin = admin.tempPassword; pw.super = sup.tempPassword;
-    expect(sup.tempPassword).toMatch(/^[a-z2-9]{12}$/);
-    expect((await getDoc(userDoc(sup.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [s1], phone: '0241234567', mustChangePassword: true });
+  it('owner invites an admin and a supervisor; each gets a one-time link, no password is shown', async () => {
+    inv.admin = await team.invite({ name: 'Kwame Admin', email: email('admin'), role: 'admin' });
+    inv.super = await team.invite({ name: 'Kofi Supervisor', email: email('super'), phone: '024 123 4567', role: 'supervisor', siteIds: [s1] });
+    ids.admin = inv.admin.uid; ids.super = inv.super.uid;
+    expect(inv.super.link).toMatch(/\/invite\/[A-Za-z0-9_-]{43}$/);
+    expect(inv.super.tempPassword).toBeUndefined();
+    expect(inv.super.email).toBe('skipped'); // the emulator never sends email
+    expect((await getDoc(userDoc(inv.super.uid))).data()).toMatchObject({ role: 'supervisor', siteIds: [s1], phone: '0241234567', invitePending: true, inviteKind: 'invite' });
   });
 
-  it('the invited person signs in and sets their own password', async () => {
+  it('the link shows who invited them, sets their password once, and then stops working', async () => {
+    await signOut(auth);
+    expect(await inviteInfo({ token: tokenOf(inv.super) })).toMatchObject({ kind: 'invite', name: 'Kofi Supervisor', email: email('super'), companyName: 'Asante Construction', expired: false });
+    expect(await code(acceptInvite({ token: tokenOf(inv.super), password: 'short' }))).toBe('functions/invalid-argument');
+    pw.super = await join(inv.super, 'kofi-own-pass');
     const u = await as('super');
-    await changePassword(pw.super, 'kofi-own-pass');
-    expect((await getDoc(userDoc(u.uid))).data().mustChangePassword).toBe(false);
-    pw.super = 'kofi-own-pass';
-    await expect(as('super')).resolves.toBeTruthy();
+    expect((await getDoc(userDoc(u.uid))).data()).toMatchObject({ invitePending: false });
+    expect((await getDoc(userDoc(u.uid))).data().joinedAt).toBeTruthy();
+    expect(await code(acceptInvite({ token: tokenOf(inv.super), password: 'hijack-pass-1' }))).toBe('functions/not-found');
+    expect(await code(inviteInfo({ token: 'x'.repeat(43) }))).toBe('functions/not-found');
   });
 
   it('a wrong current password is refused', async () => {
@@ -67,8 +74,8 @@ describe('invites and first sign-in', () => {
 
 describe('admin limits', () => {
   it('admin sets their password and invites staff, but not admins', async () => {
+    pw.admin = await join(inv.admin, 'admin-own-pass');
     await as('admin');
-    await changePassword(pw.admin, 'admin-own-pass'); pw.admin = 'admin-own-pass';
     const fin = await team.invite({ name: 'Efua Finance', email: email('finance'), role: 'finance' });
     ids.finance = fin.uid;
     expect(await code(team.invite({ name: 'Another Admin', email: email('admin2'), role: 'admin' }))).toBe('functions/permission-denied');
@@ -121,13 +128,25 @@ describe('switch off, reset, remove', () => {
     await expect(as('super')).resolves.toBeTruthy();
   });
 
-  it('a new temporary password replaces the old one and asks for a change', async () => {
+  it('a password link: the old password works until it is used, and only the newest link works', async () => {
     await as('owner');
-    const r = await team.resetPassword({ uid: ids.super });
+    const first = await team.resetPassword({ uid: ids.super });
+    const second = await team.resetPassword({ uid: ids.super });
+    expect((await getDoc(userDoc(ids.super))).data()).toMatchObject({ invitePending: true, inviteKind: 'reset' });
+    await expect(as('super')).resolves.toBeTruthy(); // not locked out while the link is waiting
+    expect(await code(acceptInvite({ token: tokenOf(first), password: 'older-link-pass' }))).toBe('functions/not-found');
     await signOut(auth);
-    expect(await code(signInWithEmailAndPassword(auth, email('super'), pw.super))).toMatch(/auth\/(invalid-credential|wrong-password)/);
-    const u = await as('super', r.tempPassword);
-    expect((await getDoc(userDoc(u.uid))).data().mustChangePassword).toBe(true);
+    const old = pw.super;
+    pw.super = await join(second, 'kofi-new-pass');
+    expect(await code(signInWithEmailAndPassword(auth, email('super'), old))).toMatch(/auth\/(invalid-credential|wrong-password)/);
+    await expect(as('super')).resolves.toBeTruthy();
+  });
+
+  it('removing someone who has not joined yet also cancels their invitation link', async () => {
+    await as('owner');
+    const r = await team.invite({ name: 'Ama Late', email: email('late'), role: 'viewer', siteIds: [s1] });
+    await team.remove({ uid: r.uid });
+    expect(await code(acceptInvite({ token: tokenOf(r), password: 'too-late-pass' }))).toBe('functions/not-found');
   });
 
   it('removing a member deletes their login and profile', async () => {
@@ -154,10 +173,10 @@ describe('activity log', () => {
   it('records every team change for owners and admins only', async () => {
     await as('owner');
     const log = (await getDocs(activityQuery(cid, 50))).docs.map((d) => d.data().what).join('\n');
-    for (const what of ['added Kofi Supervisor as site supervisor', 'switched off Kofi', 'switched on Kofi', 'issued a new temporary password', 'removed Efua Finance']) {
+    for (const what of ['invited Kofi Supervisor as site supervisor', 'accepted their invitation', 'switched off Kofi', 'switched on Kofi', 'a link to set a new password', 'set a new password from a link', 'removed Efua Finance']) {
       expect(log).toContain(what);
     }
-    await as('super', (await (async () => { await as('owner'); return team.resetPassword({ uid: ids.super }); })()).tempPassword);
+    await as('super');
     await expect(getDocs(activityQuery(cid))).rejects.toThrow();
   });
 });

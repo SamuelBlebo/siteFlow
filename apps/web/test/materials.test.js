@@ -8,9 +8,10 @@ import { auth, db, functions } from '../src/firebase';
 import {
   addMaterial, createSite, financeDoc, logMaterial, materialLogsQuery, setMaterialActive, stockCount, sub, subDoc, updateMaterial,
 } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
 import { waitFor } from './wait';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -35,9 +36,8 @@ beforeAll(async () => {
   const r = createSite(cid, v.data); await r.done; sid = r.id;
   for (const [who, role, sites] of [['super', 'supervisor', [sid]], ['manager', 'manager', []]]) {
     const res = await team.invite({ name: names[who], email: email(who), role, siteIds: sites });
-    pw[who] = res.tempPassword;
+    pw[who] = await join(res, `${who}-own-pass`);
   }
-  for (const who of ['super', 'manager']) { await as(who); await changePassword(pw[who], `${who}-own-pass`); pw[who] = `${who}-own-pass`; }
 });
 afterAll(async () => { await signOut(auth); await terminate(db); });
 

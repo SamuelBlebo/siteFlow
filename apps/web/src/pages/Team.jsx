@@ -20,7 +20,7 @@ export default function Team() {
   const { data: sites } = useQuery(() => cid && sitesCol(cid), [cid]);
   const { data: activity } = useQuery(() => cid && can('audit.view') && activityQuery(cid), [cid]);
   const [editing, setEditing] = useState(null);   // member id
-  const [issued, setIssued] = useState(null);     // { name, email, phone, pw }
+  const [issued, setIssued] = useState(null);     // { name, to, phone, link, email: 'sent' | 'skipped' | 'failed', expiresAt, kind }
   const [busy, setBusy] = useState('');
 
   async function run(key, fn, ok) {
@@ -57,7 +57,7 @@ export default function Team() {
                 return (
                   <tr key={m.id} className={off ? 'muted' : ''}>
                     <td><b>{m.name}</b>{m.id === user.uid && <span className="muted small"> (you)</span>}<div className="muted small">{m.email}{m.phone ? `, ${m.phone}` : ''}</div>
-                      {m.mustChangePassword && <span className="pill warn">Hasn't set a password yet</span>}
+                      <InviteStatus m={m} />
                       {!m.phone && m.active !== false && <span className="pill" title="Add a WhatsApp number on their account to send them alerts">No WhatsApp number</span>}</td>
                     <td>{ROLE_LABELS[m.role] || m.role}</td>
                     <td>{isSiteScoped(m.role)
@@ -81,7 +81,7 @@ export default function Team() {
             onActive={(active) => run('active', () => team.setActive({ uid: m.id, active }), `${m.name} ${active ? 'switched on' : 'switched off'}.`)}
             onReset={async () => {
               const r = await run('reset', () => team.resetPassword({ uid: m.id }));
-              if (r) setIssued({ name: m.name, email: m.email, phone: m.phone, pw: r.tempPassword });
+              if (r) setIssued({ name: m.name, to: m.email, phone: m.phone, link: r.link, email: r.email, expiresAt: r.expiresAt, kind: m.invitePending && m.inviteKind !== 'reset' ? 'invite' : 'reset' });
             }}
             onRemove={async () => {
               if (!window.confirm(`Remove ${m.name} from your company? Their login is deleted. Reports they sent are kept.`)) return;
@@ -136,7 +136,7 @@ function MemberPanel({ m, roles, sites, busy, onSave, onActive, onReset, onRemov
       )}
       <div className="actions">
         <button type="button" className="btn" disabled={!!busy} onClick={() => onSave(role, siteIds)}>{busy === 'update' ? 'Saving…' : 'Save changes'}</button>
-        <button type="button" className="btn ghost" disabled={!!busy} onClick={onReset}>{busy === 'reset' ? 'Working…' : 'New temporary password'}</button>
+        <button type="button" className="btn ghost" disabled={!!busy} onClick={onReset}>{busy === 'reset' ? 'Sending…' : m.invitePending && m.inviteKind !== 'reset' ? 'Resend invitation' : 'Send password link'}</button>
         <button type="button" className="btn ghost" disabled={!!busy} onClick={() => onActive(off)}>{busy === 'active' ? 'Working…' : off ? 'Switch on' : 'Switch off'}</button>
         <button type="button" className="btn ghost danger" disabled={!!busy} onClick={onRemove}>{busy === 'remove' ? 'Removing…' : 'Remove from company'}</button>
       </div>
@@ -145,3 +145,15 @@ function MemberPanel({ m, roles, sites, busy, onSave, onActive, onReset, onRemov
   );
 }
 
+
+// Where someone is with their invitation
+function InviteStatus({ m }) {
+  if (m.mustChangePassword) return <span className="pill warn">Hasn't set a password yet</span>;
+  if (!m.invitePending) return null;
+  const ms = m.inviteExpiresAt?.toMillis?.() ?? 0;
+  const expired = ms && ms < Date.now();
+  const label = m.inviteKind === 'reset' ? 'Password link sent' : 'Invited';
+  return expired
+    ? <span className="pill bad" title="Use Manage, then Resend, to send a new link">{m.inviteKind === 'reset' ? 'Password link expired' : 'Invitation expired'}</span>
+    : <span className="pill warn" title={ms ? `Link expires ${new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}>{label}, waiting</span>;
+}

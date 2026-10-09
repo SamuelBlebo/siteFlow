@@ -6,7 +6,8 @@ import { httpsCallable } from 'firebase/functions';
 import { SAMPLE_PREFIX } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import { companyDoc, createSite, financeDoc, notificationsQuery, siteDoc, sitesCol, sub } from '../src/lib/db';
-import { changePassword, loadDemo, removeDemo, team } from '../src/lib/account';
+import { loadDemo, removeDemo, team } from '../src/lib/account';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -24,8 +25,7 @@ beforeAll(async () => {
   cid = user.uid;
   const r = createSite(cid, { name: 'Real job, Tema', location: 'Tema', stage: 'Foundation', budget: 300000 }); await r.done; real = r.id;
   const admin = await team.invite({ name: 'Kojo Admin', email: email('admin'), role: 'admin' });
-  pw.admin = admin.tempPassword;
-  await as('admin'); await changePassword(pw.admin, 'admin-own-pass'); pw.admin = 'admin-own-pass';
+  pw.admin = await join(admin, 'admin-own-pass');
 });
 afterAll(async () => { await signOut(auth); await terminate(db); });
 

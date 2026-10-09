@@ -2,19 +2,28 @@ import { useState } from 'react';
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, friendlyError, inviteInput, isSiteScoped, validate, waPhone, getLocale } from '@siteflow/shared';
 import { team } from '../lib/account';
 
-// Adding a team member (Team page and the setup steps), and the login to pass on to them
+// Adding a team member (Team page and the setup steps), and the invitation that goes to them
 
-const loginText = (name, email, pw) =>
-  `Hi ${name.split(' ')[0]}, your SiteFlow login: ${window.location.origin} Email: ${email} Temporary password: ${pw} You will choose your own password when you sign in.`;
+const linkText = (name, link, kind) => kind === 'reset'
+  ? `Hi ${name.split(' ')[0]}, here is your link to set a new SiteFlow password (it works once): ${link}`
+  : `Hi ${name.split(' ')[0]}, you've been added to our projects on SiteFlow. Set your password and sign in here (the link works once): ${link}`;
 const waLink = (phone, text) => `https://wa.me/${phone ? waPhone(phone) : ''}?text=${encodeURIComponent(text)}`;
+const until = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '');
 
+// After inviting someone (or sending a password link): what happened, and the link to share another way
 export function IssuedLogin({ issued, onDone }) {
+  const [copied, setCopied] = useState(false);
+  const emailed = issued.email === 'sent';
+  const copy = async () => { try { await navigator.clipboard.writeText(issued.link); setCopied(true); } catch { setCopied(false); } };
   return (
-    <div className="notice ok mt">
-      <p><b>Login for {issued.name}</b>: {issued.email}, temporary password <code>{issued.pw}</code></p>
-      <p className="small">Share it privately. They will choose their own password when they sign in. It is not shown again.</p>
-      <div className="actions">
-        <a className="btn sm" target="_blank" rel="noreferrer" href={waLink(issued.phone, loginText(issued.name, issued.email, issued.pw))}>Send on WhatsApp</a>
+    <div className={`notice ${emailed ? 'ok' : 'warn'} mt invite-sent`} role="status">
+      <p><b>{issued.kind === 'reset' ? `Password link for ${issued.name}` : `Invitation for ${issued.name}`}</b></p>
+      <p className="small">{emailed
+        ? `Emailed to ${issued.to}. The link works once and expires on ${until(issued.expiresAt)}.`
+        : `Email isn't set up yet, so nothing was emailed. Send them this link instead; it works once and expires on ${until(issued.expiresAt)}.`}</p>
+      <div className="linkbox"><code>{issued.link}</code><button type="button" className="btn sm ghost" onClick={copy}>{copied ? 'Copied' : 'Copy link'}</button></div>
+      <div className="actions mt-sm">
+        <a className="btn sm" target="_blank" rel="noreferrer" href={waLink(issued.phone, linkText(issued.name, issued.link, issued.kind))}>Send on WhatsApp</a>
         <button type="button" className="btn sm ghost" onClick={onDone}>Done</button>
       </div>
     </div>
@@ -36,7 +45,7 @@ export function InviteForm({ roles, sites, onInvited }) {
     setBusy(true); setErr('');
     try {
       const res = await team.invite(v.data);
-      onInvited({ name: v.data.name, email: v.data.email, phone: v.data.phone, pw: res.tempPassword });
+      onInvited({ name: v.data.name, to: v.data.email, phone: v.data.phone, link: res.link, email: res.email, expiresAt: res.expiresAt, kind: 'invite' });
       setF(blank);
     } catch (e2) {
       console.error('inviteMember failed', e2);

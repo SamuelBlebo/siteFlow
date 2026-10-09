@@ -32,3 +32,7 @@ export const setModule = call('setModule');
 // Sample projects (owner): add them, or remove them and everything under them
 export const loadDemo = call('loadDemo');
 export const removeDemo = call('removeDemo');
+
+// Invitation links (no sign-in needed): what the link is for, and setting a password from it
+export const inviteInfo = call('inviteInfo');
+export const acceptInvite = call('acceptInvite');

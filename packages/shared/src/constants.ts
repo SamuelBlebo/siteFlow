@@ -19,6 +19,7 @@ export const INCIDENT_TYPES = ['Near miss', 'First aid', 'Lost-time injury', 'Pr
 export const DISCIPLINES = ['Architectural', 'Structural', 'Electrical', 'Mechanical', 'Civil'];
 
 // Business rules, kept in one place so web, mobile and functions agree
+export const INVITE_DAYS = 7;             // invitation and password links last this long
 export const RETENTION_RATE = 0.05;        // held on subcontractor payments
 export const HIGH_USAGE_FACTOR = 1.3;      // usage above 130% of usual daily use
 export const BUDGET_WARN_PCT = 90;         // budget nearly used

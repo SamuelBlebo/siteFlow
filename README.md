@@ -168,9 +168,16 @@ Mobile shows managers the top five items on the sites screen.
 
 ## Accounts and team
 - **Sign-up** (web) creates the company and owner through the `createCompany` function.
-- **Adding people**: owners and admins add members on the Team page (`inviteMember`). SiteFlow creates the login
-  and shows a temporary password to send on WhatsApp. The person chooses their own password at first sign-in.
-- **Team changes** (role, sites, switch off/on, new temporary password, remove) go through Cloud Functions
+- **Adding people** (`inviteMember`): owners and admins add members on the Team page. SiteFlow creates the login with
+  a password nobody knows and emails an **invitation link** (`/invite/<token>`, works once, expires after 7 days,
+  `INVITE_DAYS`). The person sees the company, their role and email, sets their own password and is signed in. The same
+  link can be copied or sent on WhatsApp. Only a hash of the token is stored (`invites/{hash}`, server-only); a newer
+  link replaces the older one, and removing the person cancels it (`invites.ts`: `inviteInfo`, `acceptInvite`).
+- **Status** on the Team page: Invited, waiting / Invitation expired, with Resend invitation; for people who have joined,
+  **Send password link** (their current password keeps working until they use the link; other devices are signed out after).
+- **Email** needs the `EMAIL_API_KEY` secret (Resend) and `EMAIL_FROM` set to an address on a verified domain. Until then
+  nothing is emailed and the Team page says so and shows the link to share.
+- **Team changes** (role, sites, switch off/on, password link, remove) go through Cloud Functions
   (`updateMember`, `setMemberActive`, `resetMemberPassword`, `removeMember`). They apply the role rules and
   write the company activity log. Switching someone off also blocks their login and signs them out.
 - **Everyone** can edit their own name and WhatsApp number and change their password (web Account page,

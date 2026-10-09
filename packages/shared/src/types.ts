@@ -33,7 +33,11 @@ export interface UserProfile {
   phone?: string;
   siteIds: string[];
   active?: boolean;              // false = switched off; treated as having no access
-  mustChangePassword?: boolean;  // set when an admin issues a temporary password
+  mustChangePassword?: boolean;  // set when an admin issues a temporary password (before invitation links)
+  invitePending?: boolean;       // invited (or sent a reset link) and hasn't set a password from the link yet
+  inviteKind?: 'invite' | 'reset';
+  inviteExpiresAt?: unknown;     // Firestore timestamp
+  joinedAt?: unknown;            // first time they set their password from an invitation
 }
 
 // companies/{cid}/activity/{id}: audit trail, written by Cloud Functions only

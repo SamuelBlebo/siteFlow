@@ -183,6 +183,14 @@ describe('users and team', () => {
   });
 });
 
+describe('invitation links', () => {
+  it('nobody reads or writes invitation records from an app (only the server does)', async () => {
+    await assertFails(getDoc(doc(asRole('owner'), 'invites/abc')));
+    await assertFails(getDocs(collection(asRole('owner'), 'invites')));
+    await assertFails(setDoc(doc(asRole('owner'), 'invites/abc'), { uid: USERS.admin }));
+  });
+});
+
 describe('company', () => {
   it('nobody creates companies or changes plan and modules from the client', async () => {
     await assertFails(setDoc(doc(as('newbie'), paths.company('newbie')), { name: 'Free Co', ownerId: 'newbie', plan: 'enterprise', modules: {} }));

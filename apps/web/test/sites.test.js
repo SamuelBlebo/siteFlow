@@ -8,8 +8,9 @@ import { auth, db, functions } from '../src/firebase';
 import {
   createSite, financeDoc, sendReport, setBudget, setSiteStatus, siteDoc, sitesCol, updateSiteDetails,
 } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -30,13 +31,10 @@ async function send(sid, uid, date) {
 async function invite(who, role, siteIds = []) {
   const r = await team.invite({ name: `${who} person`, email: email(who), role, siteIds });
   ids[who] = r.uid;
-  await as('owner');
-  pw[who] = r.tempPassword;
+  pw[who] = await join(r, `${who}-own-pass`);
 }
 async function firstSignIn(who) {
   await as(who);
-  await changePassword(pw[who], `${who}-own-pass`);
-  pw[who] = `${who}-own-pass`;
 }
 
 beforeAll(async () => {

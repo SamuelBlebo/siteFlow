@@ -9,8 +9,9 @@ import {
   addComment, commentsQuery, companyIssuesQuery, createIssue, createSite, issueRef, newIssueId, openIssuesQuery, siteDoc,
   siteIssuesQuery, updateIssue, uploadIssuePhotos,
 } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -34,9 +35,8 @@ beforeAll(async () => {
   site = { id: r.id, name: 'Cape Coast hostel' };
   for (const [who, role] of [['super', 'supervisor'], ['super2', 'supervisor'], ['manager', 'manager']]) {
     const res = await team.invite({ name: names[who], email: email(who), role, siteIds: role === 'supervisor' ? [site.id] : [] });
-    ids[who] = res.uid; pw[who] = res.tempPassword;
+    ids[who] = res.uid; pw[who] = await join(res, `${who}-own-pass`);
   }
-  for (const who of ['super', 'super2', 'manager']) { await as(who); await changePassword(pw[who], `${who}-own-pass`); pw[who] = `${who}-own-pass`; }
 });
 afterAll(async () => { await signOut(auth); await terminate(db); });
 

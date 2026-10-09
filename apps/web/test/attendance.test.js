@@ -8,8 +8,9 @@ import { auth, db, functions } from '../src/firebase';
 import {
   addWorker, attendanceDoc, attendanceRangeQuery, createSite, markAttendance, setWorkerActive, setWorkerRate, sub, subDoc, updateWorker,
 } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -33,9 +34,8 @@ beforeAll(async () => {
   const people = [['super', 'supervisor', [sid]], ['super2', 'supervisor', [sid]], ['finance', 'finance', []], ['viewer', 'viewer', [sid]], ['manager', 'manager', []]];
   for (const [who, role, sites] of people) {
     const res = await team.invite({ name: `${who} person`, email: email(who), role, siteIds: sites });
-    pw[who] = res.tempPassword;
+    pw[who] = await join(res, `${who}-own-pass`);
   }
-  for (const [who] of people) { await as(who); await changePassword(pw[who], `${who}-own-pass`); pw[who] = `${who}-own-pass`; }
 });
 afterAll(async () => { await signOut(auth); await terminate(db); });
 

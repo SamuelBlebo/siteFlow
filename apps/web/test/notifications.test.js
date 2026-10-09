@@ -9,9 +9,10 @@ import {
   addComment, addMaterial, createIssue, createSite, logMaterial, newIssueId, notificationsQuery, sendReport, siteDoc, sub, subDoc,
   updateIssue, updateNotifications,
 } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { team } from '../src/lib/account';
 import { save } from '../src/lib/save';
 import { waitFor } from './wait';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -36,9 +37,8 @@ beforeAll(async () => {
   const r = createSite(cid, v.data); await r.done; sid = r.id;
   for (const [who, role, phone] of [['manager', 'manager', '0241112222'], ['super', 'supervisor', '0551112222']]) {
     const res = await team.invite({ name: names[who], email: email(who), phone, role, siteIds: role === 'supervisor' ? [sid] : [] });
-    ids[who] = res.uid; pw[who] = res.tempPassword;
+    ids[who] = res.uid; pw[who] = await join(res, `${who}-own-pass`);
   }
-  for (const who of ['manager', 'super']) { await as(who); await changePassword(pw[who], `${who}-own-pass`); pw[who] = `${who}-own-pass`; }
 });
 afterAll(async () => { await signOut(auth); await terminate(db); });
 

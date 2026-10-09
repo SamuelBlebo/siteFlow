@@ -10,8 +10,9 @@ import { auth, db, functions } from '../src/firebase';
 import {
   companyIssuesQuery, companyReportsQuery, createIssue, createSite, newIssueId, openIssuesQuery, sendReport, siteDoc, sitesCol,
 } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { team } from '../src/lib/account';
 import { save } from '../src/lib/save';
+import { join } from './join';
 
 globalThis.navigator ??= {};
 Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true });
@@ -32,9 +33,8 @@ beforeAll(async () => {
   a = await mk('Ahodwo villa');
   b = await mk('Suame shops');
   const res = await team.invite({ name: 'Kofi Mensah', email: email('super'), role: 'supervisor', siteIds: [a, b] });
-  pw.super = res.tempPassword;
+  pw.super = await join(res, 'super-own-pass');
   const u = await as('super');
-  await changePassword(pw.super, 'super-own-pass'); pw.super = 'super-own-pass';
   me = { uid: u.uid, name: 'Kofi Mensah' };
   // Site A reports on three of the last working days (today included); site B on one
   const report = (workers) => ({ text: 'Blockwork continues', stage: 'Blockwork', progress: 30, workersPresent: workers });
