@@ -1,18 +1,20 @@
 import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
-  ISSUE_PRIORITY_LABELS, paths, recipientsFor, type Issue, type Material, type MaterialLog, type Report,
+  ISSUE_PRIORITY_LABELS, SAMPLE_PREFIX, paths, recipientsFor, type Issue, type Material, type MaterialLog, type Report,
 } from '@siteflow/shared';
 import { companyMembers, deliver } from './deliver';
 import { SECRETS } from './notify';
 
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
+// Sample projects (Explore with sample data) never send messages
+const sample = (sid: string) => sid.startsWith(SAMPLE_PREFIX);
 
 // A daily report came in (off by default: can be many messages)
 export const onReportSent = onDocumentCreated({ document: 'companies/{cid}/sites/{sid}/reports/{rid}', secrets: SECRETS }, async (event) => {
   const { cid, sid, rid } = event.params;
   const r = event.data?.data() as Report | undefined;
-  if (!r) return;
+  if (!r || sample(sid)) return;
   const members = await companyMembers(cid);
   await deliver({
     cid, kind: 'report_submitted', key: `report_${sid}_${rid}`, siteId: sid,
@@ -27,7 +29,7 @@ export const onIssueChanged = onDocumentWritten({ document: 'companies/{cid}/sit
   const { cid, sid, iid } = event.params;
   const before = event.data?.before.exists ? (event.data.before.data() as Issue) : null;
   const after = event.data?.after.exists ? (event.data.after.data() as Issue) : null;
-  if (!after) return;
+  if (!after || sample(sid)) return;
   const members = await companyMembers(cid);
   const created = !before;
 
@@ -55,7 +57,7 @@ export const onStockChanged = onDocumentUpdated({ document: 'companies/{cid}/sit
   const { cid, sid, mid } = event.params;
   const before = event.data?.before.data() as Material | undefined;
   const after = event.data?.after.data() as Material | undefined;
-  if (!before || !after || !(after.reorderLevel > 0) || after.active === false) return;
+  if (!before || !after || !(after.reorderLevel > 0) || after.active === false || sample(sid)) return;
   if (!(before.stock >= after.reorderLevel && after.stock < after.reorderLevel)) return;
   const db = getFirestore();
   const site = (await db.doc(paths.site(cid, sid)).get()).data();

@@ -75,6 +75,13 @@ Owners also get **Modules** (switch built modules on or off; the `setModule` fun
 built yet show as Coming soon) and **Reminders** (which alerts go by WhatsApp and email, and the message log). Materials, Labour
 and Budget screens follow the modules, on web and mobile; switching a module off keeps its data.
 
+## Onboarding and sample projects
+- **Sign-up** opens **Set up SiteFlow** (`/welcome`): company details, features (modules), the team, then the first project. Every step can be skipped and reopened from Company.
+- **Getting started** on the dashboard: company details, first project, team, first daily report, budget. Worked out from real data; it disappears when done, or with Hide (per browser).
+- **No projects yet**: the dashboard offers Add your first project, Explore with sample data, or the setup steps.
+- **Sample projects** (`loadDemo` / `removeDemo` functions, owner only): three Ghanaian projects (a house, an office block, a road drainage job) with about eight weeks of reports, photos, attendance, materials, spending, issues and milestones, built by `packages/shared/src/demo.ts` relative to the day they are added. They are marked `sample: true` with ids starting `sample-`, labelled Sample everywhere, never send WhatsApp or email (the triggers and scheduled jobs skip them) and are removed in one click from the dashboard or Company. Photos: `apps/web/public/demo`, from Wikimedia Commons under CC BY-SA 4.0, credited in `apps/web/public/demo/CREDITS.md` and on the Photo credits page.
+- **Phone**: site staff see a short welcome card the first time they open the app.
+
 ## Sites
 One project = one site, for any kind of construction work. Owners, admins and project managers create sites (name, location,
 type of work and stage, picked from the usual list or typed in, planned

@@ -133,7 +133,7 @@ export const ErrorText = ({ children }) => (children ? <Text style={s.err} acces
 export const Notice = ({ children }) => <View style={s.notice}><Text style={{ color: colors.ok, fontWeight: '500' }}>{children}</Text></View>;
 
 export function Pill({ kind = 'ok', children }) {
-  const map = { ok: [colors.okbg, colors.ok], bad: [colors.badbg, colors.bad], warn: [colors.warnbg, colors.warn] };
+  const map = { ok: [colors.okbg, colors.ok], bad: [colors.badbg, colors.bad], warn: [colors.warnbg, colors.warn], sample: [colors.brassSoft, colors.warn] };
   const [bg, fg] = map[kind];
   return <View style={[s.pill, { backgroundColor: bg }]}><Text style={{ color: fg, fontWeight: '600', fontSize: 12 }}>{children}</Text></View>;
 }

@@ -15,8 +15,9 @@ export default function Signup() {
   const [f, setF] = useState({ company: '', name: '', email: '', password: '' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  // Signed in already (including a half-finished sign-up): the app takes over
-  if (user && !busy) return <Navigate to="/" replace />;
+  const [created, setCreated] = useState(false);
+  // Signed in already (including a half-finished sign-up): the app takes over. A new company starts with the setup steps.
+  if (user && !busy) return <Navigate to={created ? '/welcome' : '/'} replace />;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   async function submit(e) {
@@ -31,6 +32,7 @@ export default function Signup() {
       // Company and owner profile are created on the server. If this fails, the
       // "Finish setting up" screen lets the user try again without a new account.
       await httpsCallable(functions, 'createCompany')(v.data);
+      setCreated(true);
     } catch (e2) {
       console.error('Sign-up failed', e2);
       setErr(friendlyError(e2, 'Could not create the account. Try again.'));

@@ -94,10 +94,17 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
   const [finance, setFinance] = useState({});
   const [milestones, setMilestones] = useState({});
   const [crew, setCrew] = useState({});
+  const [retry, setRetry] = useState(0);
   const key = siteIds.join(',');
   useEffect(() => {
     if (!cid || !siteIds.length) return;
-    const fail = (what) => (e) => console.error(`Dashboard: could not load ${what}`, e);
+    // A listener that is refused stops for good. A project that was only just created can be refused
+    // for a moment (its money is checked against the project), so listen again a few times.
+    let again = null;
+    const fail = (what) => (e) => {
+      console.error(`Dashboard: could not load ${what}`, e);
+      if (!again && retry < 5) again = setTimeout(() => setRetry((r) => r + 1), 1500 * (retry + 1));
+    };
     const unsubs = [];
     siteIds.forEach((sid) => {
       unsubs.push(onSnapshot(sub(cid, sid, 'materials'), (s) => setMaterials((p) => ({ ...p, [sid]: toList(s) })), fail('materials')));
@@ -107,8 +114,8 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
       unsubs.push(onSnapshot(sub(cid, sid, 'workers'), (s) => setCrew((p) => ({ ...p, [sid]: toList(s).filter((w) => w.active !== false).length })), fail('workers')));
       if (withFinance) unsubs.push(onSnapshot(financeDoc(cid, sid), (s) => setFinance((p) => ({ ...p, [sid]: s.data() || null })), fail('finance')));
     });
-    return () => unsubs.forEach((u) => u());
-  }, [cid, key, withFinance]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { clearTimeout(again); unsubs.forEach((u) => u()); };
+  }, [cid, key, withFinance, retry]); // eslint-disable-line react-hooks/exhaustive-deps
   return { materials, usage, present, finance, milestones, crew };
 }
 

@@ -56,7 +56,7 @@ export default function Sites() {
               <tbody>
                 {shown.map((s) => (
                   <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
-                    <td><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link><div className="muted small">{s.location}{s.client?.name ? `, for ${s.client.name}` : ''}</div></td>
+                    <td><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link>{s.sample && <> <span className="pill sample">Sample</span></>}<div className="muted small">{s.location}{s.client?.name ? `, for ${s.client.name}` : ''}</div></td>
                     <td><StatusPill status={s.status} /></td>
                     <td>{s.stage || '–'}</td>
                     <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small></td>

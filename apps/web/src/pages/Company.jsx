@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MODULES, PLAN_LABELS, companySettingsInput, isOn, planFor, validate } from '@siteflow/shared';
+import { MODULES, PLAN_LABELS, companySettingsInput, friendlyError, isOn, planFor, validate } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useTitle } from '../lib/hooks';
-import { companyDoc, teamQuery, updateCompany } from '../lib/db';
+import { companyDoc, sitesCol, teamQuery, updateCompany } from '../lib/db';
+import { loadDemo, removeDemo } from '../lib/account';
+import { toast } from '../lib/save';
 import { save, savedText } from '../lib/save';
 import { ErrorState, Loading } from '../components/States';
 import PageHead from '../components/PageHead';
@@ -14,6 +16,17 @@ export default function Company() {
   const { cid } = useAuth();
   const { data: company, loading, error } = useDoc(() => cid && companyDoc(cid), [cid]);
   const { data: members } = useQuery(() => cid && teamQuery(cid), [cid]);
+  const { data: sites } = useQuery(() => cid && sitesCol(cid), [cid]);
+  const [demoBusy, setDemoBusy] = useState(false);
+  const hasSamples = sites.some((s) => s.sample);
+  async function demo() {
+    if (hasSamples && !window.confirm('Remove the three sample projects and everything in them? Your own projects are not touched.')) return;
+    setDemoBusy(true);
+    try {
+      if (hasSamples) { const r = await removeDemo(); toast(`Sample projects removed (${r.removed}).`); }
+      else { await loadDemo(); toast('Sample projects added. They are labelled Sample and never send messages.'); }
+    } catch (e) { toast(friendlyError(e), 'err'); } finally { setDemoBusy(false); }
+  }
   const [f, setF] = useState(null);
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
@@ -65,7 +78,16 @@ export default function Company() {
         <li><Link className="it" to="/modules"><span className="grow"><b>Modules</b><small>Switch features on or off. {on.length} on now.</small></span><span aria-hidden="true">›</span></Link></li>
         <li><Link className="it" to="/reminders"><span className="grow"><b>Reminders and alerts</b><small>Which messages go out by WhatsApp and email, and the message log.</small></span><span aria-hidden="true">›</span></Link></li>
         <li><Link className="it" to="/team"><span className="grow"><b>Team</b><small>People, roles and the projects they work on.</small></span><span aria-hidden="true">›</span></Link></li>
+        <li><Link className="it" to="/welcome"><span className="grow"><b>Setup steps</b><small>Go through the first-time setup again.</small></span><span aria-hidden="true">›</span></Link></li>
       </ul>
+
+      <h2 className="sub">Sample projects</h2>
+      <div className="card">
+        <p className="muted">{hasSamples ? 'Three sample projects are in your account. Removing them deletes only the sample projects and everything in them.'
+          : 'Add three Ghanaian sample projects with six weeks of reports, photos, workers, materials and spending, to see what SiteFlow does. They are labelled Sample and never send messages.'}</p>
+        <button type="button" className={`btn ${hasSamples ? 'ghost' : 'gold'} mt-sm`} onClick={demo} disabled={demoBusy}>
+          {demoBusy ? (hasSamples ? 'Removing…' : 'Adding… about 20 seconds') : hasSamples ? 'Remove sample projects' : 'Add sample projects'}</button>
+      </div>
     </section>
     </>
   );

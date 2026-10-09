@@ -17,6 +17,13 @@ import { EXPENSE_CATEGORIES, paths, round2, type SiteFinance } from '@siteflow/s
 export const recalcSiteSpending = onDocumentWritten('companies/{cid}/sites/{sid}/expenses/{eid}', async (event) => {
   const { cid, sid } = event.params;
   const db = getFirestore();
+  // Sample projects: the loader writes its own totals (skip its bulk writes), and a sample project being
+  // removed needs no recount. Changes people make to sample data are still counted.
+  if (event.data?.after?.data()?.sample === true && !event.data?.before?.exists) return;
+  if (!event.data?.after?.exists) {
+    const site = await db.doc(paths.site(cid, sid)).get();
+    if (!site.exists || site.data()?.removing) return;
+  }
   const expenses = db.collection(paths.sub(cid, sid, 'expenses'));
   const summaryRef = db.doc(paths.finance(cid, sid));
   const changed = [event.data?.before?.data()?.category, event.data?.after?.data()?.category].filter((c): c is string => typeof c === 'string' && !!c);

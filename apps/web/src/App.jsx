@@ -17,6 +17,8 @@ const Account = lazy(() => import('./pages/Account'));
 const Company = lazy(() => import('./pages/Company'));
 const Modules = lazy(() => import('./pages/Modules'));
 const Reminders = lazy(() => import('./pages/Reminders'));
+const Welcome = lazy(() => import('./pages/Welcome'));
+const PhotoCredits = lazy(() => import('./pages/PhotoCredits'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NewSite = lazy(() => import('./pages/NewSite'));
 const Sites = lazy(() => import('./pages/Sites'));
@@ -79,6 +81,8 @@ export default function App() {
           <Route path="company" element={<Guard perm="company.settings"><Company /></Guard>} />
           <Route path="modules" element={<Guard perm="company.settings"><Modules /></Guard>} />
           <Route path="reminders" element={<Guard perm="company.settings"><Reminders /></Guard>} />
+          <Route path="welcome" element={<Guard perm="company.settings"><Welcome /></Guard>} />
+          <Route path="photo-credits" element={<PhotoCredits />} />
           <Route path="account" element={<Account />} />
           <Route path="work" element={<MySites />} />
           <Route path="work/:sid" element={<SiteWorkspace />} />

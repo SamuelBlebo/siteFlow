@@ -3,7 +3,7 @@ import { logger } from 'firebase-functions';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
   TIMEZONE, big, expenseTotals, isBehind, paths, rankAlerts, recipientsFor, siteAlerts, todayKey, weekStart, weeklyDigestText,
-  type Company, type Expense, type Site, type SiteFinance,
+  isSample, type Company, type Expense, type Site, type SiteFinance,
 } from '@siteflow/shared';
 import { companyMembers, deliver, type Recipient } from './deliver';
 import { SECRETS } from './notify';
@@ -32,7 +32,7 @@ export async function remindMissingReports(company: Company, today = todayKey())
   const members = await companyMembers(company.id);
   for (const sDoc of sites.docs) {
     const site = { id: sDoc.id, ...sDoc.data() } as Site;
-    if (site.lastReportDate === today) continue;
+    if (site.lastReportDate === today || isSample(site)) continue; // sample projects are never chased
     // The site's supervisors, plus the foreman on the site record (who may not have a login)
     const recipients: Recipient[] = recipientsFor('report_missing', members, { siteId: site.id });
     if (site.foremanPhone || site.foremanEmail) {
@@ -60,7 +60,7 @@ export const missingReportReminder = onSchedule({ timeoutSeconds: 540, retryCoun
 export async function sendWeeklySummary(company: Company, now = new Date()) {
   const db = getFirestore();
   const sites = (await db.collection(paths.sites(company.id)).where('status', '==', 'active').get())
-    .docs.map((d) => ({ id: d.id, ...d.data() }) as Site);
+    .docs.map((d) => ({ id: d.id, ...d.data() }) as Site).filter((s) => !isSample(s)); // sample projects stay out of the summary
   if (!sites.length) return;
   const finance = new Map<string, SiteFinance>();
   const monday = weekStart(now);

@@ -4,10 +4,13 @@ import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useExpenses, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
-  big, budgetUsedPct, cedi, costBreakdown, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
+  big, budgetUsedPct, cedi, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
   scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
+import { GettingStarted, SampleBanner } from '../components/GettingStarted';
+import { loadDemo } from '../lib/account';
+import { toast } from '../lib/save';
 import PageHead from '../components/PageHead';
 import StatusPill from '../components/StatusPill';
 import { Mark } from '../components/Brand';
@@ -44,11 +47,7 @@ export default function Dashboard() {
     return (
       <>
         <PageHead title="Portfolio dashboard" sub={`${company?.name || ''}${company ? ', ' : ''}${longToday()}`} />
-        <div className="dpage">
-          <Empty title="No projects yet." action={can('sites.manage') && <Link to="/sites/new" className="btn gold">New project</Link>}>
-            {can('sites.manage') ? 'Add your first project to start tracking reports, materials and workers.' : 'A manager adds projects. They will appear here.'}
-          </Empty>
-        </div>
+        <div className="dpage"><FirstRun can={can} company={company} /></div>
       </>
     );
   }
@@ -120,6 +119,8 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
       </PageHead>
 
       <div className="dpage">
+        {active.some((s) => s.sample) && <SampleBanner />}
+        <GettingStarted company={company} sites={active} budgetSet={money ? active.some((s) => !s.sample && finance[s.id]?.budget > 0) : null} />
         <dl className="tiles">
           {money && (
             <>
@@ -218,7 +219,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                     <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
                       <td><div className="pcell">
                         <span className="pthumb">{pic ? <img src={pic.thumbs?.[0] || pic.photos[0]} alt="" loading="lazy" /> : <Mark />}</span>
-                        <div><Link className="sname" to={`/sites/${s.id}`} onClick={(e) => e.stopPropagation()}>{s.name}</Link> {s.status !== 'active' && <StatusPill status={s.status} />}
+                        <div><Link className="sname" to={`/sites/${s.id}`} onClick={(e) => e.stopPropagation()}>{s.name}</Link> {s.sample && <span className="pill sample">Sample</span>} {s.status !== 'active' && <StatusPill status={s.status} />}
                           <div className="muted small">{s.location}</div></div>
                       </div></td>
                       <td>{s.stage}</td>
@@ -278,5 +279,35 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         {money && spentAll > 0 && <p className="hint mt">Figures in cedis. Spending comes from recorded expenses ({cedi(spentAll)} in total across active projects).</p>}
       </div>
     </>
+  );
+}
+
+// No projects yet: a proper welcome, with the two ways to start
+function FirstRun({ can, company }) {
+  const [busy, setBusy] = useState(false);
+  async function demo() {
+    setBusy(true);
+    try { await loadDemo(); toast('Sample projects added. Remove them any time with the button at the top of the dashboard.'); }
+    catch (e) { toast(friendlyError(e), 'err'); }
+    finally { setBusy(false); }
+  }
+  if (!can('sites.manage')) {
+    return <Empty title="No projects yet.">A manager adds projects. They will appear here.</Empty>;
+  }
+  return (
+    <div className="firstrun">
+      <h2>Welcome{company?.name ? `, ${company.name}` : ''}</h2>
+      <p className="muted">Start with a real project, or look around with sample projects first.</p>
+      <div className="choices">
+        <Link to="/sites/new" className="choice"><b>Add your first project</b><span>Name, location, type of work, foreman and budget. About two minutes.</span></Link>
+        {can('company.settings') && (
+          <button type="button" className="choice" onClick={demo} disabled={busy}>
+            <b>{busy ? 'Adding sample projects… about 20 seconds' : 'Explore with sample data'}</b>
+            <span>Three Ghanaian projects with six weeks of reports, photos, workers, materials and spending. Labelled Sample, never send messages, removed in one click.</span>
+          </button>
+        )}
+        {can('company.settings') && <Link to="/welcome" className="choice"><b>Set up step by step</b><span>Company details, features and your team, then your first project.</span></Link>}
+      </div>
+    </div>
   );
 }

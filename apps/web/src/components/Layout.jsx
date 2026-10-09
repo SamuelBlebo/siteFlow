@@ -57,7 +57,7 @@ export default function Layout() {
           {all && !!open.length && <span className="lbl">Projects</span>}
           {all && open.map((s) => (
             <NavLink key={s.id} to={`/sites/${s.id}`} className="site-link" title={late(s) ? `${s.name}: today's report is missing` : s.name}>
-              <span className="dot" style={{ background: late(s) ? 'var(--bad)' : 'var(--ok)' }} aria-hidden="true" /><span>{s.name}</span>
+              <span className="dot" style={{ background: late(s) ? 'var(--bad)' : 'var(--ok)' }} aria-hidden="true" /><span>{s.name}</span>{s.sample && <i className="tag">Sample</i>}
             </NavLink>
           ))}
           {!all && (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />)}

@@ -28,3 +28,7 @@ export const team = {
 
 // Owner switches a module on or off (the server checks the role and recalculates the plan)
 export const setModule = call('setModule');
+
+// Sample projects (owner): add them, or remove them and everything under them
+export const loadDemo = call('loadDemo');
+export const removeDemo = call('removeDemo');

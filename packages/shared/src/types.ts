@@ -54,6 +54,7 @@ export interface Site {
   planStart?: string | null;     // YYYY-MM-DD
   planEnd?: string | null;       // YYYY-MM-DD
   client?: { name: string; email?: string; phone?: string } | null;
+  sample?: boolean;              // a sample project (Explore with sample data); never sends messages
 }
 
 // companies/{cid}/sites/{sid}/finance/summary. Finance roles only.

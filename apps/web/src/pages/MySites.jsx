@@ -38,7 +38,7 @@ function SiteLink({ cid, sid }) {
   const sent = s.lastReportDate === todayKey();
   return (
     <li><Link className="it" to={`/work/${sid}`}>
-      <span className="grow"><b>{s.name}</b><small>{s.location}</small></span>
+      <span className="grow"><b>{s.name}{s.sample && <> <span className="pill sample">Sample</span></>}</b><small>{s.location}</small></span>
       {s.status === 'on_hold' ? <StatusPill status="on_hold" /> : <span className={`pill ${sent ? 'ok' : 'bad'}`}>{sent ? 'Report sent' : 'Report due'}</span>}
     </Link></li>
   );

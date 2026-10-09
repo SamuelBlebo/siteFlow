@@ -6,6 +6,7 @@ import { outboxKey } from '../lib/reportOutbox';
 import { exists, openIssuesQuery, siteRef, sitesCol, toList } from '../lib/db';
 import { ALERT_LABELS, SITE_STATUS_LABELS, isSiteScoped, rankAlerts, siteAlerts, todayKey } from '@siteflow/shared';
 import { Card, Empty, ErrorView, Loading, Muted, Pill, Screen, s } from '../components/ui';
+import WelcomeIntro from '../components/WelcomeIntro';
 import { colors } from '../theme';
 
 export default function SitesScreen({ navigation }) {
@@ -59,6 +60,7 @@ export default function SitesScreen({ navigation }) {
 
   return (
     <Screen>
+      <WelcomeIntro uid={user.uid} name={profile?.name} />
       <Muted style={{ marginBottom: 12 }}>Hi {profile.name?.split(' ')[0]}. Pick a site to work on.</Muted>
       {error ? <ErrorView error={error} what="your sites" /> : null}
       {all && loaded ? <Attention sites={list} openIssues={openIssues} navigation={navigation} /> : null}
@@ -75,6 +77,7 @@ export default function SitesScreen({ navigation }) {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{site.name}</Text>
                   <Muted>{site.location}</Muted>
+                  {site.sample ? <View style={{ alignSelf: 'flex-start', marginTop: 4 }}><Pill kind="sample">Sample</Pill></View> : null}
                 </View>
                 {onPhone
                   ? <Pill kind={onPhone.status === 'failed' ? 'bad' : 'warn'}>{onPhone.status === 'failed' ? 'Report not sent' : 'Report on phone'}</Pill>

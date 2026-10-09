@@ -62,7 +62,7 @@ export default function SiteDetail() {
         <div className="sitehead">
           <Ring pct={site.progress || 0} size={84} />
           <div>
-            <h1>{site.name} {site.status !== 'active' && <StatusPill status={site.status} />}</h1>
+            <h1>{site.name} {site.sample && <span className="pill sample">Sample</span>} {site.status !== 'active' && <StatusPill status={site.status} />}</h1>
             <div className="meta"><span>{site.location}</span><span>Foreman: {site.foremanName || '–'}</span><span>Stage: {site.stage}</span></div>
           </div>
           {site.lastReportDate === todayKey() ? <span className="pill ok">Report sent {site.lastReportTime}</span>
