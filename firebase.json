@@ -55,7 +55,7 @@
         ]
       },
       {
-        "regex": "^/(?!assets/).*$",
+        "regex": "^/(?:[^a].*|a(?:[^s].*)?|as(?:[^s].*)?|ass(?:[^e].*)?|asse(?:[^t].*)?|asset(?:[^s].*)?|assets(?:[^/].*)?)?$",
         "headers": [
           {
             "key": "Cache-Control",
