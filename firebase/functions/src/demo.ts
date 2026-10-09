@@ -51,6 +51,7 @@ export const loadDemo = onCall({ ...callOpts, timeoutSeconds: 300, memory: '512M
       w.set(sub('issues', i.id), { ...i.doc, createdAt: t, updatedAt: t, lastActivityAt: t });
     }
     for (const m of s.milestones) w.set(sub('milestones', m.id), { ...m.doc, createdAt: FieldValue.serverTimestamp() });
+    for (const d of s.drawings) w.set(sub('drawings', d.id), { ...d.doc, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
     const byCategory: Record<string, number> = {};
     for (const e of s.expenses) byCategory[e.doc.category as string] = round2((byCategory[e.doc.category as string] || 0) + (e.doc.amount as number));
     w.set(db.doc(paths.finance(cid, s.id)), {

@@ -201,10 +201,10 @@ export const commentsQuery = (cid, sid, id) => query(collection(db, paths.issueC
 export const uploadIssuePhotos = (cid, sid, issueId, files) => uploadWithThumbs(files, (name) => paths.issuePhoto(cid, sid, issueId, name));
 
 // input: validated issueInput. assignedTo only for site managers (the rules check).
-export function createIssue(cid, site, input, { id, uid, name, photos = [], thumbs = [], assignedTo = null, assignedToName = '' }) {
+export function createIssue(cid, site, input, { id, uid, name, photos = [], thumbs = [], assignedTo = null, assignedToName = '', pin = null }) {
   const { photos: _p, ...fields } = input;
   return setDoc(issueRef(cid, site.id, id), {
-    ...issueDoc(fields, { companyId: cid, siteId: site.id, siteName: site.name, uid, name, photos, thumbs, assignedTo, assignedToName, date: todayKey() }),
+    ...issueDoc(fields, { companyId: cid, siteId: site.id, siteName: site.name, uid, name, photos, thumbs, assignedTo, assignedToName, date: todayKey(), pin }),
     createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp(),
   });
 }

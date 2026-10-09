@@ -20,6 +20,7 @@ import ProgressPanel from '../components/ProgressPanel';
 import BudgetPanel from '../components/BudgetPanel';
 import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
+import ProjectDrawing from '../components/ProjectDrawing';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
 import { Ring } from '../components/Charts';
@@ -92,7 +93,7 @@ export default function SiteDetail() {
       )}
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'overview' && <OverviewTab site={site} data={data} />}
+      {tab === 'overview' && <><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} /></>}
       {tab === 'reports' && <><ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} /><ReportHistory cid={cid} site={site} /></>}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}

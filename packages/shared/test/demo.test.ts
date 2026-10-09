@@ -115,3 +115,27 @@ describe('sample people', () => {
     expect(gh[0].site.foremanName).toBe('Kwame Mensah');
   });
 });
+
+describe('sample drawings', () => {
+  it('each sample project has an overview drawing whose areas all link to its programme stages', () => {
+    for (const s of demo) {
+      expect(s.drawings).toHaveLength(1);
+      const d = s.drawings[0];
+      expect(s.site.overviewDrawingId).toBe(d.id);
+      expect(d.doc.image).toMatch(/^https:\/\/example\.web\.app\/demo\/plans\/.+\.png$/);
+      const ids = new Set(s.milestones.map((m) => m.id));
+      const zones = d.doc.zones as { milestoneId: string | null; x: number; w: number; y: number; h: number }[];
+      expect(zones.length).toBeGreaterThan(2);
+      for (const z of zones) {
+        expect(ids.has(z.milestoneId as string)).toBe(true);
+        expect(z.x + z.w).toBeLessThanOrEqual(1);
+        expect(z.y + z.h).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+  it('the open problems are pinned where they are', () => {
+    const pinned = demo.flatMap((s) => s.issues.filter((i) => i.doc.pin).map((i) => [s.drawings[0].id, i.doc.pin as { drawingId: string }]));
+    expect(pinned).toHaveLength(3);
+    for (const [id, pin] of pinned) expect((pin as { drawingId: string }).drawingId).toBe(id);
+  });
+});

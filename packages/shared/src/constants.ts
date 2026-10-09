@@ -16,7 +16,6 @@ export const UNITS = ['bags', 'lengths', 'pcs', 'trips', 'sheets', 'kg', 'litres
 export const EXPENSE_CATEGORIES = ['Materials', 'Labour', 'Transport', 'Equipment', 'Permits', 'Other'];
 export const CO_REASONS = ['Client request', 'Design change', 'Site condition', 'Other'];
 export const INCIDENT_TYPES = ['Near miss', 'First aid', 'Lost-time injury', 'Property damage'];
-export const DISCIPLINES = ['Architectural', 'Structural', 'Electrical', 'Mechanical', 'Civil'];
 
 // Business rules, kept in one place so web, mobile and functions agree
 export const INVITE_DAYS = 7;             // invitation and password links last this long

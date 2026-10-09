@@ -73,6 +73,7 @@ export interface Site {
   planStart?: string | null;     // YYYY-MM-DD
   planEnd?: string | null;       // YYYY-MM-DD
   client?: { name: string; email?: string; phone?: string } | null;
+  overviewDrawingId?: string | null; // the drawing shown on the project overview
   sample?: boolean;              // a sample project (Explore with sample data); never sends messages
 }
 
@@ -128,6 +129,7 @@ export interface Issue {
   date: string; dueDate: string | null; status: IssueStatus;
   assignedTo: string | null; assignedToName: string;
   photos: string[]; photoCount: number;
+  pin?: { drawingId: string; x: number; y: number } | null; // where it is on a project drawing
   resolution: string; resolvedBy: string | null; resolvedByName: string;
   commentCount: number; createdBy: string; createdByName: string;
   createdAt?: unknown; updatedAt?: unknown; lastActivityAt?: unknown; resolvedAt?: unknown;
@@ -160,7 +162,6 @@ export interface PunchItem { id?: string; number: string; location: string; issu
 export interface Subcontractor { id?: string; name: string; trade: string; contractValue: number; percentDone: number; paid: number }
 export interface Incident { id?: string; date: string; type: string; severity: 'Low' | 'Medium' | 'High'; description: string; status: 'open' | 'closed'; reportedBy: string }
 export interface ScheduleTask { id?: string; name: string; startWeek: number; endWeek: number; percentDone: number }
-export interface Drawing { id?: string; number: string; title: string; discipline: string; revision: string; issuedDate: string; fileUrl?: string }
 export interface Equipment { id?: string; name: string; siteId: string | null; status: 'Working' | 'Idle' | 'Under repair'; hours: number; nextServiceHours: number; fuelThisWeek: number }
 export interface BillingMilestone { id?: string; name: string; amount: number; status: 'upcoming' | 'invoiced' | 'paid'; order: number }
 

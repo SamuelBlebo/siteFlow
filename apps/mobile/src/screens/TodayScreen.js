@@ -12,6 +12,7 @@ import { setMilestoneProgress } from '../lib/db';
 import { Button, Card, Empty, ErrorView, H1, H2, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
 import MyRequests from '../components/MyRequests';
+import SiteDrawingCard from '../components/SiteDrawing';
 
 export default function TodayScreen({ navigation }) {
   const { profile, user } = useAuth();
@@ -51,6 +52,7 @@ export default function TodayScreen({ navigation }) {
           </View>
         </Pressable>
       ))}
+      <SiteDrawingCard cid={cid} sid={sid} site={site} onOpen={() => navigation.navigate('Drawing', { cid, sid, overviewDrawingId: site.overviewDrawingId || null })} />
       <Progress cid={cid} sid={sid} site={site} milestones={milestones} canWork={work} />
       <H2>Site information</H2>
       <SiteInfo site={site} />

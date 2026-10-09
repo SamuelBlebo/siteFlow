@@ -6,6 +6,7 @@
 // Dates are worked out from the day it is loaded, so the data always looks current.
 import { WORK_TYPES } from './constants';
 import { issueDoc } from './logic/issues';
+import { DEMO_DRAWINGS } from './demoDrawings';
 import { overallProgress, standardMilestones } from './logic/progress';
 import { materialsUsed, reportDoc, reportId } from './logic/reports';
 import { siteFields } from './logic/sites';
@@ -118,6 +119,7 @@ export interface DemoSite {
   reports: { id: string; doc: Record<string, unknown> }[];
   issues: { id: string; doc: Record<string, unknown> }[];
   milestones: { id: string; doc: Record<string, unknown> }[];
+  drawings: { id: string; doc: Record<string, unknown> }[];
 }
 
 // photoBase: where the sample photos are served, e.g. https://siteflow-dp-dev.web.app/demo
@@ -249,6 +251,10 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
     });
     const last = reports[0];
 
+    // The project drawing (scripts/demo-drawings.mjs): areas linked to programme stages, issues pinned
+    const spec = DEMO_DRAWINGS.find((d) => d.key === p.key);
+    const drawingId = `${sid}-dwg1`;
+    const pinFor = (i: number) => { const q = spec?.pins.find((x) => x.issue === i); return q ? { drawingId, x: q.x, y: q.y } : null; };
     const issues = p.issues.map((x, i) => {
       const date = key(addDays(now, -x.daysAgo));
       const pic = i === 0 ? photo(p.photos[i % p.photos.length]) : null;
@@ -257,7 +263,7 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
       return {
         id: `${sid}-i${i + 1}`,
         doc: {
-          ...base, status: x.status,
+          ...base, status: x.status, ...(pinFor(i) ? { pin: pinFor(i) } : {}),
           ...(x.status === 'resolved' || x.status === 'closed' ? { resolution: x.description, resolvedBy: fid, resolvedByName: p.foremanName } : {}),
           ...(x.status === 'in_progress' ? { assignedTo: fid, assignedToName: p.foremanName } : {}),
         },
@@ -267,7 +273,7 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
     const site = {
       ...siteFields({ name: p.name, location: p.location, stage, foremanName: p.foremanName, foremanPhone: p.foremanPhone, planStart, planEnd,
         clientName: p.client.name, clientPhone: p.client.phone, clientEmail: p.client.email }),
-      progress, status: 'active', sample: true,
+      progress, status: 'active', sample: true, overviewDrawingId: spec ? drawingId : null,
       lastReportDate: last?.doc.date ?? null, lastReportTime: last?.doc.time ?? null,
     };
     const totals = { Materials: 0.55, Labour: 0.25, Equipment: 0.12, Transport: 0.08 };
@@ -276,6 +282,18 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
       finance: { budget: p.budget, budgetByCategory: Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, Math.round(p.budget * v)])) },
       workers, attendance, materials, materialLogs, expenses, reports, issues,
       milestones: ms.map((m, i) => ({ id: `${sid}-ms${i + 1}`, doc: m })),
+      drawings: spec ? [{
+        id: drawingId,
+        doc: {
+          title: spec.title, sheet: spec.sheet, discipline: spec.discipline, fileType: 'image/png',
+          file: `${photoBase}/plans/${spec.file}.png`, image: `${photoBase}/plans/${spec.file}.png`, width: spec.width * 2, height: spec.height * 2,
+          zones: spec.zones.map((z, i) => {
+            const at = (stages as readonly string[]).indexOf(z.stage);
+            return { id: `z${i + 1}`, name: z.name, x: z.x, y: z.y, w: z.w, h: z.h, milestoneId: at >= 0 ? `${sid}-ms${at + 1}` : null };
+          }),
+          createdBy: fid, createdByName: 'SiteFlow sample',
+        },
+      }] : [],
     };
   });
 }

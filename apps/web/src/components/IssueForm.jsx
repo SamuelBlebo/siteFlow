@@ -15,12 +15,13 @@ export function assignableOn(members, sid) {
 }
 
 // Report a problem. sites: where it can be reported (one site, or a choice on the Issues page).
-export default function IssueForm({ cid, sites, onDone }) {
+// pin: where it is on a project drawing (placed on the overview drawing).
+export default function IssueForm({ cid, sites, onDone, pin = null, location = '' }) {
   const { user, profile, can } = useAuth();
   const manager = can('sites.manage');
   const open = sites.filter(isSiteOpen);
   const { data: members } = useQuery(() => cid && manager && teamQuery(cid), [cid, manager]);
-  const blank = { siteId: open[0]?.id || '', title: '', description: '', priority: '', category: '', location: '', dueDate: '', assignedTo: '' };
+  const blank = { siteId: open[0]?.id || '', title: '', description: '', priority: '', category: '', location, dueDate: '', assignedTo: '' };
   const [f, setF] = useState(blank);
   const [files, setFiles] = useState([]);
   const [err, setErr] = useState('');
@@ -48,7 +49,7 @@ export default function IssueForm({ cid, sites, onDone }) {
     }
     try {
       const who = people.find((m) => m.id === f.assignedTo);
-      await save(createIssue(cid, site, v.data, { id, uid: user.uid, name: profile.name, ...up, assignedTo: who?.id || null, assignedToName: who?.name || '' }), 'Issue');
+      await save(createIssue(cid, site, v.data, { id, uid: user.uid, name: profile.name, ...up, assignedTo: who?.id || null, assignedToName: who?.name || '', pin }), 'Issue');
       setF(blank); setFiles([]);
       onDone?.({ id, siteId: site.id });
     } catch (e2) {

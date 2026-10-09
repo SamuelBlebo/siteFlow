@@ -48,7 +48,8 @@ export default function IssueDetail() {
         </div>
         <dl className="facts mt-sm">
           <dt>Site</dt><dd>{can('sites.all') ? <Link to={`/sites/${issue.siteId}?tab=issues`}>{issue.siteName}</Link> : issue.siteName}</dd>
-          <dt>About</dt><dd>{issue.category}{issue.location ? `, ${issue.location}` : ''}</dd>
+          <dt>About</dt><dd>{issue.category}{issue.location ? `, ${issue.location}` : ''}
+            {issue.pin && <> · <Link to={`${can('sites.all') ? `/sites/${issue.siteId}?tab=overview` : `/work/${issue.siteId}?tab=drawing`}&sheet=${issue.pin.drawingId}&pin=${issue.id}`}>Show on drawing</Link></>}</dd>
           <dt>Reported</dt><dd>{prettyDate(issue.date)} by {issue.createdByName}</dd>
           <dt>Given to</dt><dd>{issue.assignedToName || 'Nobody yet'}</dd>
           <dt>Fix by</dt><dd>{issue.dueDate ? prettyDate(issue.dueDate) : '–'}</dd>

@@ -115,7 +115,7 @@ service cloud.firestore {
       match /sites/{sid} {
         function siteKeys() {
           return ['name', 'location', 'foremanName', 'foremanPhone', 'foremanEmail', 'stage', 'progress', 'status',
-                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'createdAt', 'updatedAt'];
+                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'createdAt', 'updatedAt'];
         }
         function validSite() {
           return data().keys().hasOnly(siteKeys())
@@ -124,6 +124,7 @@ service cloud.firestore {
             && data().status in ['active', 'on_hold', 'closed']
             && optText('foremanName', 100) && optText('foremanPhone', 20) && optText('foremanEmail', 200)
             && optDate('planStart') && optDate('planEnd')
+            && (!('overviewDrawingId' in data()) || data().overviewDrawingId == null || isText(data().overviewDrawingId, 1, 100))
             && (!('client' in data()) || data().client == null
                 || (data().client is map && data().client.keys().hasOnly(['name', 'phone', 'email']) && isText(data().client.name, 1, 120)));
         }
@@ -312,7 +313,13 @@ service cloud.firestore {
           function issueKeys() {
             return ['companyId', 'siteId', 'siteName', 'title', 'description', 'priority', 'category', 'location', 'date', 'dueDate',
                     'status', 'assignedTo', 'assignedToName', 'photos', 'thumbs', 'photoCount', 'resolution', 'resolvedBy', 'resolvedByName',
-                    'resolvedAt', 'commentCount', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'lastActivityAt'];
+                    'resolvedAt', 'commentCount', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'lastActivityAt', 'pin'];
+          }
+          // Where it is on a project drawing (fractions of the sheet)
+          function validPin() {
+            return !('pin' in data()) || data().pin == null
+              || (data().pin is map && data().pin.keys().hasOnly(['drawingId', 'x', 'y']) && isText(data().pin.drawingId, 1, 100)
+                  && isNum(data().pin.x) && data().pin.x >= 0 && data().pin.x <= 1 && isNum(data().pin.y) && data().pin.y >= 0 && data().pin.y <= 1);
           }
           function validIssue() {
             return data().keys().hasOnly(issueKeys())
@@ -324,7 +331,7 @@ service cloud.firestore {
               && (data().assignedTo == null || data().assignedTo is string) && optText('assignedToName', 100)
               && data().photos is list && data().photos.size() <= 8 && validThumbs() && data().photoCount is int
               && optText('resolution', 2000) && data().commentCount is int && data().commentCount >= 0
-              && (data().status != 'resolved' || isText(data().resolution, 3, 2000));
+              && (data().status != 'resolved' || isText(data().resolution, 3, 2000)) && validPin();
           }
           function changed(keys) { return data().diff(resource.data).affectedKeys().hasAny(keys); }
           function only(keys) { return data().diff(resource.data).affectedKeys().hasOnly(keys); }
@@ -345,7 +352,7 @@ service cloud.firestore {
           }
           function reporterEdit() {
             return resource.data.createdBy == request.auth.uid && resource.data.status == 'open'
-              && only(['title', 'description', 'location', 'category', 'photos', 'thumbs', 'photoCount', 'updatedAt', 'lastActivityAt']);
+              && only(['title', 'description', 'location', 'category', 'photos', 'thumbs', 'photoCount', 'pin', 'updatedAt', 'lastActivityAt']);
           }
           function commentBump() {
             return only(['commentCount', 'lastActivityAt']) && data().commentCount == resource.data.commentCount + 1;
@@ -374,10 +381,33 @@ service cloud.firestore {
           }
         }
 
+        // Project drawings (paths.drawingFile for the files). Everyone on the project sees them;
+        // owners, admins and project managers upload them and mark areas linked to programme stages.
+        match /drawings/{id} {
+          function validZones() {
+            return data().zones is list && data().zones.size() <= 60;
+          }
+          function validDrawing() {
+            return data().keys().hasOnly(['title', 'sheet', 'discipline', 'file', 'fileType', 'image', 'width', 'height', 'zones',
+                                          'createdBy', 'createdByName', 'createdAt', 'updatedAt'])
+              && isText(data().title, 1, 120) && optText('sheet', 30)
+              && data().discipline in ['architectural', 'structural', 'services', 'site', 'other']
+              && isText(data().file, 9, 2000) && data().file.matches('^(https://|/).*')
+              && isText(data().image, 9, 2000) && data().image.matches('^(https://|/).*')
+              && isText(data().fileType, 3, 100)
+              && data().width is int && data().width > 0 && data().height is int && data().height > 0 && validZones();
+          }
+          allow read: if onSite(cid, sid);
+          allow create: if siteManager(cid) && byMe() && validDrawing() && data().createdByName == meIn(cid).name;
+          allow update: if siteManager(cid) && validDrawing()
+            && data().createdBy == resource.data.createdBy && data().createdByName == resource.data.createdByName;
+          allow delete: if siteManager(cid);
+        }
+
         // Future modules. Money-bearing collections are finance-only.
         match /{coll}/{id} {
           function moduleColl() {
-            return coll in ['rfis', 'inspections', 'punchItems', 'incidents', 'toolboxTalks', 'tasks', 'drawings', 'documents'];
+            return coll in ['rfis', 'inspections', 'punchItems', 'incidents', 'toolboxTalks', 'tasks', 'documents'];
           }
           function moneyColl() { return coll in ['changeOrders', 'subcontractors', 'billing']; }
           allow read: if (moduleColl() && onSite(cid, sid)) || (moneyColl() && financeView(cid));

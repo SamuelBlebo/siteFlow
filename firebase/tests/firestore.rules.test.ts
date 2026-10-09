@@ -698,3 +698,49 @@ describe('notifications', () => {
     await assertFails(getDocs(collection(as(OTHER_OWNER), paths.notifications(C1))));
   });
 });
+
+describe('project drawings', () => {
+  const dref = (db: Firestore, id = 'd1', sid = S1) => doc(db, paths.subDoc(C1, sid, 'drawings', id));
+  const drawing = (uid: string, name: string, extra: object = {}) => ({
+    title: 'Ground floor plan', sheet: 'A-101', discipline: 'architectural',
+    file: 'https://firebasestorage.googleapis.com/x/original.pdf', fileType: 'application/pdf',
+    image: 'https://firebasestorage.googleapis.com/x/sheet.png', width: 3360, height: 2376,
+    zones: [{ id: 'z1', name: 'West wing', x: 0.1, y: 0.1, w: 0.2, h: 0.3, milestoneId: null }],
+    createdBy: uid, createdByName: name, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
+  });
+  it('project managers add drawings and mark areas; the site team only looks', async () => {
+    await assertSucceeds(setDoc(dref(asRole('manager')), drawing(USERS.manager, 'manager user')));
+    await assertSucceeds(updateDoc(dref(asRole('admin')), { zones: [], updatedAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(dref(asRole('supervisor'))));
+    await assertSucceeds(getDoc(dref(asRole('viewer'))));
+    await assertFails(setDoc(dref(asRole('supervisor'), 'd2'), drawing(USERS.supervisor, 'supervisor user')));
+    await assertFails(updateDoc(dref(asRole('supervisor')), { zones: [] }));
+    await assertFails(deleteDoc(dref(asRole('supervisor'))));
+    await assertSucceeds(deleteDoc(dref(asRole('manager'))));
+  });
+  it('a drawing must be well formed and signed by its uploader', async () => {
+    const db = asRole('manager');
+    await assertFails(setDoc(dref(db, 'b1'), drawing(USERS.manager, 'Someone else')));
+    await assertFails(setDoc(dref(db, 'b2'), drawing(USERS.manager, 'manager user', { discipline: 'magic' })));
+    await assertFails(setDoc(dref(db, 'b3'), drawing(USERS.manager, 'manager user', { image: 'javascript:alert(1)' })));
+    await assertFails(setDoc(dref(db, 'b4'), drawing(USERS.manager, 'manager user', { zones: Array.from({ length: 61 }, (_, i) => ({ id: `z${i}` })) })));
+    await assertFails(setDoc(dref(db, 'b5'), drawing(USERS.manager, 'manager user', { extra: true })));
+  });
+  it('site-scoped people only see drawings of their sites; other companies none', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(dref(ctx.firestore() as unknown as Firestore, 'd3', S2), drawing(USERS.manager, 'manager user')));
+    await assertFails(getDoc(dref(asRole('supervisor'), 'd3', S2)));
+    await assertFails(getDoc(dref(as(OTHER_OWNER), 'd3', S2)));
+  });
+  it('managers choose the overview drawing; issues carry a pin inside the sheet', async () => {
+    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.site(C1, S1)), { overviewDrawingId: 'd1' }));
+    await assertFails(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { overviewDrawingId: 'd1' }));
+    const issue = (id: string, pin: object) => setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'issues', id)), {
+      ...issueDoc({ title: 'Crack above window', priority: 'medium', category: 'Quality' },
+        { companyId: C1, siteId: S1, siteName: `Site ${S1}`, uid: USERS.supervisor, name: 'supervisor user', date: today }),
+      pin, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp(),
+    });
+    await assertSucceeds(issue('p1', { drawingId: 'd1', x: 0.4, y: 0.25 }));
+    await assertFails(issue('p2', { drawingId: 'd1', x: 1.4, y: 0.25 }));
+    await assertFails(issue('p3', { drawingId: 'd1', x: 0.4, y: 0.2, note: 'extra' }));
+  });
+});

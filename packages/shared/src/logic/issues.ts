@@ -71,7 +71,7 @@ export function issueActions(issue: Pick<Issue, 'status' | 'assignedTo' | 'creat
 
 // The stored issue (createdAt / updatedAt / lastActivityAt are server timestamps set by the app)
 export function issueDoc(input: { title: string; description?: string; priority: IssuePriority; category: string; location?: string; dueDate?: string },
-  meta: { companyId: string; siteId: string; siteName: string; uid: string; name: string; photos?: string[]; thumbs?: string[]; assignedTo?: string | null; assignedToName?: string; date: string }) {
+  meta: { companyId: string; siteId: string; siteName: string; uid: string; name: string; photos?: string[]; thumbs?: string[]; assignedTo?: string | null; assignedToName?: string; date: string; pin?: { drawingId: string; x: number; y: number } | null }) {
   return {
     companyId: meta.companyId, siteId: meta.siteId, siteName: meta.siteName,
     title: input.title, description: input.description || '', priority: input.priority, category: input.category,
@@ -80,5 +80,6 @@ export function issueDoc(input: { title: string; description?: string; priority:
     photos: meta.photos || [], thumbs: meta.thumbs || [], photoCount: (meta.photos || []).length,
     resolution: '', resolvedBy: null, resolvedByName: '',
     commentCount: 0, createdBy: meta.uid, createdByName: meta.name,
+    ...(meta.pin ? { pin: meta.pin } : {}), // where it is on a project drawing
   };
 }

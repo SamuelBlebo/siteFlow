@@ -670,3 +670,54 @@ main:focus { outline: none; }
 .btn.google { gap: 10px; font-weight: 600; }
 .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 14px 0; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* ---------- project drawing (overview) ---------- */
+.dwg .panel-h p { max-width: 62ch; }
+.dwg-empty { border: 1.5px dashed var(--line); border-radius: 12px; padding: 22px; background: repeating-linear-gradient(0deg, transparent 0 23px, color-mix(in srgb, var(--line) 55%, transparent) 23px 24px), repeating-linear-gradient(90deg, transparent 0 23px, color-mix(in srgb, var(--line) 55%, transparent) 23px 24px); }
+.dwg-empty p { margin: 0; max-width: 64ch; }
+.dwg-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.dwg-tools .grow { flex: 1; }
+.dwg-tools .seg { margin: 0; align-items: center; }
+.dwg-tools .seg span { min-width: 46px; text-align: center; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dwg-sheetpick select { border: 1px solid var(--line); border-radius: 9px; background: var(--surface); padding: 7px 10px; font-size: 14px; max-width: 320px; }
+.dwg-hint { background: var(--brass-soft); color: var(--ink); }
+.dwg-scroll { overflow: auto; max-height: min(72vh, 820px); border: 1px solid var(--line); border-radius: 12px; background: #fff; overscroll-behavior: contain; }
+.dwg-sheet { position: relative; min-width: 100%; user-select: none; -webkit-user-select: none; }
+.dwg-sheet img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.dwg-sheet.mode-areas { cursor: crosshair; touch-action: none; }
+.dwg-sheet.mode-pin { cursor: crosshair; }
+/* Areas: coloured by the linked stage. Fill is see-through so the drawing stays readable. */
+.dwg-sheet .zone { position: absolute; border: 2px solid var(--z); background: color-mix(in srgb, var(--z) 18%, transparent); border-radius: 3px; padding: 0; cursor: pointer; --z: #475A66; }
+.dwg-sheet .zone:hover, .dwg-sheet .zone:focus-visible { background: color-mix(in srgb, var(--z) 30%, transparent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--z) 35%, transparent); }
+.dwg-sheet .zone.sel { box-shadow: 0 0 0 3px var(--tape); }
+.dwg-sheet .zone.done { --z: #1E7A55; }
+.dwg-sheet .zone.progress { --z: #B98D45; }
+.dwg-sheet .zone.behind { --z: #B3372B; }
+.dwg-sheet .zone.todo { --z: #6B7C88; background: repeating-linear-gradient(45deg, rgba(107, 124, 136, .16) 0 6px, transparent 6px 12px); }
+.dwg-sheet .zone.none { --z: #0F1D27; border-style: dashed; background: transparent; }
+.dwg-sheet .zone.draft { --z: #F2B705; border-style: dashed; pointer-events: none; }
+.zlabel { position: absolute; left: 4px; top: 4px; max-width: calc(100% - 8px); background: var(--z); color: #fff; font-size: 11.5px; font-weight: 600; line-height: 1.2; padding: 2px 6px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+/* Issue pins: a numbered marker whose tip is the spot */
+.dwg-sheet .pin { position: absolute; width: 26px; height: 26px; margin: -26px 0 0 -13px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--p, #B3372B); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); display: grid; place-items: center; text-decoration: none; z-index: 2; }
+.dwg-sheet .pin span { transform: rotate(45deg); color: #fff; font-size: 11.5px; font-weight: 700; }
+.dwg-sheet .pin.medium { --p: #B07A12; }
+.dwg-sheet .pin.low { --p: #5F6D77; }
+.dwg-sheet .pin.new { --p: #F2B705; pointer-events: none; }
+.dwg-sheet .pin.new span { color: #1D262A; }
+.dwg-sheet .pin.focus { animation: pinpulse 1.2s ease-in-out 3; }
+@keyframes pinpulse { 50% { box-shadow: 0 0 0 10px rgba(242, 183, 5, .45); } }
+@media (prefers-reduced-motion: reduce) { .dwg-sheet .pin.focus { animation: none; box-shadow: 0 0 0 4px var(--tape); } }
+.dwg-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 10px 0 0; padding: 0; font-size: 13px; color: var(--muted); }
+.dwg-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.dwg-legend b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dwg-legend .sw { width: 14px; height: 14px; border-radius: 3px; border: 2px solid; display: inline-block; }
+.sw.done { border-color: #1E7A55; background: rgba(30, 122, 85, .25); }
+.sw.progress { border-color: #B98D45; background: rgba(185, 141, 69, .25); }
+.sw.behind { border-color: #B3372B; background: rgba(179, 55, 43, .25); }
+.sw.todo { border-color: #6B7C88; background: repeating-linear-gradient(45deg, rgba(107, 124, 136, .35) 0 3px, transparent 3px 6px); }
+.sw.none { border-color: var(--ink); border-style: dashed; }
+.sw.pinned { border-color: #fff; background: #B3372B; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 0 0 1px #B3372B; }
+.dwg-sheetops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.dwg-check { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0 14px; }
+.dwg-check input { width: 18px; height: 18px; accent-color: var(--brass); }
+@media (max-width: 640px) { .dwg-scroll { max-height: 60vh; } .dwg-tools .grow { display: none; } }

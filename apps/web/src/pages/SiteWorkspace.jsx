@@ -9,6 +9,7 @@ import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
 import SiteIssues from '../components/SiteIssues';
+import ProjectDrawing from '../components/ProjectDrawing';
 import ProgressPanel from '../components/ProgressPanel';
 import LabourPanel from '../components/LabourPanel';
 import MaterialsPanel from '../components/MaterialsPanel';
@@ -42,7 +43,7 @@ export default function SiteWorkspace() {
     mod('materials') && { key: 'materials', done: usedToday, title: 'Log materials used', note: usedToday ? 'Usage logged today' : 'Record what was used today' },
     { key: 'report', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
   ].filter(Boolean);
-  const tabs = [['today', 'Today'], work && ['report', 'Report'], ['progress', 'Progress'], ['issues', 'Issues'],
+  const tabs = [['today', 'Today'], work && ['report', 'Report'], ['progress', 'Progress'], ['drawing', 'Drawing'], ['issues', 'Issues'],
     mod('materials') && ['materials', 'Materials'], mod('labour') && ['workers', 'Workers'], ['history', 'History']].filter(Boolean);
 
   return (
@@ -70,6 +71,7 @@ export default function SiteWorkspace() {
       )}
       {tab === 'report' && work && <ReportForm cid={cid} site={site} presentCount={d.presentCount} logs={d.logs} />}
       {tab === 'history' && <ReportHistory cid={cid} site={site} />}
+      {tab === 'drawing' && <ProjectDrawing cid={cid} site={site} />}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && mod('materials') && <MaterialsPanel cid={cid} site={site} data={d} canWork={work} />}

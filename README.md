@@ -112,6 +112,20 @@ The person sees it on their Today screen (web and phone) until their report for 
 Reports record the sender's **role and email** with their name (the rules check both against their profile), shown as
 "Yaw Boateng, Project manager" on reports, the feed and the phone.
 
+## Project drawings
+- The project **Overview** (and the site team's **Drawing** tab) shows the architect's drawing.
+  - Owners, admins and project managers upload sheets: PDF, PNG or JPG, up to 30 MB, one sheet per upload.
+  - A PDF's page 1 is turned into an image in the browser with pdf.js, which loads only when a PDF is chosen and runs without eval.
+  - Both the original and that image are stored under `paths.drawingFile`.
+  - One sheet is the project's overview (`site.overviewDrawingId`).
+- **Areas:** managers mark areas on a sheet by dragging boxes (stored as fractions of the sheet) and link each one to a programme stage.
+  - An area is coloured by that stage: done, in progress, behind plan (its planned end has passed) or not started (`zoneState` in shared).
+- **Pins:** the site team pins an issue where it is (*Pin an issue*, then click the spot). The issue gets `pin: { drawingId, x, y }`.
+  - Open issues show as numbered pins that open the issue. An issue page links back with *Show on drawing*.
+- **Phone:** shows the overview drawing on the site's Today screen and opens it full size with zoom. Marking areas is done on the web.
+- **Sample projects:** each has a drawing made by `scripts/demo-drawings.mjs`, which also writes the areas and pins into `packages/shared/src/demoDrawings.ts`.
+  - PNG copies come from `scripts/demo-drawings-png.mjs` (needs Chrome).
+
 ## Daily reports
 One report per person per site per day (document id `{date}_{uid}`), built by `reportDoc` in shared so web
 and mobile store exactly the same thing. A report has work done, workers on site, stage and progress,

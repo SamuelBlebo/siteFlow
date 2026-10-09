@@ -81,3 +81,27 @@ describe('report photos', () => {
     await assertFails(upload(asRole('owner'), 'public/anything.jpg'));
   });
 });
+
+describe('project drawings', () => {
+  const file = (sid = S1, name = 'original.pdf') => paths.drawingFile(C1, sid, 'd1', name);
+  it('owners, admins and project managers upload PDFs and images', async () => {
+    for (const r of ['owner', 'admin', 'manager'] as const) {
+      await assertSucceeds(upload(asRole(r), paths.drawingFile(C1, S1, `d-${r}`, 'original.pdf'), 'application/pdf'));
+      await assertSucceeds(upload(asRole(r), paths.drawingFile(C1, S1, `d-${r}`, 'sheet.png'), 'image/png'));
+    }
+  });
+  it('the site team and finance cannot upload; other files are refused', async () => {
+    for (const r of ['supervisor', 'viewer', 'finance'] as const) await assertFails(upload(asRole(r), file(), 'application/pdf'));
+    await assertFails(upload(asRole('manager'), file(S1, 'x.html'), 'text/html'));
+    await assertFails(upload(asRole('manager'), file(S1, 'x.svg'), 'image/svg+xml'));
+    await assertFails(upload(storageAs(OTHER_OWNER), paths.drawingFile(C1, S1, 'd9', 'a.pdf'), 'application/pdf'));
+  });
+  it('everyone on the project sees them; others do not', async () => {
+    await upload(asRole('manager'), file(), 'application/pdf');
+    await assertSucceeds(getBytes(ref(asRole('supervisor'), file())));
+    await assertSucceeds(getBytes(ref(asRole('viewer'), file())));
+    await upload(asRole('manager'), file(S2), 'application/pdf');
+    await assertFails(getBytes(ref(asRole('supervisor'), file(S2))));
+    await assertFails(getBytes(ref(storageAs(OTHER_OWNER), file())));
+  });
+});
