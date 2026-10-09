@@ -2,9 +2,9 @@
   --bg: #EEF0EE; --surface: #FFFFFF; --sunk: #F5F6F5; --ink: #1D262A; --muted: #5E6A6F; --line: #D3D8D6;
   --steel: #2F4A57; --steel-ink: #FFFFFF; --tape: #F2B705; --tape-dark: #1D262A;
   --ok: #2E7D4F; --okbg: #E3F0E7; --bad: #B7352A; --badbg: #F8E4E1; --warn: #8A6400; --warnbg: #FBF0CC;
-  /* type: Geist for titles and headings, Inter for everything else (UI, tables, forms, figures) */
+  /* type: Goldman for the logo, Archivo Expanded for titles and headings, Inter for everything else (UI, tables, forms, figures) */
   --font-logo: Goldman, var(--font-display);
-  --font-display: Geist, Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: Archivo, Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   /* chart colours: status (ok / bad / neutral) and a one-hue red scale for issue priority */
   --c-ok: #2E7D4F; --c-bad: #B7352A; --c-none: #A9B3B6; --c-done: #2F4A57;
   --c-p1: #7E1F17; --c-p2: #B7352A; --c-p3: #DE7A6D; --c-p4: #F1BDB5;
@@ -23,8 +23,9 @@
 }
 *, *::before, *::after { box-sizing: inherit; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--font-ui); }
-h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; margin: 0; line-height: 1.15; }
-h1 { font-size: 32px; }
+h1, h2, h3 { font-family: var(--font-display); font-stretch: 125%; font-weight: 800; letter-spacing: -0.015em; margin: 0; line-height: 1.15; }
+h1 { font-size: 30px; }
+h3 { font-weight: 700; letter-spacing: 0; }
 p { margin: 0; }
 a { color: var(--steel); }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -123,7 +124,7 @@ tr.row:hover td { background: var(--sunk); }
 .form.card, .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 22px; }
 .form.inline { margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); }
 .form.inline h3 { font-size: 18px; margin-bottom: 12px; }
-.form h1 { font-size: 26px; margin-bottom: 16px; }
+.form h1 { font-size: 24px; margin-bottom: 16px; }
 .field { margin-bottom: 14px; border: 0; padding: 0; }
 .field label, .field legend { display: block; font-weight: 600; margin-bottom: 5px; }
 .field input:not([type="checkbox"]), .field select, .field textarea { width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 10px 12px; }
@@ -163,7 +164,7 @@ tr.row:hover td { background: var(--sunk); }
 .steps small { color: var(--muted); }
 
 @media (max-width: 640px) {
-  h1 { font-size: 26px; }
+  h1 { font-size: 23px; }
   .who span { display: none; }
   .strip div + div { padding-left: 14px; }
 }
