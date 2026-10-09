@@ -17,7 +17,8 @@ export type SendResult = { status: 'sent' | 'failed' | 'skipped'; error?: string
 
 // In the emulator (tests, local development) nothing leaves the machine
 const testMode = () => process.env.FUNCTIONS_EMULATOR === 'true';
-const secret = (s: typeof WA_TOKEN) => { try { return s.value(); } catch { return ''; } };
+// Secret Manager refuses empty values, so "none" is the placeholder for "not set up yet"
+const secret = (s: typeof WA_TOKEN) => { try { const v = s.value().trim(); return v.toLowerCase() === 'none' ? '' : v; } catch { return ''; } };
 // Provider error bodies can repeat the phone number or email: keep them out of the logs
 export const scrub = (text: string) => text.slice(0, 500).replace(/\+?\d[\d\s-]{6,}\d/g, '[number]').replace(/[^\s"'<>@]+@[^\s"'<>]+/g, '[email]');
 

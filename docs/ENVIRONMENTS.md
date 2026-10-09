@@ -50,9 +50,18 @@ Then tell me, and I'll deploy everything to dev and check it end to end. Or depl
 npm run deploy:dev
 ```
 
-## Secrets (not needed to start)
+## Secrets
 
-Without these, messages are logged as "not set up yet" instead of being sent. Set them when you have the accounts:
+The functions can't deploy until all three secrets exist. Until you have the accounts, set each one to the
+placeholder `none` (Secret Manager refuses empty values); messages are then logged as "not set up yet" instead
+of being sent:
+
+```
+"none" | Out-File -NoNewline -Encoding ascii "$env:TEMP\none.txt"
+npx firebase functions:secrets:set WHATSAPP_TOKEN --project dev --data-file "$env:TEMP\none.txt"
+```
+
+Set the real values when you have the accounts:
 
 ```
 npx firebase functions:secrets:set WHATSAPP_TOKEN --project dev
