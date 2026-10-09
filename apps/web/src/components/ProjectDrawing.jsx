@@ -37,7 +37,7 @@ export default function ProjectDrawing({ cid, site }) {
           <h2 id="dwg-h">Project drawing</h2>
           <p>{current ? sheetName(current) : 'The architect’s drawing, with progress by area and issues pinned where they are.'}</p>
         </div>
-        {manage && !adding && <button type="button" className={`btn sm ${drawings.length ? 'ghost' : 'gold'}`} onClick={() => setAdding(true)}>Upload drawing</button>}
+        {manage && !adding && <button type="button" className={`btn sm ${drawings.length ? 'ghost' : 'gold'}`} onClick={() => setAdding(true)}>{drawings.length ? 'Upload drawing' : 'Upload site plan or drawing'}</button>}
       </div>
       {adding && <DrawingUpload cid={cid} site={site} first={!drawings.length} onDone={(id) => { setAdding(false); if (id) pick(id); }} />}
       {error ? <p className="notice warn">Could not load the drawings. {friendlyError(error)}</p>
@@ -325,7 +325,7 @@ function DrawingUpload({ cid, site, first, onDone }) {
   }
   return (
     <form className="form inline" onSubmit={submit}>
-      <h3>Upload a drawing</h3>
+      <h3>Upload a site plan or drawing</h3>
       {err && <p className="err" role="alert">{err}</p>}
       <DetailsFields f={f} setF={setF} idp="du" />
       <div className="field"><label htmlFor="du-f">File</label>

@@ -3,7 +3,8 @@ import StageField from './StageField';
 import { STAGES, siteDetailsInput, siteInput, validate, currencySymbol, getLocale } from '@siteflow/shared';
 
 // Site details form, for a new site (withBudget) and for site settings
-export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, onSubmit }) {
+// extra: more fields shown before the button (e.g. the site plan on a new project)
+export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, onSubmit, extra = null }) {
   const [f, setF] = useState({ stage: STAGES[0], ...initial, ...(withBudget ? { budget: initial?.budget ?? '' } : {}) });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -56,6 +57,7 @@ export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, 
         {input('sf-cp', 'Phone', 'clientPhone', { type: 'tel' })}
         {input('sf-ce', 'Email', 'clientEmail', { type: 'email' })}
       </div>
+      {extra}
       <button type="submit" className="btn" disabled={busy}>{busy ? busyLabel : submitLabel}</button>
     </form>
   );

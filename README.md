@@ -126,6 +126,13 @@ Reports record the sender's **role and email** with their name (the rules check 
 - **Sample projects:** each has a drawing made by `scripts/demo-drawings.mjs`, which also writes the areas and pins into `packages/shared/src/demoDrawings.ts`.
   - PNG copies come from `scripts/demo-drawings-png.mjs` (needs Chrome).
 
+## Deleting a project
+- **Closing** a project (project settings, Status) keeps everything; the site team can no longer add to it.
+- **Deleting** is for the owner only (project settings, *Delete project*). They type the project's name to confirm.
+  - The `deleteProject` function removes the project, everything under it (reports, photos, issues, attendance, materials, money, programme, drawings) and its files in Storage.
+  - It takes the project off people's assigned projects and records the deletion in the activity log. Apps can't delete projects directly (the rules refuse).
+- A **site plan or drawing** can be added in the New project form; it becomes the project's overview drawing.
+
 ## Daily reports
 One report per person per site per day (document id `{date}_{uid}`), built by `reportDoc` in shared so web
 and mobile store exactly the same thing. A report has work done, workers on site, stage and progress,

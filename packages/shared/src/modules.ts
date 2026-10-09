@@ -12,7 +12,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'budget', name: 'Budget and costs', description: 'Budget against actual, expenses and overspend alerts.', tier: 'professional', ready: true },
   { key: 'changeorders', name: 'Change orders', description: 'Price extra work and get it approved before it starts.', tier: 'professional' },
   { key: 'scheduling', name: 'Scheduling', description: 'Programme per project and across the portfolio, with delay alerts.', tier: 'professional' },
-  { key: 'documents', name: 'Drawings and documents', description: 'Drawing revisions, permits and contracts. Site sees the latest only.', tier: 'professional' },
+  { key: 'documents', name: 'Drawings and documents', description: 'Drawing revisions, permits and contracts. Site sees the latest only. (Every project already has its site plan and drawings on the overview.)', tier: 'professional' },
   { key: 'rfis', name: 'RFIs', description: 'Questions to architects and consultants with due dates and answers on record.', tier: 'professional' },
   { key: 'inspections', name: 'Inspections and punch lists', description: 'Checklists on the phone, failed items flagged, defects tracked to close.', tier: 'professional' },
   { key: 'subcontractors', name: 'Subcontractors', description: 'Contract value, certified work, retention and bank payments.', tier: 'professional' },

@@ -9,3 +9,4 @@ export { loadDemo, removeDemo } from './demo';
 export { inviteInfo, acceptInvite } from './invites';
 export { requestReport, cancelReportRequest } from './requests';
 export { migrateAccount, onAccountChanged } from './members';
+export { deleteProject } from './projects';

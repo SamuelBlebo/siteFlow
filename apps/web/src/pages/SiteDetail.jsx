@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteData, useTitle } from '../lib/hooks';
 import {
   companyDoc, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
-import { team } from '../lib/account';
+import { deleteProject, team } from '../lib/account';
 import {
   ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, big, budgetInput, budgetUsedPct, cedi, isOn,
   friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
@@ -269,6 +269,48 @@ function SettingsTab({ cid, sid, site }) {
           </form>
         </>
       )}
+      {can('company.settings') && <DeleteProject cid={cid} site={site} />}
     </>
+  );
+}
+
+// Owner only: delete the project and everything recorded on it. Closing keeps the history.
+function DeleteProject({ site }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const matches = name.trim().replace(/s+/g, ' ').toLowerCase() === site.name.trim().replace(/s+/g, ' ').toLowerCase();
+  async function go(e) {
+    e.preventDefault();
+    if (!matches) return setErr('Type the project name exactly as shown.');
+    setBusy(true); setErr('');
+    try {
+      await deleteProject({ siteId: site.id, confirmName: name });
+      toast(`${site.name} was deleted.`);
+      navigate('/sites', { replace: true });
+    } catch (e2) {
+      setErr(friendlyError(e2, 'Could not delete the project. Try again.'));
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="danger-zone">
+      <h3 className="sub">Delete project</h3>
+      <p className="small">Deleting removes the project and <b>everything recorded on it</b> for good: daily reports and photos, issues, attendance and wages, materials, expenses, the programme and drawings. Nobody can undo it.
+        {site.status !== 'closed' ? <> If the work is finished, <b>close</b> the project instead (Status, above): it keeps the history and the site team can no longer add to it.</> : null}</p>
+      {!open ? <button type="button" className="btn ghost danger" onClick={() => setOpen(true)}>Delete this project…</button> : (
+        <form className="form inline" onSubmit={go}>
+          {err && <p className="err" role="alert">{err}</p>}
+          <div className="field"><label htmlFor="del-n">Type <b>{site.name}</b> to confirm</label>
+            <input id="del-n" autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div className="actions">
+            <button type="submit" className="btn danger-solid" disabled={!matches || busy}>{busy ? 'Deleting…' : 'Delete project for good'}</button>
+            <button type="button" className="btn ghost" onClick={() => { setOpen(false); setName(''); setErr(''); }} disabled={busy}>Cancel</button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }

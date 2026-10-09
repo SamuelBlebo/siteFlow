@@ -721,3 +721,10 @@ main:focus { outline: none; }
 .dwg-check { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0 14px; }
 .dwg-check input { width: 18px; height: 18px; accent-color: var(--brass); }
 @media (max-width: 640px) { .dwg-scroll { max-height: 60vh; } .dwg-tools .grow { display: none; } }
+
+/* Owner-only: deleting a project */
+.danger-zone { margin-top: 32px; padding: 18px 20px; border: 1px solid var(--bad); border-radius: 14px; background: var(--badbg); }
+.danger-zone .sub { margin-top: 0; color: var(--bad); }
+.danger-zone p { max-width: 70ch; }
+.btn.danger-solid { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.danger-solid:disabled { opacity: .5; }

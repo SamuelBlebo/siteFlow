@@ -154,6 +154,8 @@ export const reportRequestInput = z.object({
   whatsapp: z.boolean().default(true),
   email: z.boolean().default(true),
 });
+// Owner deletes a project for good: they type its name to confirm
+export const deleteProjectInput = z.object({ siteId: z.string().min(1).max(128), confirmName: z.string().trim().min(1, 'Type the project name to confirm.').max(200) });
 export const reportRequestRefInput = z.object({ siteId: z.string().min(1).max(128), id: z.string().min(1).max(128) });
 // Invitation links: the token from the link, and the password the person chooses
 const inviteToken = z.string().regex(/^[A-Za-z0-9_-]{30,100}$/, 'This invitation link is not valid.');

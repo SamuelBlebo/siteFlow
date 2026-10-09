@@ -43,3 +43,6 @@ export const cancelReportRequest = call('cancelReportRequest');
 
 // Accounts made before one login could belong to several companies are moved over on first sign-in
 export const migrateAccount = call('migrateAccount');
+
+// Owner deletes a project and everything on it (the server checks the role and the typed name)
+export const deleteProject = call('deleteProject');
