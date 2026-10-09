@@ -84,7 +84,7 @@ export default function Company() {
       <h2 className="sub">Sample projects</h2>
       <div className="card">
         <p className="muted">{hasSamples ? 'Three sample projects are in your account. Removing them deletes only the sample projects and everything in them.'
-          : 'Add three Ghanaian sample projects with six weeks of reports, photos, workers, materials and spending, to see what SiteFlow does. They are labelled Sample and never send messages.'}</p>
+          : 'Add three sample projects with six weeks of reports, photos, workers, materials and spending, to see what SiteFlow does. They are labelled Sample and never send messages.'}</p>
         <button type="button" className={`btn ${hasSamples ? 'ghost' : 'gold'} mt-sm`} onClick={demo} disabled={demoBusy}>
           {demoBusy ? (hasSamples ? 'Removing…' : 'Adding… about 20 seconds') : hasSamples ? 'Remove sample projects' : 'Add sample projects'}</button>
       </div>

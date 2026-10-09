@@ -30,7 +30,7 @@ const AUDIENCE = [
 
 // The public front page for people who are not signed in: what SiteFlow does, how it looks, and how to start
 export default function Landing() {
-  useTitle('Construction project management for Ghanaian contractors');
+  useTitle('Construction project management');
   const core = MODULES.filter((m) => m.tier === 'core');
   return (
     <div className="lp">
@@ -55,8 +55,8 @@ export default function Landing() {
         <section className="lp-hero">
           <div className="lp-in lp-hero-in">
             <div className="lp-hero-text">
-              <p className="lp-kicker">Construction project management, built in Ghana</p>
-              <h1>Run every construction project from one place.</h1>
+              <p className="lp-kicker">Construction project management for contractors</p>
+              <h1>Every project, every site, every day, on one screen.</h1>
               <p className="lp-lead">One platform for the office and the site: programmes and progress, budgets and costs, daily reports, labour,
                 materials and issues. Your site team works from the phone, even without signal, and you see every project live, with problems
                 flagged before they cost you money.</p>
@@ -75,7 +75,7 @@ export default function Landing() {
 
         <section className="lp-strip" aria-label="Highlights">
           <div className="lp-in">
-            {['Works without signal on site', 'WhatsApp and email reminders', 'Cedis, Ghana time, local trades', 'Houses, roads, civil works and fit-outs'].map((t) => <span key={t}>{t}</span>)}
+            {['Works without signal on site', 'WhatsApp and email reminders', 'Your currency, time zone and trades', 'Houses, roads, civil works and fit-outs'].map((t) => <span key={t}>{t}</span>)}
           </div>
         </section>
 
@@ -191,7 +191,7 @@ export default function Landing() {
       <footer className="lp-foot">
         <div className="lp-in">
           <Brand />
-          <span className="muted small">Construction project management for Ghanaian contractors. © {new Date().getFullYear()} Digital Prime.</span>
+          <span className="muted small">Construction project management. © {new Date().getFullYear()} Digital Prime.</span>
           <nav aria-label="Footer"><Link to="/login">Sign in</Link><Link to="/signup">Create account</Link><Link to="/photo-credits">Photo credits</Link></nav>
         </div>
       </footer>

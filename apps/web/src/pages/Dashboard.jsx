@@ -303,7 +303,7 @@ function FirstRun({ can, company }) {
         {can('company.settings') && (
           <button type="button" className="choice" onClick={demo} disabled={busy}>
             <b>{busy ? 'Adding sample projects… about 20 seconds' : 'Explore with sample data'}</b>
-            <span>Three Ghanaian projects with six weeks of reports, photos, workers, materials and spending. Labelled Sample, never send messages, removed in one click.</span>
+            <span>Three sample projects (a house, an office block and a road job) with six weeks of reports, photos, workers, materials and spending. Labelled Sample, never send messages, removed in one click.</span>
           </button>
         )}
         {can('company.settings') && <Link to="/welcome" className="choice"><b>Set up step by step</b><span>Company details, features and your team, then your first project.</span></Link>}

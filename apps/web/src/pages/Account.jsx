@@ -7,6 +7,7 @@ import { save, savedText } from '../lib/save';
 import { logOut } from '../lib/account';
 import PasswordForm from '../components/PasswordForm';
 import PageHead from '../components/PageHead';
+import ThemeSwitch from '../components/ThemeSwitch';
 
 export default function Account() {
   useTitle('Your account');
@@ -53,6 +54,12 @@ export default function Account() {
         </div>
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
       </form>
+
+      <h2 className="sub">Appearance</h2>
+      <div className="card">
+        <p className="muted mb">Light, dark (good at night and on site in the evening), or follow your device. Saved on this browser.</p>
+        <ThemeSwitch />
+      </div>
 
       <h2 className="sub">Password</h2>
       <div className="card"><PasswordForm /></div>

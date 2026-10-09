@@ -8,6 +8,7 @@ import { companyDoc, siteDoc, sitesCol } from '../lib/db';
 import { PLAN_LABELS, ROLE_LABELS, isOn, planFor, todayKey } from '@siteflow/shared';
 import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
+import ThemeSwitch from './ThemeSwitch';
 
 const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 // Red dot: an active site whose daily report hasn't come in today
@@ -62,6 +63,7 @@ export default function Layout() {
           ))}
           {!all && (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />)}
         </nav>
+        <ThemeSwitch compact />
         <div className="me">
           <NavLink to="/account" title="Your account">
             <span className="avatar">{initials(profile?.name)}</span>
