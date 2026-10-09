@@ -6,6 +6,7 @@ import { useQuery, useTitle } from '../lib/hooks';
 import { sitesCol } from '../lib/db';
 import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
+import PageHead from '../components/PageHead';
 
 const FILTERS = [['open', 'Active and on hold'], ['active', 'Active'], ['on_hold', 'On hold'], ['closed', 'Closed'], ['all', 'All']];
 
@@ -30,10 +31,12 @@ export default function Sites() {
   const count = (f) => sites.filter((s) => (f === 'open' ? s.status !== 'closed' : f === 'all' || s.status === f)).length;
 
   return (
+    <>
+    <PageHead title="Projects" sub={`${sites.length} project${sites.length === 1 ? '' : 's'} in total`}>
+      {can('sites.manage') && <Link to="/sites/new" className="btn gold">New project</Link>}
+    </PageHead>
     <section className="wrap">
-      <div className="head row-between">
-        <div><h1>Sites</h1><p className="muted">{sites.length} site{sites.length === 1 ? '' : 's'} in total</p></div>
-        {can('sites.manage') && <Link to="/sites/new" className="btn">Add a site</Link>}
+      <div>
       </div>
       {!sites.length ? (
         <div className="mt">
@@ -67,5 +70,6 @@ export default function Sites() {
         </>
       )}
     </section>
+    </>
   );
 }

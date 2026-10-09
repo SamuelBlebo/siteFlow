@@ -2,6 +2,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { logOut } from '../lib/account';
 import PasswordForm from '../components/PasswordForm';
 import { useTitle } from '../lib/hooks';
+import Brand from '../components/Brand';
 
 // First sign-in with a temporary password: choose your own before using SiteFlow
 export default function SetPassword() {
@@ -9,7 +10,7 @@ export default function SetPassword() {
   const { profile } = useAuth();
   return (
     <div className="auth">
-      <div className="brand big"><i aria-hidden="true" />SiteFlow</div>
+      <Brand big />
       <div className="card">
         <h1>Choose your password</h1>
         <p className="muted lead">

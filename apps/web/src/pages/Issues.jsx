@@ -7,6 +7,7 @@ import { companyIssuesQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import IssueList from '../components/IssueList';
 import IssueForm from '../components/IssueForm';
 import { ErrorState, Loading } from '../components/States';
+import PageHead from '../components/PageHead';
 
 // Every issue in the company, for roles that see every site. Critical ones at the top.
 export default function Issues() {
@@ -30,10 +31,12 @@ export default function Issues() {
   const critical = open.data.filter((i) => i.priority === 'critical');
 
   return (
+    <>
+    <PageHead title="Issues" sub="Problems reported on site and who is fixing them.">
+      {can('site.work') && !reporting && <button type="button" className="btn gold" onClick={() => setReporting(true)}>Report an issue</button>}
+    </PageHead>
     <section className="wrap">
-      <div className="head row-between">
-        <div><h1>Issues</h1><p className="muted">Problems reported on site and who is fixing them.</p></div>
-        {can('site.work') && !reporting && <button type="button" className="btn" onClick={() => setReporting(true)}>Report an issue</button>}
+      <div>
       </div>
       {reporting && (
         <div className="mt">
@@ -71,5 +74,6 @@ export default function Issues() {
         <IssueList issues={shown} showSite={!siteId} empty={status === 'open' ? 'No open issues.' : 'No issues match.'} />
       )}
     </section>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { usePagedQuery, useQuery, useTitle } from '../lib/hooks';
 import { companyReportsQuery, sitesCol } from '../lib/db';
 import { ReportRow } from '../components/ReportCard';
 import { Empty, ErrorState, Loading } from '../components/States';
+import PageHead from '../components/PageHead';
 
 const PAGE = 50;
 const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
@@ -31,9 +32,9 @@ export default function Reports() {
   const reset = (fn) => (e) => fn(e.target.value);
 
   return (
+    <>
+    <PageHead title="Daily reports" sub="Every report from every project. Select one to see it in full." />
     <section className="wrap">
-      <h1>Daily reports</h1>
-      <p className="muted">Every report from every site. Click one to see it in full.</p>
       <div className="filters">
         <div className="field"><label htmlFor="rf-s">Site</label>
           <select id="rf-s" value={siteId} onChange={reset(setSiteId)}>
@@ -65,5 +66,6 @@ export default function Reports() {
         </>
       )}
     </section>
+    </>
   );
 }

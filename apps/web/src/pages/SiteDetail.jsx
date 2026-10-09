@@ -3,12 +3,12 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteData, useTitle } from '../lib/hooks';
 import {
-  financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
+  companyDoc, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
 import { team } from '../lib/account';
 import {
-  ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, budgetInput, cedi,
+  ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, big, budgetInput, budgetUsedPct, cedi, isOn,
   friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
   validate, waPhone,
 } from '@siteflow/shared';
@@ -22,6 +22,7 @@ import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
+import { Ring } from '../components/Charts';
 
 export default function SiteDetail() {
   const { sid } = useParams();
@@ -31,28 +32,58 @@ export default function SiteDetail() {
   const setTab = (t) => setParams({ tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const data = useSiteData(cid, sid, { withPay: can('finance.view') });
-  useTitle(site?.name || 'Site');
+  const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
+  const mod = (k) => isOn(company, k);
+  const money = can('finance.view') && mod('budget');
+  const { data: fin } = useDoc(() => money && cid && financeDoc(cid, sid), [cid, sid, money]);
+  useTitle(site?.name || 'Project');
 
   if (loading) return <Loading />;
   if (error) return <section className="wrap"><ErrorState error={error} what="this site" /></section>;
-  if (!site) return <p className="pad">This site doesn't exist or you don't have access. <Link to="/sites">Back to sites</Link></p>;
+  if (!site) return <p className="pad">This project doesn't exist or you don't have access. <Link to="/sites">Back to projects</Link></p>;
 
   const open = isSiteOpen(site);
   const work = can('site.work') && open;
-  const tabs = [['overview', 'Overview'], ['progress', 'Progress'], ['reports', 'Daily reports'], ['issues', 'Issues'], ['materials', 'Materials'], ['labour', 'Labour']];
-  if (can('finance.view')) tabs.push(['budget', 'Budget']);
+  const tabs = [['overview', 'Overview'], ['reports', 'Daily reports'], ['progress', 'Progress'], ['issues', 'Issues']];
+  if (mod('materials')) tabs.push(['materials', 'Materials']);
+  if (mod('labour')) tabs.push(['labour', 'Labour']);
+  if (money) tabs.push(['budget', 'Budget']);
   tabs.push(['team', 'Team']);
   if (can('sites.manage')) tabs.push(['settings', 'Settings']);
 
   return (
+    <>
+    <div className="dtop">
+      <p className="crumb" style={{ marginRight: 'auto' }}><Link to="/">Dashboard</Link> / <Link to="/sites">Projects</Link> / {site.name}</p>
+      {work && <Link to={`/work/${sid}`} className="btn ghost">Open site workspace</Link>}
+    </div>
     <section className="wrap">
-      <Link to="/sites" className="btn sm ghost back">All sites</Link>
-      <div className="row-between">
-        <h1>{site.name} <StatusPill status={site.status} /></h1>
-        {work && <Link to={`/work/${sid}`} className="btn ghost">Open site workspace</Link>}
+      <div className="panel">
+        <div className="sitehead">
+          <Ring pct={site.progress || 0} size={84} />
+          <div>
+            <h1>{site.name} {site.status !== 'active' && <StatusPill status={site.status} />}</h1>
+            <div className="meta"><span>{site.location}</span><span>Foreman: {site.foremanName || '–'}</span><span>Stage: {site.stage}</span></div>
+          </div>
+          {site.lastReportDate === todayKey() ? <span className="pill ok">Report sent {site.lastReportTime}</span>
+            : site.status === 'active' ? <span className="pill bad">Report missing</span> : null}
+        </div>
+        <dl className="statrow">
+          {money && fin ? (
+            <>
+              <div><dt>Budget</dt><dd>{fin.budget ? big(fin.budget) : 'Not set'}</dd></div>
+              <div><dt>Spent</dt><dd className={budgetUsedPct(fin) >= 90 ? 'badt' : ''}>{big(fin.spent || 0)}</dd></div>
+              <div><dt>Remaining</dt><dd>{fin.budget ? big(fin.budget - (fin.spent || 0)) : '–'}</dd></div>
+            </>
+          ) : (
+            <>
+              <div><dt>Stage</dt><dd>{site.stage}</dd></div>
+              <div><dt>Progress</dt><dd>{site.progress || 0}%</dd></div>
+            </>
+          )}
+          {mod('labour') && <div><dt>On site today</dt><dd>{data.presentCount}</dd></div>}
+        </dl>
       </div>
-      <div className="meta"><span>{site.location}</span><span>Foreman: {site.foremanName || '–'}</span><span>Stage: {site.stage}</span></div>
-      <div className="prog"><div className="meter"><span style={{ width: `${site.progress || 0}%` }} /></div><b>{site.progress || 0}% complete</b></div>
       {!open && (
         <p className="notice warn">
           This site is closed. Its records are kept and can be viewed, but no new reports, attendance or materials can be added.
@@ -67,11 +98,12 @@ export default function SiteDetail() {
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
-      {tab === 'budget' && can('finance.view') && <BudgetPanel cid={cid} site={site} data={data} />}
+      {tab === 'budget' && money && <BudgetPanel cid={cid} site={site} data={data} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
       {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} />}
       </Tabs>
     </section>
+    </>
   );
 }
 

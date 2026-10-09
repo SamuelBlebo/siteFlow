@@ -14,7 +14,7 @@ import { colors } from '../theme';
 
 export default function TodayScreen({ navigation }) {
   const { profile, user } = useAuth();
-  const { cid, sid, site, loading, error, materials, usage, presentCount, canWork, milestones } = useSite();
+  const { cid, sid, site, loading, error, materials, usage, presentCount, canWork, milestones, mod } = useSite();
   const outbox = useOutbox();
   if (loading) return <Screen><Loading what="site" /></Screen>;
   if (!site) return <Screen>{error ? <ErrorView error={error} what="this site" /> : <Empty>This site is not available. Ask your manager if you should have access.</Empty>}</Screen>;
@@ -27,7 +27,7 @@ export default function TodayScreen({ navigation }) {
     { tab: 'Workers', done: presentCount > 0, title: 'Mark attendance', note: presentCount ? `${presentCount} workers present` : 'Tick who came to site today' },
     { tab: 'Materials', done: used, title: 'Log materials used', note: used ? 'Usage logged today' : 'Record what was used today' },
     { tab: 'Report', done: sent, title: 'Send daily report', note: queued && queued.status !== 'sent' ? (queued.status === 'failed' ? 'Not sent. Open to try again' : 'Saved on phone, sends when there is signal') : sent ? `Sent at ${site.lastReportTime || queued?.time}` : 'Progress, photos and issues' },
-  ].filter((st) => work || st.tab !== 'Report');
+  ].filter((st) => (work || st.tab !== 'Report') && (st.tab !== 'Workers' || mod('labour')) && (st.tab !== 'Materials' || mod('materials')));
 
   return (
     <Screen>
@@ -52,6 +52,7 @@ export default function TodayScreen({ navigation }) {
       <Progress cid={cid} sid={sid} site={site} milestones={milestones} canWork={work} />
       <H2>Site information</H2>
       <SiteInfo site={site} />
+      {mod('materials') && <>
       <H2>Stock on site</H2>
       <Card>
         {!materials.length ? <Text style={{ padding: 14, color: colors.muted }}>No materials set up yet.</Text> :
@@ -63,6 +64,7 @@ export default function TodayScreen({ navigation }) {
             </View>
           ))}
       </Card>
+      </>}
     </Screen>
   );
 }

@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/auth/AuthProvider';
-import { SiteProvider } from './src/site/SiteContext';
+import { SiteProvider, useSite } from './src/site/SiteContext';
 import { startOutbox } from './src/lib/reportOutbox';
 import { startSync } from './src/lib/sync';
 import { colors } from './src/theme';
@@ -28,13 +28,19 @@ const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 
 function SiteTabs({ route }) {
+  return <SiteProvider sid={route.params.sid}><SiteTabBar /></SiteProvider>;
+}
+
+// Materials and Workers follow the company's modules
+function SiteTabBar() {
   const { can } = useAuth();
+  const { mod } = useSite();
   return (
-    <SiteProvider sid={route.params.sid}>
       <Tabs.Navigator
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: colors.ink,
+          tabBarActiveBackgroundColor: colors.brassSoft,
           tabBarInactiveTintColor: colors.muted,
           tabBarIcon: () => null,
           tabBarLabelStyle: { fontSize: 15, fontWeight: '600' },
@@ -44,10 +50,9 @@ function SiteTabs({ route }) {
         <Tabs.Screen name="Today" component={TodayScreen} />
         {can('site.work') && <Tabs.Screen name="Report" component={ReportScreen} />}
         <Tabs.Screen name="Issues" component={IssuesScreen} />
-        <Tabs.Screen name="Materials" component={MaterialsScreen} />
-        <Tabs.Screen name="Workers" component={WorkersScreen} />
+        {mod('materials') && <Tabs.Screen name="Materials" component={MaterialsScreen} />}
+        {mod('labour') && <Tabs.Screen name="Workers" component={WorkersScreen} />}
       </Tabs.Navigator>
-    </SiteProvider>
   );
 }
 
@@ -57,7 +62,7 @@ function Root() {
     return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.steel} /></View>;
   }
   return (
-    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.steel }, headerTintColor: '#fff' }}>
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.navy }, headerTintColor: colors.onNavy }}>
       {!user ? (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       ) : !active ? (

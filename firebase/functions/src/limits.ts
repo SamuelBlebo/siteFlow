@@ -9,6 +9,7 @@ export const LIMITS = {
   invite: { max: 30, windowMs: 60 * 60 * 1000 },           // new team members per hour
   resetPassword: { max: 20, windowMs: 60 * 60 * 1000 },    // temporary passwords per hour
   teamChange: { max: 200, windowMs: 60 * 60 * 1000 },      // role, site, on/off and removal changes per hour
+  settings: { max: 100, windowMs: 60 * 60 * 1000 },        // module switches per hour
 } as const;
 export type LimitKey = keyof typeof LIMITS;
 

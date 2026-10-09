@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyModuleSwitch,
   budgetRemaining, budgetUsedPct, dailyWages, materialStatus, overspendRisk, plannedPct, isBehind, presentCount,
   siteAlerts, stockDelta, todayKey, usageByMaterial, validate, wageSheet, wageSheetCsv, inviteInput, reportInput,
   siteInput, companySetupInput, workerInput,
@@ -119,5 +120,15 @@ describe('validation', () => {
   it('company setup and worker', () => {
     expect(validate(companySetupInput, { companyName: ' Mensah Builders ', name: 'Ama' })).toMatchObject({ ok: true, data: { companyName: 'Mensah Builders' } });
     expect(validate(workerInput, { name: 'Y', trade: 'Mason' }).ok).toBe(false);
+  });
+});
+
+describe('module switches', () => {
+  it('switches ready modules and refuses core or unbuilt ones', () => {
+    expect(applyModuleSwitch({ materials: true }, 'labour', true)).toEqual({ materials: true, labour: true });
+    expect(applyModuleSwitch({ materials: true }, 'materials', false)).toEqual({ materials: false });
+    expect(applyModuleSwitch({}, 'reports', false)).toBeNull();
+    expect(applyModuleSwitch({}, 'rfis', true)).toBeNull();
+    expect(applyModuleSwitch({}, 'nonsense', true)).toBeNull();
   });
 });

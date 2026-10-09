@@ -5,6 +5,7 @@ import { siteDoc, sitesCol } from '../lib/db';
 import { todayKey } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
+import PageHead from '../components/PageHead';
 
 export default function MySites() {
   useTitle('Your sites');
@@ -15,9 +16,9 @@ export default function MySites() {
   const ids = all ? sites.filter((s) => s.status !== 'closed').map((s) => s.id) : profile?.siteIds || [];
 
   return (
+    <>
+    <PageHead title="Site work" sub="Pick a project to mark attendance, log materials or send today's report." />
     <section className="wrap narrow">
-      <h1>Site work</h1>
-      <p className="muted">Pick a site to mark attendance, log materials or send today's report.</p>
       <div className="mt">
         {all && loading ? <Loading what="sites" /> : error ? <ErrorState error={error} what="your sites" /> : !ids.length ? (
           <Empty title="No sites yet.">{all ? 'Sites appear here once a manager adds them.' : "You haven't been added to a site yet. Ask your manager to add you."}</Empty>
@@ -26,6 +27,7 @@ export default function MySites() {
         )}
       </div>
     </section>
+    </>
   );
 }
 

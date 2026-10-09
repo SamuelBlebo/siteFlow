@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { MODULES, companySettingsInput, isOn, planFor, validate } from '@siteflow/shared';
+import { Link } from 'react-router-dom';
+import { MODULES, PLAN_LABELS, companySettingsInput, isOn, planFor, validate } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useTitle } from '../lib/hooks';
 import { companyDoc, teamQuery, updateCompany } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { ErrorState, Loading } from '../components/States';
-import { NotificationSettings } from '../components/Notifications';
-
-const PLAN_LABEL = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+import PageHead from '../components/PageHead';
 
 // Company settings: owner only (the rules allow nobody else to change them)
 export default function Company() {
@@ -41,10 +40,12 @@ export default function Company() {
   const active = members.filter((m) => m.active !== false).length;
   const on = MODULES.filter((m) => isOn(company, m.key));
   return (
+    <>
+    <PageHead title="Company" sub="Your company's details, plan and settings" />
     <section className="wrap narrow">
-      <h1>Company</h1>
-      <dl className="cols mt">
-        <div><dt>Plan</dt><dd>{PLAN_LABEL[company.plan] || PLAN_LABEL[planFor(company.modules || {})]}</dd></div>
+      <dl className="cols">
+        <div><dt>Plan</dt><dd>{PLAN_LABELS[company.plan] || PLAN_LABELS[planFor(company.modules || {})]}</dd></div>
+        <div><dt>Modules on</dt><dd>{on.length}</dd></div>
         <div><dt>Team members</dt><dd>{active}</dd></div>
       </dl>
 
@@ -59,14 +60,13 @@ export default function Company() {
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save company details'}</button>
       </form>
 
-      <h2 className="sub">Notifications</h2>
-      <NotificationSettings cid={cid} company={company} />
-
-      <h2 className="sub">Features on your plan</h2>
+      <h2 className="sub">Settings</h2>
       <ul className="list">
-        {on.map((m) => <li key={m.key}><span className="it"><span className="grow"><b>{m.name}</b><small>{m.description}</small></span></span></li>)}
+        <li><Link className="it" to="/modules"><span className="grow"><b>Modules</b><small>Switch features on or off. {on.length} on now.</small></span><span aria-hidden="true">›</span></Link></li>
+        <li><Link className="it" to="/reminders"><span className="grow"><b>Reminders and alerts</b><small>Which messages go out by WhatsApp and email, and the message log.</small></span><span aria-hidden="true">›</span></Link></li>
+        <li><Link className="it" to="/team"><span className="grow"><b>Team</b><small>People, roles and the projects they work on.</small></span><span aria-hidden="true">›</span></Link></li>
       </ul>
-      <p className="hint mt-sm">To change your plan or features, contact SiteFlow support.</p>
     </section>
+    </>
   );
 }

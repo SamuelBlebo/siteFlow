@@ -5,6 +5,7 @@ import { companySetupInput, friendlyError, validate } from '@siteflow/shared';
 import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
+import Brand from '../components/Brand';
 
 // Shown when someone is signed in but has no profile: a sign-up that didn't finish,
 // or a login that was never added to a company.
@@ -33,7 +34,7 @@ export default function FinishSetup() {
 
   return (
     <div className="auth">
-      <div className="brand big"><i aria-hidden="true" />SiteFlow</div>
+      <Brand big />
       <form className="form card" onSubmit={submit}>
         <h1>Finish setting up</h1>
         <p className="muted">Signed in as {user?.email}. If your company already uses SiteFlow, ask your manager to add you instead, then sign out.</p>

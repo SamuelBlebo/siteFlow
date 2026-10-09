@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getDocs, onSnapshot, query, startAfter } from 'firebase/firestore';
-import { attendanceDoc, financeDoc, milestonesQuery, sub, todayLogsQuery } from './db';
+import { attendanceDoc, expensesQuery, financeDoc, milestonesQuery, sub, todayLogsQuery } from './db';
 import { presentCount, usageByMaterial } from '@siteflow/shared';
 
 const toList = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -93,6 +93,7 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
   const [present, setPresent] = useState({});
   const [finance, setFinance] = useState({});
   const [milestones, setMilestones] = useState({});
+  const [crew, setCrew] = useState({});
   const key = siteIds.join(',');
   useEffect(() => {
     if (!cid || !siteIds.length) return;
@@ -103,11 +104,25 @@ export function useSiteSignals(cid, siteIds, { withFinance = false } = {}) {
       unsubs.push(onSnapshot(todayLogsQuery(cid, sid), (s) => setUsage((p) => ({ ...p, [sid]: usageByMaterial(toList(s)) })), fail('usage')));
       unsubs.push(onSnapshot(attendanceDoc(cid, sid), (s) => setPresent((p) => ({ ...p, [sid]: presentCount(s.data()?.marks) })), fail('attendance')));
       unsubs.push(onSnapshot(milestonesQuery(cid, sid), (s) => setMilestones((p) => ({ ...p, [sid]: toList(s) })), fail('milestones')));
+      unsubs.push(onSnapshot(sub(cid, sid, 'workers'), (s) => setCrew((p) => ({ ...p, [sid]: toList(s).filter((w) => w.active !== false).length })), fail('workers')));
       if (withFinance) unsubs.push(onSnapshot(financeDoc(cid, sid), (s) => setFinance((p) => ({ ...p, [sid]: s.data() || null })), fail('finance')));
     });
     return () => unsubs.forEach((u) => u());
   }, [cid, key, withFinance]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { materials, usage, present, finance, milestones };
+  return { materials, usage, present, finance, milestones, crew };
+}
+
+// Expenses since a date across several sites (finance roles only; the rules refuse others)
+export function useExpenses(cid, siteIds, from, enabled) {
+  const [bySite, setBySite] = useState({});
+  const key = siteIds.join(',');
+  useEffect(() => {
+    if (!enabled || !cid || !siteIds.length) { setBySite({}); return; }
+    const unsubs = siteIds.map((sid) => onSnapshot(expensesQuery(cid, sid, from),
+      (s) => setBySite((p) => ({ ...p, [sid]: toList(s) })), (e) => console.error('Dashboard: could not load expenses', e)));
+    return () => unsubs.forEach((u) => u());
+  }, [cid, key, from, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  return useMemo(() => Object.values(bySite).flat(), [bySite]);
 }
 
 const byName = (a, b) => (a.name || '').localeCompare(b.name || '');

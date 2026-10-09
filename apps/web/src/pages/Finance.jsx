@@ -7,6 +7,7 @@ import { useQuery, useTitle } from '../lib/hooks';
 import { financeDoc, sitesCol } from '../lib/db';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
+import PageHead from '../components/PageHead';
 
 function download(name, text) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
@@ -45,10 +46,12 @@ export default function Finance() {
   ].map((r) => r.map(esc).join(',')).join('\n'));
 
   return (
+    <>
+    <PageHead title="Finance" sub="Budgets and spending across your projects. Totals update automatically from each project's expenses.">
+      <button type="button" className="btn ghost" onClick={csv}>Download (CSV)</button>
+    </PageHead>
     <section className="wrap">
-      <div className="head row-between">
-        <div><h1>Finance</h1><p className="muted">Budgets and spending across your sites. Totals update automatically from each site's expenses.</p></div>
-        <button type="button" className="btn ghost" onClick={csv}>Download (CSV)</button>
+      <div>
       </div>
       <dl className="strip">
         <div><dt>Total budget</dt><dd>{cedi(t.budget)}</dd></div>
@@ -89,5 +92,6 @@ export default function Finance() {
         </>
       )}
     </section>
+    </>
   );
 }

@@ -1,8 +1,9 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useSiteData, useTitle } from '../lib/hooks';
-import { siteDoc } from '../lib/db';
-import { isSiteOpen, longToday, todayKey } from '@siteflow/shared';
+import { companyDoc, siteDoc } from '../lib/db';
+import { isOn, isSiteOpen, longToday, todayKey } from '@siteflow/shared';
+import PageHead from '../components/PageHead';
 import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
@@ -22,6 +23,9 @@ export default function SiteWorkspace() {
   const setTab = (t) => setParams(t === 'today' ? {} : { tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const d = useSiteData(cid, sid, { withPay: can('finance.view') });
+  const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
+  // Materials and labour follow the company's modules (switching one off hides it, the data is kept)
+  const mod = (k) => isOn(company, k);
   useTitle(site ? `${site.name}: site work` : 'Site work');
 
   if (loading) return <Loading />;
@@ -33,19 +37,19 @@ export default function SiteWorkspace() {
   const usedToday = Object.keys(d.usage).length > 0;
   const sent = site.lastReportDate === todayKey();
   const steps = [
-    { key: 'workers', done: d.presentCount > 0, title: 'Mark attendance', note: d.presentCount ? `${d.presentCount} workers present` : 'Tick who came to site today' },
-    { key: 'materials', done: usedToday, title: 'Log materials used', note: usedToday ? 'Usage logged today' : 'Record what was used today' },
+    mod('labour') && { key: 'workers', done: d.presentCount > 0, title: 'Mark attendance', note: d.presentCount ? `${d.presentCount} workers present` : 'Tick who came to site today' },
+    mod('materials') && { key: 'materials', done: usedToday, title: 'Log materials used', note: usedToday ? 'Usage logged today' : 'Record what was used today' },
     { key: 'report', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
-  ];
-  const tabs = work
-    ? [['today', 'Today'], ['report', 'Report'], ['progress', 'Progress'], ['issues', 'Issues'], ['materials', 'Materials'], ['workers', 'Workers'], ['history', 'History']]
-    : [['today', 'Today'], ['progress', 'Progress'], ['issues', 'Issues'], ['materials', 'Materials'], ['workers', 'Workers'], ['history', 'History']];
+  ].filter(Boolean);
+  const tabs = [['today', 'Today'], work && ['report', 'Report'], ['progress', 'Progress'], ['issues', 'Issues'],
+    mod('materials') && ['materials', 'Materials'], mod('labour') && ['workers', 'Workers'], ['history', 'History']].filter(Boolean);
 
   return (
+    <>
+    <PageHead title={site.name} sub={`${site.location}, stage: ${site.stage}. ${longToday()}, signed in as ${profile.name}.`}>
+      <Link to="/work" className="btn ghost sm">All my sites</Link>
+    </PageHead>
     <section className="wrap narrow">
-      <Link to="/work" className="btn sm ghost back">Your sites</Link>
-      <h1>{site.name}</h1>
-      <p className="muted">{longToday()}. Signed in as {profile.name}.</p>
       {!work && <p className="notice warn">{isSiteOpen(site) ? 'You can view this site but not change it.' : 'This site is closed. You can view its records but not add new ones.'}</p>}
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site work">
       {d.error && <ErrorState error={d.error} what="some site data" />}
@@ -59,17 +63,17 @@ export default function SiteWorkspace() {
               </li>
             ))}
           </ol>
-          <h3 className="sub">Stock on site</h3>
-          <MaterialsTable materials={d.materials} usage={d.usage} />
+          {mod('materials') && <><h3 className="sub">Stock on site</h3><MaterialsTable materials={d.materials} usage={d.usage} /></>}
         </>
       )}
       {tab === 'report' && work && <ReportForm cid={cid} site={site} presentCount={d.presentCount} logs={d.logs} />}
       {tab === 'history' && <ReportHistory cid={cid} site={site} />}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
-      {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={d} canWork={work} />}
-      {tab === 'workers' && <LabourPanel cid={cid} site={site} data={d} canWork={work} />}
+      {tab === 'materials' && mod('materials') && <MaterialsPanel cid={cid} site={site} data={d} canWork={work} />}
+      {tab === 'workers' && mod('labour') && <LabourPanel cid={cid} site={site} data={d} canWork={work} />}
       </Tabs>
     </section>
+    </>
   );
 }

@@ -1,14 +1,15 @@
 import type { Company, ModuleKey, Plan } from './types';
 
-export interface ModuleDef { key: ModuleKey; name: string; description: string; tier: 'core' | Plan }
+// ready: built and usable. Modules that are not ready show as "Coming soon" and cannot be switched on.
+export interface ModuleDef { key: ModuleKey; name: string; description: string; tier: 'core' | Plan; ready?: boolean }
 
 export const MODULES: ModuleDef[] = [
-  { key: 'reports', name: 'Daily reports and photos', description: 'Daily site reports with photos, issues and headcount.', tier: 'core' },
+  { key: 'reports', name: 'Daily reports and photos', description: 'Daily site reports with photos, issues and headcount.', tier: 'core', ready: true },
   { key: 'ai', name: 'SiteFlow AI', description: 'Voice-note reports in English or Twi, a daily summary and answers about your projects.', tier: 'professional' },
-  { key: 'materials', name: 'Materials and stock', description: 'Deliveries, daily usage, stock levels and unusual-use alerts.', tier: 'starter' },
-  { key: 'labour', name: 'Labour and wage sheets', description: 'Attendance, daily wages and bank-ready wage sheets.', tier: 'starter' },
+  { key: 'materials', name: 'Materials and stock', description: 'Deliveries, daily usage, stock levels and unusual-use alerts.', tier: 'starter', ready: true },
+  { key: 'labour', name: 'Labour and wage sheets', description: 'Attendance, daily wages and bank-ready wage sheets.', tier: 'starter', ready: true },
   { key: 'safety', name: 'Health and safety', description: 'Incident reports, toolbox talks and days without injury.', tier: 'starter' },
-  { key: 'budget', name: 'Budget and costs', description: 'Budget against actual, expenses and overspend alerts.', tier: 'professional' },
+  { key: 'budget', name: 'Budget and costs', description: 'Budget against actual, expenses and overspend alerts.', tier: 'professional', ready: true },
   { key: 'changeorders', name: 'Change orders', description: 'Price extra work and get it approved before it starts.', tier: 'professional' },
   { key: 'scheduling', name: 'Scheduling', description: 'Programme per project and across the portfolio, with delay alerts.', tier: 'professional' },
   { key: 'documents', name: 'Drawings and documents', description: 'Drawing revisions, permits and contracts. Site sees the latest only.', tier: 'professional' },
@@ -32,4 +33,15 @@ export function planFor(modules: Partial<Record<ModuleKey, boolean>>): Plan {
   if (tiers.includes('enterprise')) return 'enterprise';
   if (tiers.includes('professional')) return 'professional';
   return 'starter';
+}
+
+export const TIER_LABELS: Record<ModuleDef['tier'], string> = { core: 'Core', starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+export const PLAN_LABELS: Record<Plan, string> = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+
+// A module switch from the Modules page. Only ready, non-core modules can change; the result keeps
+// every other module as it was (switching one off keeps its data).
+export function applyModuleSwitch(current: Partial<Record<ModuleKey, boolean>>, key: string, on: boolean): Partial<Record<ModuleKey, boolean>> | null {
+  const m = MODULES.find((x) => x.key === key);
+  if (!m || m.tier === 'core' || !m.ready) return null;
+  return { ...current, [m.key]: on };
 }

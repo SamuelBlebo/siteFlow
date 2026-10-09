@@ -9,7 +9,7 @@ import { checkLimit } from './limits';
 // (docs/OPERATIONS.md). The mobile app doesn't call these functions.
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 import {
-  DEFAULT_MODULES, ROLE_LABELS, assignableRoles, canChangeMember, companySetupInput, inviteInput, isRole, isSiteScoped,
+  DEFAULT_MODULES, MODULES, ROLE_LABELS, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isRole, isSiteScoped,
   can, memberActiveInput, memberRefInput, memberUpdateInput, paths, siteAssignInput, validate,
   type Role, type UserProfile,
 } from '@siteflow/shared';
@@ -209,4 +209,31 @@ export const assignToSite = onCall(callOpts, async (req) => {
   await db.doc(paths.user(uid)).update({ siteIds: assigned ? FieldValue.arrayUnion(sid) : FieldValue.arrayRemove(sid), updatedAt: FieldValue.serverTimestamp() });
   await logActivity(db, { ...me, id: meSnap.id }, `${assigned ? 'added' : 'removed'} ${m.name} ${assigned ? 'to' : 'from'} ${site.data()?.name}`);
   return { assigned };
+});
+
+// Owner switches a module on or off from the Modules page. Plan and modules stay server-written
+// (the rules refuse them from apps); switching a module off keeps its data.
+export const setModule = onCall(callOpts, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const { key, on } = parse(moduleSwitchInput, req.data);
+  const db = getFirestore();
+  const snap = await db.doc(paths.user(req.auth.uid)).get();
+  const me = snap.data() as UserProfile | undefined;
+  if (!me || me.active === false || !isRole(me.role) || !can(me.role, 'company.settings')) {
+    throw new HttpsError('permission-denied', 'Only the owner can change modules.');
+  }
+  await checkLimit(req.auth.uid, 'settings');
+  const ref = db.doc(paths.company(me.companyId));
+  const result = await db.runTransaction(async (t) => {
+    const company = (await t.get(ref)).data();
+    if (!company) throw new HttpsError('not-found', 'Company not found.');
+    const modules = applyModuleSwitch(company.modules || {}, key, on);
+    if (!modules) throw new HttpsError('failed-precondition', 'That module cannot be switched yet.');
+    const plan = planFor(modules);
+    t.update(ref, { modules, plan, updatedAt: FieldValue.serverTimestamp() });
+    return { modules, plan };
+  });
+  const name = MODULES.find((m) => m.key === key)?.name ?? key;
+  await logActivity(db, { ...me, id: snap.id }, `switched ${on ? 'on' : 'off'} ${name}`);
+  return result;
 });

@@ -76,3 +76,40 @@ export function activityFeed(reports: (Pick<Report, 'siteId' | 'siteName' | 'cre
     ...issues.map((i) => ({ kind: 'issue' as const, siteId: i.siteId, siteName: i.siteName, id: i.id, title: `${i.priority === 'critical' ? 'Critical: ' : ''}${i.title}`, who: i.createdByName, at: t(i.createdAt, i.date) })),
   ].sort((a, b) => b.at - a.at).slice(0, n);
 }
+
+// Spending per week (Monday to Sunday), oldest first, for the last n weeks including this one
+const DAY_MS = 86400000;
+const keyOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export function weeklySpend(expenses: { date: string; amount: number }[], n = 8, now: Date = new Date()) {
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  const weeks = Array.from({ length: n }, (_, i) => {
+    const start = new Date(monday.getTime() - (n - 1 - i) * 7 * DAY_MS);
+    const end = new Date(start.getTime() + 6 * DAY_MS);
+    return { start: keyOf(start), end: keyOf(end), label: start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), total: 0 };
+  });
+  for (const e of expenses) {
+    const w = weeks.find((x) => e.date >= x.start && e.date <= x.end);
+    if (w) w.total += Number(e.amount) || 0;
+  }
+  return weeks;
+}
+
+// The planned spend per week across sites: each site's budget spread evenly over its planned dates.
+// Sites without both dates (or a budget) are left out; null when no site has a plan.
+export function plannedWeeklySpend(sites: { budget?: number; planStart?: string | null; planEnd?: string | null }[]) {
+  let total = 0, any = false;
+  for (const s of sites) {
+    if (!s.budget || !s.planStart || !s.planEnd) continue;
+    const weeks = (Date.parse(s.planEnd) - Date.parse(s.planStart)) / (7 * DAY_MS);
+    if (!(weeks > 0)) continue;
+    total += s.budget / weeks; any = true;
+  }
+  return any ? Math.round(total) : null;
+}
+
+// Spending by category across sites, biggest first (from each site's finance summary)
+export function costBreakdown(finances: ({ byCategory?: Record<string, number> } | null | undefined)[]) {
+  const by: Record<string, number> = {};
+  for (const f of finances) for (const [k, v] of Object.entries(f?.byCategory || {})) by[k] = (by[k] || 0) + (Number(v) || 0);
+  return Object.entries(by).filter(([, v]) => v > 0).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
+}

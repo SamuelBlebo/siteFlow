@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { friendlyError } from '@siteflow/shared';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
+import Brand from '../components/Brand';
 
 export default function Login() {
   useTitle('Sign in');
@@ -31,7 +32,7 @@ export default function Login() {
 
   return (
     <div className="auth">
-      <div className="brand big"><i aria-hidden="true" />SiteFlow</div>
+      <Brand big />
       <form className="form card" onSubmit={submit}>
         <h1>Sign in</h1>
         {msg && <p className="err" role="alert">{msg}</p>}

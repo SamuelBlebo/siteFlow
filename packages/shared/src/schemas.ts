@@ -115,6 +115,9 @@ export const companySetupInput = z.object({
 
 // Account and organisation
 export const profileInput = z.object({ name: personName, phone });
+// Switch one module on or off (Modules page, owner only, applied by a Cloud Function)
+export const moduleSwitchInput = z.object({ key: z.string().min(1).max(40), on: z.boolean() });
+
 export const companySettingsInput = z.object({
   name: z.string().trim().min(2, 'Enter the company name.').max(100),
   phone,

@@ -7,6 +7,7 @@ import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
+import Brand from '../components/Brand';
 
 export default function Signup() {
   useTitle('Create your account');
@@ -40,7 +41,7 @@ export default function Signup() {
 
   return (
     <div className="auth">
-      <div className="brand big"><i aria-hidden="true" />SiteFlow</div>
+      <Brand big />
       <form className="form card" onSubmit={submit}>
         <h1>Create your company account</h1>
         {err && <p className="err" role="alert">{err}</p>}

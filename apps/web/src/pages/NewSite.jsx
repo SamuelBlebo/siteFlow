@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { createSite } from '../lib/db';
 import { save, toast } from '../lib/save';
@@ -18,10 +18,13 @@ export default function NewSite() {
   }
 
   return (
+    <>
+    <div className="dtop"><p className="crumb"><Link to="/">Dashboard</Link> / <Link to="/sites">Projects</Link> / New project</p></div>
     <section className="wrap narrow">
-      <h1>Add a site</h1>
-      <p className="muted lead">One site per project. You can change these details later in the site's settings.</p>
-      <SiteForm withBudget initial={{}} submitLabel="Create site" busyLabel="Creating…" onSubmit={create} />
+      <h1>New project</h1>
+      <p className="muted lead">You can change these details later in the project's settings.</p>
+      <SiteForm withBudget initial={{}} submitLabel="Create project" busyLabel="Creating…" onSubmit={create} />
     </section>
+    </>
   );
 }

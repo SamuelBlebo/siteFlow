@@ -16,7 +16,7 @@ export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email)
 export const logOut = () => signOut(auth);
 
 // Team management goes through Cloud Functions: they check the role rules and log every change
-const call = (name) => (data) => httpsCallable(functions, name)(data).then((r) => r.data);
+export const call = (name) => (data) => httpsCallable(functions, name)(data).then((r) => r.data);
 export const team = {
   invite: call('inviteMember'),
   update: call('updateMember'),
@@ -25,3 +25,6 @@ export const team = {
   remove: call('removeMember'),
   assignToSite: call('assignToSite'),
 };
+
+// Owner switches a module on or off (the server checks the role and recalculates the plan)
+export const setModule = call('setModule');

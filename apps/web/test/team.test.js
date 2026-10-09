@@ -1,11 +1,11 @@
 // Accounts, company settings and team management against the emulators
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getDoc, getDocs, terminate } from 'firebase/firestore';
+import { getDoc, getDocs, terminate, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../src/firebase';
 import { activityQuery, companyDoc, createSite, teamQuery, updateCompany, updateMyProfile, userDoc } from '../src/lib/db';
-import { changePassword, team } from '../src/lib/account';
+import { changePassword, setModule, team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
 
 globalThis.navigator ??= {};
@@ -89,6 +89,24 @@ describe('admin limits', () => {
     await as('owner');
     await save(updateCompany(cid, { name: 'Asante Construction Ltd', phone: '0302123456', location: 'Accra' }));
     expect((await getDoc(companyDoc(cid))).data()).toMatchObject({ name: 'Asante Construction Ltd', location: 'Accra' });
+  });
+
+  it('only the owner switches modules, only built ones, and the plan follows', async () => {
+    await as('admin');
+    expect(await code(setModule({ key: 'labour', on: false }))).toBe('functions/permission-denied');
+    await as('owner');
+    expect(await code(setModule({ key: 'rfis', on: true }))).toBe('functions/failed-precondition'); // not built yet
+    expect(await code(setModule({ key: 'reports', on: false }))).toBe('functions/failed-precondition'); // core
+    await setModule({ key: 'labour', on: false });
+    let c = (await getDoc(companyDoc(cid))).data();
+    expect(c.modules.labour).toBe(false);
+    expect(c.modules.materials).toBe(true); // others untouched
+    await setModule({ key: 'labour', on: true });
+    await setModule({ key: 'budget', on: true });
+    c = (await getDoc(companyDoc(cid))).data();
+    expect(c).toMatchObject({ plan: 'professional', modules: { labour: true, budget: true } });
+    // Apps still cannot write modules or plan directly
+    expect(await code(updateDoc(companyDoc(cid), { modules: { ...c.modules, rfis: true } }))).toBe('permission-denied');
   });
 });
 

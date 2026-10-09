@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { attendanceRef, exists, milestonesQuery, siteRef, sub, toList, todayLogsQuery } from '../lib/db';
-import { isSiteOpen, presentCount, usageByMaterial } from '@siteflow/shared';
+import { attendanceRef, companyRef, exists, milestonesQuery, siteRef, sub, toList, todayLogsQuery } from '../lib/db';
+import { isOn, isSiteOpen, presentCount, usageByMaterial } from '@siteflow/shared';
 
 const SiteCtx = createContext(null);
 
@@ -15,6 +15,7 @@ export function SiteProvider({ sid, children }) {
   const [attendance, setAttendance] = useState(null);
   const [logs, setLogs] = useState([]);
   const [milestones, setMilestones] = useState([]);
+  const [company, setCompany] = useState(undefined); // undefined while loading
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export function SiteProvider({ sid, children }) {
       attendanceRef(cid, sid).onSnapshot((s) => setAttendance(exists(s) ? s.data() : null), fail('attendance')),
       todayLogsQuery(cid, sid).onSnapshot((s) => setLogs(toList(s)), fail('material logs')),
       milestonesQuery(cid, sid).onSnapshot((s) => setMilestones(toList(s)), fail('milestones')),
+      companyRef(cid).onSnapshot((s) => setCompany(exists(s) ? s.data() : null), fail('company')),
     ];
     if (withPay) unsubs.push(sub(cid, sid, 'workerPay').onSnapshot((s) => setPay(Object.fromEntries(toList(s).map((p) => [p.id, p]))), fail('pay')));
     return () => unsubs.forEach((u) => u());
@@ -41,8 +43,10 @@ export function SiteProvider({ sid, children }) {
       // Daily site work needs the role and an open (not closed) site; the rules check both
       canWork: canWorkRole && isSiteOpen(site), materials, workers, pay: withPay ? pay : null,
       attendance, marks, logs, milestones, usage: usageByMaterial(logs), presentCount: presentCount(marks),
+      // Company modules (materials, labour...). Treated as on until the company has loaded, so tabs don't flicker.
+      mod: (k) => company === undefined || isOn(company, k),
     };
-  }, [cid, sid, site, error, canWorkRole, materials, workers, withPay, pay, attendance, logs, milestones]);
+  }, [cid, sid, site, error, canWorkRole, materials, workers, withPay, pay, attendance, logs, milestones, company]);
   return (
     <SiteCtx.Provider value={value}>
       {children}

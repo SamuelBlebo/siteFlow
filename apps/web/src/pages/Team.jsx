@@ -9,6 +9,7 @@ import {
 } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from '../components/States';
 import { NotificationLog } from '../components/Notifications';
+import PageHead from '../components/PageHead';
 
 const loginText = (name, email, pw) =>
   `Hi ${name.split(' ')[0]}, your SiteFlow login: ${window.location.origin} Email: ${email} Temporary password: ${pw} You will choose your own password when you sign in.`;
@@ -42,9 +43,9 @@ export default function Team() {
   const sorted = [...members].sort((a, b) => (a.active === false) - (b.active === false) || (a.name || '').localeCompare(b.name || ''));
 
   return (
+    <>
+    <PageHead title="Team" sub="Add people, choose what they can do and which projects they work on. Changes take effect straight away." />
     <section className="wrap">
-      <h1>Team</h1>
-      <p className="muted">Add people, choose what they can do and which sites they work on. Changes take effect straight away.</p>
 
       {issued && (
         <div className="notice ok mt">
@@ -121,6 +122,7 @@ export default function Team() {
         </>
       )}
     </section>
+    </>
   );
 }
 

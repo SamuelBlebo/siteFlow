@@ -27,13 +27,13 @@ export function NotificationSettings({ cid, company }) {
             <tr key={k}>
               <td><b>{NOTIFICATIONS[k].label}</b><div className="muted small">{NOTIFICATIONS[k].description}</div></td>
               <td className="small">{NOTIFICATIONS[k].who}</td>
-              <td><input type="checkbox" className="check" aria-label={`${NOTIFICATIONS[k].label} by WhatsApp`} checked={rules[k].whatsapp} onChange={() => toggle(k, 'whatsapp')} /></td>
-              <td><input type="checkbox" className="check" aria-label={`${NOTIFICATIONS[k].label} by email`} checked={rules[k].email} onChange={() => toggle(k, 'email')} /></td>
+              <td><label className="switch"><input type="checkbox" aria-label={`${NOTIFICATIONS[k].label} by WhatsApp`} checked={rules[k].whatsapp} onChange={() => toggle(k, 'whatsapp')} /><span /></label></td>
+              <td><label className="switch"><input type="checkbox" aria-label={`${NOTIFICATIONS[k].label} by email`} checked={rules[k].email} onChange={() => toggle(k, 'email')} /><span /></label></td>
             </tr>
           ))}
         </tbody>
       </table></div>
-      <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save notification settings'}</button>
+      <button type="submit" className="btn gold mt" disabled={busy}>{busy ? 'Saving…' : 'Save reminder settings'}</button>
     </form>
   );
 }

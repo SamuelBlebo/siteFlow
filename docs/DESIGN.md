@@ -15,11 +15,17 @@ The two apps use them as follows:
 - **Mobile:** imports them through `apps/mobile/src/theme.js`.
 - **Web:** uses CSS custom properties in `apps/web/src/styles.css`. `packages/shared/test/design.test.ts` fails if they drift apart.
 
+The look follows the product prototype (claude.ai artifact "SiteFlow", Owner / Site team / Site app views).
+
 Colour meaning:
 
-- **Steel blue:** actions and links.
-- **Hazard-tape yellow:** the brand mark and "you are here" (current tab or nav item).
+- **Navy:** the sidebar, header bars and the plan banner.
+- **Brass gold:** the brand mark, the main call to action on a page (`.btn.gold`, e.g. New project) and "you are here" (current nav item, current tab).
+- **Ink:** ordinary buttons (`.btn`); `.btn.ghost` for secondary ones. Navy-steel for links.
 - **Green / amber / red:** only for status: done or on track, needs attention, problem or overdue.
+- **Charts:** `--c-done` (navy, pale steel in dark mode) for quantities, brass for money and plan lines, status colours only for status.
+
+Type: Goldman for the wordmark only, Archivo Expanded for page titles and headings, Inter for everything else (tabular figures).
 
 ## Building blocks
 
@@ -32,6 +38,15 @@ Colour meaning:
 | Status label | `.pill.ok/.warn/.bad` | `<Pill kind>` |
 | Sections | `<Tabs tabs value onChange>{panel}</Tabs>` | bottom tabs |
 | Photos | file input + `PhotoViewer` | `<PhotoPicker>` |
+| Page title bar | `<PageHead title sub>{actions}</PageHead>` | stack header (navy) |
+| Brand | `<Brand big />`, `<Mark />` | brass mark on the login screen |
+| Headline numbers | `<dl className="tiles">` of `.tile` (dt, dd, `.foot` with `.delta.up/.dn/.nt` and `<Spark>`) | – |
+| Dashboard sections | `.dgrid` with `.panel.c4`…`.c12` (`.panel-h` for title, line and count) | `<Card>` |
+| Progress | `<Ring pct>` | – |
+| Charts | `<SpendChart>`, `<CostDonut>` in `components/Charts.jsx` | – |
+| On/off | `<label className="switch"><input type="checkbox" /><span /></label>` | – |
+
+App shell: `Layout.jsx` (navy sidebar with company, menu, projects with a red dot when today's report is missing, and you). Below 860px it folds into a top bar with a sideways-scrolling menu.
 
 Web layout helpers: `.actions`, `.section-head`, `.toolbar`, `.mt`, `.mt-sm`, `.mb`, `.m0`, `.form.compact`, `textarea.short`, `.lead`. Use these, not inline `style`. Inline style is only for values computed at runtime, such as a meter's width.
 

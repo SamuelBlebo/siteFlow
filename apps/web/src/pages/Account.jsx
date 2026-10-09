@@ -6,6 +6,7 @@ import { companyDoc, updateMyProfile } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { logOut } from '../lib/account';
 import PasswordForm from '../components/PasswordForm';
+import PageHead from '../components/PageHead';
 
 export default function Account() {
   useTitle('Your account');
@@ -32,8 +33,9 @@ export default function Account() {
   }
 
   return (
+    <>
+    <PageHead title="Your account" />
     <section className="wrap narrow">
-      <h1>Your account</h1>
       <dl className="cols mt">
         <div><dt>Company</dt><dd>{company?.name || '–'}</dd></div>
         <div><dt>Role</dt><dd>{ROLE_LABELS[role]}</dd></div>
@@ -59,5 +61,6 @@ export default function Account() {
       <p className="muted mb">Sign out of SiteFlow on this device.</p>
       <button type="button" className="btn ghost" onClick={logOut}>Sign out</button>
     </section>
+    </>
   );
 }

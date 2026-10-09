@@ -66,6 +66,15 @@ siteflow/
 | Site supervisor | assigned | yes | no | no | no |
 | Viewer | assigned | view only | no | no | no |
 
+## Web app layout
+A navy sidebar (company, menu, each project with a red dot when today's report is missing) and the page beside it.
+Owners and managers land on the **Portfolio dashboard**: headline tiles (portfolio value, spent, daily reports, workforce,
+open issues), weekly spend against plan, where the money goes, needs your attention, budget against progress, the
+projects table, workforce by project and the latest reports. Money parts show only to finance roles with the Budget module on.
+Owners also get **Modules** (switch built modules on or off; the `setModule` function applies it and sets the plan; modules not
+built yet show as Coming soon) and **Reminders** (which alerts go by WhatsApp and email, and the message log). Materials, Labour
+and Budget screens follow the modules, on web and mobile; switching a module off keeps its data.
+
 ## Sites
 One project = one site, for any kind of construction work. Owners, admins and project managers create sites (name, location,
 type of work and stage, picked from the usual list or typed in, planned
