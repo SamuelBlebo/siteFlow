@@ -1,4 +1,16 @@
 export const STAGES = ['Site clearing', 'Foundation', 'Blockwork', 'Lintel level', 'First floor slab', 'Roof level', 'Roofing', 'Plastering', 'Finishing', 'Handover'];
+// Kinds of construction work and their usual stages. Stages are suggestions: any stage can be typed in
+// (up to STAGE_MAX characters), and "other" work has no list at all.
+export const WORK_TYPES = [
+  { key: 'building', label: 'Building (houses, flats, offices)', stages: STAGES },
+  { key: 'roads', label: 'Roads and drainage', stages: ['Mobilisation', 'Site clearing', 'Earthworks', 'Sub-base', 'Base course', 'Drains and culverts', 'Surfacing', 'Road markings and signs', 'Handover'] },
+  { key: 'civil', label: 'Bridges and civil works', stages: ['Mobilisation', 'Excavation', 'Piling and foundations', 'Substructure', 'Superstructure', 'Deck or slab', 'Finishing works', 'Testing', 'Handover'] },
+  { key: 'utilities', label: 'Water, power and utilities', stages: ['Survey', 'Trenching', 'Pipe or cable laying', 'Backfilling', 'Testing', 'Connections', 'Reinstatement', 'Handover'] },
+  { key: 'renovation', label: 'Renovation and fit-out', stages: ['Assessment', 'Strip-out and demolition', 'Structural repairs', 'Roofing', 'Electrical and plumbing', 'Plastering', 'Painting and finishing', 'Handover'] },
+  { key: 'other', label: 'Other (type your own stages)', stages: [] as string[] },
+] as const;
+export type WorkType = (typeof WORK_TYPES)[number]['key'];
+export const STAGE_MAX = 60;               // same limit as the security rules
 export const TRADES = ['Mason', 'Carpenter', 'Steel bender', 'Electrician', 'Plumber', 'Welder', 'Roofer', 'Painter', 'Tiler', 'Labourer'];
 export const UNITS = ['bags', 'lengths', 'pcs', 'trips', 'sheets', 'kg', 'litres', 'm³'];
 export const EXPENSE_CATEGORIES = ['Materials', 'Labour', 'Transport', 'Equipment', 'Permits', 'Other'];

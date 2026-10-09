@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StageField from './StageField';
 import { STAGES, siteDetailsInput, siteInput, validate } from '@siteflow/shared';
 
 // Site details form, for a new site (withBudget) and for site settings
@@ -28,11 +29,10 @@ export default function SiteForm({ initial, withBudget, submitLabel, busyLabel, 
   return (
     <form className="form card" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
-      {input('sf-n', 'Site or project name', 'name', { placeholder: 'e.g. Adenta 4-bedroom house' })}
+      {input('sf-n', 'Site or project name', 'name', { placeholder: 'e.g. Adenta 4-bedroom house, Kasoa road phase 2' })}
+      {input('sf-l', 'Location', 'location', { placeholder: 'e.g. Adenta, Accra' })}
       <div className="grid2">
-        {input('sf-l', 'Location', 'location', { placeholder: 'e.g. Adenta, Accra' })}
-        <div className="field"><label htmlFor="sf-s">Current stage</label>
-          <select id="sf-s" value={f.stage} onChange={set('stage')}>{[...new Set([...STAGES, f.stage].filter(Boolean))].map((s) => <option key={s}>{s}</option>)}</select></div>
+        <StageField id="sf-s" withType value={f.stage} onChange={(stage) => setF((x) => ({ ...x, stage }))} />
       </div>
       <div className="grid2">
         {input('sf-ps', 'Planned start', 'planStart', { type: 'date' })}

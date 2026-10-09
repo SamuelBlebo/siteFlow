@@ -7,7 +7,7 @@ import {
 import { save, toast } from '../lib/save';
 import {
   MILESTONE_STATUS_LABELS, PROGRESS_STEPS, SCHEDULE_LABELS, milestoneInput, overdueMilestones, plannedProgress, prettyDate, progressSeries,
-  scheduleStatus, todayKey, validate,
+  WORK_TYPES, scheduleStatus, stagesFor, todayKey, validate, workTypeOf,
 } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from './States';
 
@@ -44,10 +44,8 @@ export default function ProgressPanel({ cid, site, canWork }) {
       <h3 className="sub">Milestones</h3>
       {!milestones.length ? (
         <>
-          <Empty title="No milestones yet.">{manage ? 'Add your own below, or start from the usual building stages.' : 'A project manager sets up the milestones.'} Until then, progress comes from the daily reports.</Empty>
-          {manage && <button type="button" className="btn mt-sm" onClick={async () => {
-            try { await save(addStandardMilestones(cid, site), 'Milestones'); toast('Standard stages added. Adjust their dates and weights as needed.'); } catch (e) { toast(e.message, 'err'); }
-          }}>Use the standard building stages</button>}
+          <Empty title="No milestones yet.">{manage ? 'Add your own below, or start from the usual stages for this kind of work.' : 'A project manager sets up the milestones.'} Until then, progress comes from the daily reports.</Empty>
+          {manage && <StageTemplate cid={cid} site={site} />}
         </>
       ) : <MilestoneList cid={cid} site={site} milestones={milestones} canWork={canWork} manage={manage} />}
       {manage && <AddMilestone cid={cid} sid={site.id} all={milestones} />}
@@ -200,5 +198,22 @@ function Chart({ site, milestones, reports, actual }) {
       </svg>
       <figcaption><span className="key planned" /> Planned <span className="key actual" /> Actual (from daily reports{milestones.length ? ' and milestones' : ''})</figcaption>
     </figure>
+  );
+}
+
+// Start the milestones from the usual stages of a kind of work (the site's, unless changed here)
+function StageTemplate({ cid, site }) {
+  const kinds = WORK_TYPES.filter((w) => w.stages.length);
+  const [type, setType] = useState(() => { const t = workTypeOf(site.stage); return stagesFor(t).length ? t : 'building'; });
+  async function use() {
+    try { await save(addStandardMilestones(cid, site, stagesFor(type)), 'Milestones'); toast('Standard stages added. Adjust their dates and weights as needed.'); } catch (e) { toast(e.message, 'err'); }
+  }
+  return (
+    <div className="actions mt-sm">
+      <select id="ms-tpl" aria-label="Kind of work" className="inline-select" value={type} onChange={(e) => setType(e.target.value)}>
+        {kinds.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
+      </select>
+      <button type="button" className="btn" onClick={use}>Use these standard stages</button>
+    </div>
   );
 }

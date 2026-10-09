@@ -1,3 +1,4 @@
+import { WORK_TYPES, type WorkType } from '../constants';
 import { isSiteScoped } from '../permissions';
 import type { Role, Site, SiteStatus, UserProfile } from '../types';
 
@@ -39,3 +40,9 @@ export function siteTeam<T extends Pick<UserProfile, 'role' | 'siteIds' | 'activ
     available: on.filter((m) => isSiteScoped(m.role as Role) && !m.siteIds?.includes(sid)),
   };
 }
+
+// Stages: the usual list for a kind of work, and the kind of work a stage most likely belongs to
+// (the first list that has it; a typed-in stage counts as "other")
+export const stagesFor = (type: WorkType | string): readonly string[] => WORK_TYPES.find((w) => w.key === type)?.stages ?? [];
+export const workTypeOf = (stage: string | null | undefined): WorkType =>
+  WORK_TYPES.find((w) => (w.stages as readonly string[]).includes(stage || ''))?.key ?? (stage ? 'other' : 'building');

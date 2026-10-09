@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import {
-  REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportId, reportInput, todayKey, validate, photoThumb,
+  REPORT_PHOTO_LIMIT, STAGES, STAGE_MAX, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportId, reportInput, stagesFor, todayKey, validate, photoThumb, workTypeOf,
 } from '@siteflow/shared';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
@@ -109,7 +109,7 @@ function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMi
         hint={presentCount ? `${presentCount} marked present today` : 'From attendance, or set the number'} />
 
       <Choice label="Weather" options={WEATHER} value={f.weather} onChange={(w) => set('weather')(f.weather === w ? '' : w)} />
-      <Choice label="Current stage" options={[...new Set([...STAGES, f.stage])]} value={f.stage} onChange={set('stage')} />
+      <StagePicker value={f.stage} onChange={set('stage')} />
 
       <Text style={s.label}>Overall progress</Text>
       {fromMilestones
@@ -236,6 +236,20 @@ function RecentReports({ cid, sid, outbox }) {
           </Pressable>
         ))}
       </Card>
+    </>
+  );
+}
+
+// Current stage: the usual stages for this kind of work, or any stage typed in (roads, bridges, utilities...)
+const TYPE_IN = 'Other…';
+function StagePicker({ value, onChange }) {
+  const [list] = useState(() => stagesFor(workTypeOf(value)));
+  const [typing, setTyping] = useState(() => !list.length || (!!value && !list.includes(value)));
+  return (
+    <>
+      {list.length ? <Choice label="Current stage" options={[...list, TYPE_IN]} value={typing ? TYPE_IN : value}
+        onChange={(v) => { if (v === TYPE_IN) { setTyping(true); onChange(''); } else { setTyping(false); onChange(v); } }} /> : null}
+      {typing ? <Field label={list.length ? 'Type the stage' : 'Current stage'} value={value} onChangeText={onChange} maxLength={STAGE_MAX} placeholder="e.g. Kerb laying" /> : null}
     </>
   );
 }

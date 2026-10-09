@@ -265,10 +265,10 @@ export function swapMilestones(cid, sid, a, c) {
   b.update(milestoneRef(cid, sid, c.id), { order: a.order, updatedAt: serverTimestamp() });
   return b.commit();
 }
-// The usual building stages, spread over the site's planned dates
-export function addStandardMilestones(cid, site) {
+// The usual stages for a kind of work (building by default), spread over the site's planned dates
+export function addStandardMilestones(cid, site, stages) {
   const b = writeBatch(db);
-  const list = standardMilestones(site.planStart, site.planEnd).map((m) => ({ ...m, status: 'not_started', percentDone: 0, actualStart: null, actualEnd: null, note: '' }));
+  const list = standardMilestones(site.planStart, site.planEnd, stages).map((m) => ({ ...m, status: 'not_started', percentDone: 0, actualStart: null, actualEnd: null, note: '' }));
   for (const m of list) b.set(doc(sub(cid, site.id, 'milestones')), { ...m, createdAt: serverTimestamp() });
   syncSiteProgress(b, cid, site.id, list);
   return b.commit();

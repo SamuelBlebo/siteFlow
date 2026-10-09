@@ -72,12 +72,12 @@ export function milestoneProgress(m: Pick<Milestone, 'actualStart' | 'actualEnd'
   };
 }
 
-// The usual stages of a building job, spread evenly over the planned dates
-export function standardMilestones(planStart?: string | null, planEnd?: string | null) {
-  const n = STAGES.length;
+// The usual stages of a job (building by default), spread evenly over the planned dates
+export function standardMilestones(planStart?: string | null, planEnd?: string | null, stages: readonly string[] = STAGES) {
+  const n = stages.length;
   const dated = planStart && planEnd && t(planEnd) > t(planStart);
   const span = dated ? (t(planEnd!) - t(planStart!)) / n : 0;
-  return STAGES.map((name, i) => ({
+  return stages.map((name, i) => ({
     name, order: i + 1, weight: 1,
     plannedStart: dated ? iso(t(planStart!) + span * i) : null,
     plannedEnd: dated ? iso(t(planStart!) + span * (i + 1) - (i + 1 < n ? DAY : 0)) : null,

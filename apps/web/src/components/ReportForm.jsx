@@ -7,6 +7,7 @@ import {
   REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, friendlyError, materialsUsed, reportInput, todayKey, validate,
 } from '@siteflow/shared';
 import ReportCard from './ReportCard';
+import StageField from './StageField';
 import { Loading } from './States';
 
 // Drafts survive a refresh or closed tab (per person, site and day)
@@ -90,12 +91,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
           <input id="r-w" type="number" min="0" value={workers} onChange={set('workersPresent')} />
           <p className="hint">{presentCount ? `${presentCount} marked present today.` : 'From attendance, or type the number.'}</p>
         </div>
-        <div className="field">
-          <label htmlFor="r-stage">Current stage</label>
-          <select id="r-stage" value={f.stage} onChange={set('stage')}>
-            {[...new Set([...STAGES, f.stage])].map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </div>
+        <div><StageField id="r-stage" value={f.stage} onChange={(stage) => setF((x) => ({ ...x, stage }))} /></div>
         <div className="field">
           <label htmlFor="r-prog">Overall progress (%)</label>
           {fromMilestones

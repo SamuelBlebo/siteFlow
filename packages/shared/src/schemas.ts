@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CO_REASONS, INCIDENT_TYPES } from './constants';
+import { CO_REASONS, INCIDENT_TYPES, STAGE_MAX } from './constants';
 import { ROLES } from './permissions';
 import { REPORT_PHOTO_LIMIT, WEATHER } from './logic/reports';
 import { ISSUE_PHOTO_LIMIT } from './logic/issues';
@@ -18,7 +18,7 @@ const email = z.string().trim().toLowerCase().pipe(z.string().email('Enter a val
 const siteBase = z.object({
   name: z.string().trim().min(2, 'Enter the project name.').max(120),
   location: z.string().trim().min(2, 'Enter the location.').max(200),
-  stage: z.string().min(1),
+  stage: z.string().trim().min(1, 'Choose or type the current stage.').max(STAGE_MAX, `Keep the stage under ${STAGE_MAX} characters.`),
   foremanName: z.string().trim().max(100).optional().default(''),
   foremanPhone: phone,
   foremanEmail: email,
@@ -79,7 +79,7 @@ export const reportInput = z.object({
   notes: z.string().trim().max(5000).optional().default(''),
   issues: z.string().trim().max(5000).optional().default(''),
   weather: z.enum(['', ...WEATHER]).optional().default(''),
-  stage: z.string().min(1, 'Choose the current stage.'),
+  stage: z.string().trim().min(1, 'Choose or type the current stage.').max(STAGE_MAX, `Keep the stage under ${STAGE_MAX} characters.`),
   progress: z.coerce.number({ invalid_type_error: 'Enter the progress as a number.' }).min(0, 'Progress must be between 0 and 100.').max(100, 'Progress must be between 0 and 100.'),
   workersPresent: z.coerce.number({ invalid_type_error: 'Enter how many workers were on site.' }).int('Enter a whole number of workers.').min(0).max(2000),
   photos: z.array(z.string()).max(REPORT_PHOTO_LIMIT, `Add up to ${REPORT_PHOTO_LIMIT} photos.`).default([]),

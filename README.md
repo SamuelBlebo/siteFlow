@@ -67,7 +67,8 @@ siteflow/
 | Viewer | assigned | view only | no | no | no |
 
 ## Sites
-One project = one site. Owners, admins and project managers create sites (name, location, stage, planned
+One project = one site, for any kind of construction work. Owners, admins and project managers create sites (name, location,
+type of work and stage, picked from the usual list or typed in, planned
 dates, foreman, client, budget) and manage them from the Sites page: details, status and budget under
 **Settings**, and who works there under **Team** (`assignToSite` function).
 - **Active**: daily reports expected and chased.
@@ -113,7 +114,8 @@ Issues and comments are never deleted. Open critical and high issues appear in t
 
 ## Progress
 Milestones per site (`sites/{sid}/milestones`): name, order, weight, planned start and finish, percent done.
-Project managers set them up (or start from the standard building stages); the site team updates the
+Project managers set them up (or start from the usual stages for the kind of work: building, roads, civil works,
+utilities or renovation); the site team updates the
 percentage. The site's overall progress is the weighted average of its milestones and is written in the same
 batch; without milestones it comes from daily reports. `scheduleStatus` compares done with planned (from
 milestone dates, else the site's planned dates): on track, ahead, behind (with weeks), finished. Behind

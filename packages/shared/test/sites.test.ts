@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSiteOpen, siteDetailsInput, siteFields, siteFormValues, siteInput, siteStatusInput, siteTeam, validate } from '../src';
+import { STAGES, isSiteOpen, siteDetailsInput, siteFields, siteFormValues, siteInput, siteStatusInput, siteTeam, stagesFor, standardMilestones, validate, workTypeOf } from '../src';
 
 const base = { name: 'Adenta house', location: 'Adenta, Accra', stage: 'Foundation' };
 
@@ -63,5 +63,28 @@ describe('site team', () => {
     expect(isSiteOpen({ status: 'on_hold' })).toBe(true);
     expect(isSiteOpen({ status: 'closed' })).toBe(false);
     expect(isSiteOpen(null)).toBe(false);
+  });
+});
+
+describe('stages for any kind of construction work', () => {
+  it('building keeps the usual stages, other kinds have their own', () => {
+    expect(stagesFor('building')).toEqual(STAGES);
+    expect(stagesFor('roads')).toContain('Surfacing');
+    expect(stagesFor('other')).toEqual([]);
+  });
+  it('finds the kind of work from a stage, and treats a typed-in stage as other', () => {
+    expect(workTypeOf('Blockwork')).toBe('building');
+    expect(workTypeOf('Base course')).toBe('roads');
+    expect(workTypeOf('Fence posts')).toBe('other');
+    expect(workTypeOf('')).toBe('building');
+  });
+  it('accepts a typed-in stage up to the rules limit', () => {
+    const base = { name: 'Kumasi road', location: 'Kumasi' };
+    expect(validate(siteDetailsInput, { ...base, stage: '  Kerbs  ' })).toMatchObject({ ok: true, data: { stage: 'Kerbs' } });
+    expect(validate(siteDetailsInput, { ...base, stage: '   ' }).ok).toBe(false);
+    expect(validate(siteDetailsInput, { ...base, stage: 'x'.repeat(61) }).ok).toBe(false);
+  });
+  it('milestone template follows the chosen kind of work', () => {
+    expect(standardMilestones(null, null, stagesFor('roads')).map((m) => m.name)).toEqual(stagesFor('roads'));
   });
 });
