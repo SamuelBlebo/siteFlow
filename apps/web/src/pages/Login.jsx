@@ -5,6 +5,7 @@ import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { friendlyError } from '@siteflow/shared';
 import { useTitle } from '../lib/hooks';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Login() {
   useTitle('Sign in');
@@ -35,7 +36,7 @@ export default function Login() {
         <h1>Sign in</h1>
         {msg && <p className="err" role="alert">{msg}</p>}
         <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-        <div className="field"><label htmlFor="p">Password</label><input id="p" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+        <div className="field"><label htmlFor="p">Password</label><PasswordInput id="p" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         <p className="row-between"><button type="button" className="linkbtn" onClick={reset}>Forgot password</button><Link to="/signup">Create a company account</Link></p>
       </form>

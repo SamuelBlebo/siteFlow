@@ -122,6 +122,10 @@ tr.row:hover td { background: var(--sunk); }
 .field label, .field legend { display: block; font-weight: 600; margin-bottom: 5px; }
 .field input:not([type="checkbox"]), .field select, .field textarea { width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 10px 12px; }
 .field textarea { min-height: 90px; resize: vertical; }
+.pw { position: relative; }
+.field .pw input { padding-right: 68px; }
+.pw-toggle { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); border: 0; background: none; color: var(--steel); font-weight: 600; font-size: 14px; padding: 6px 8px; border-radius: 4px; }
+.pw-toggle:hover { background: var(--sunk); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
 .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0 14px; }
 .hint { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }

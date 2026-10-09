@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { friendlyError, passwordInput, validate } from '@siteflow/shared';
 import { changePassword } from '../lib/account';
+import PasswordInput from './PasswordInput';
 
 // Change password. Used on the account page and for the first sign-in with a temporary password.
 export default function PasswordForm({ currentLabel = 'Current password', submitLabel = 'Change password', onDone }) {
@@ -33,10 +34,10 @@ export default function PasswordForm({ currentLabel = 'Current password', submit
   return (
     <form className="form" onSubmit={submit}>
       {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
-      <div className="field"><label htmlFor="pw-c">{currentLabel}</label><input id="pw-c" type="password" autoComplete="current-password" value={f.current} onChange={set('current')} /></div>
+      <div className="field"><label htmlFor="pw-c">{currentLabel}</label><PasswordInput id="pw-c" autoComplete="current-password" value={f.current} onChange={set('current')} /></div>
       <div className="grid2">
-        <div className="field"><label htmlFor="pw-n">New password</label><input id="pw-n" type="password" autoComplete="new-password" value={f.password} onChange={set('password')} /><p className="hint">At least 8 characters.</p></div>
-        <div className="field"><label htmlFor="pw-r">New password again</label><input id="pw-r" type="password" autoComplete="new-password" value={f.confirm} onChange={set('confirm')} /></div>
+        <div className="field"><label htmlFor="pw-n">New password</label><PasswordInput id="pw-n" autoComplete="new-password" value={f.password} onChange={set('password')} /><p className="hint">At least 8 characters.</p></div>
+        <div className="field"><label htmlFor="pw-r">New password again</label><PasswordInput id="pw-r" autoComplete="new-password" value={f.confirm} onChange={set('confirm')} /></div>
       </div>
       <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : submitLabel}</button>
     </form>

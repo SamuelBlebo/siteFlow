@@ -10,6 +10,7 @@ export default function PasswordForm({ currentLabel = 'Current password', submit
   const [confirm, setConfirm] = useState('');
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
 
   async function submit() {
     if (!current) return setMsg({ kind: 'err', text: `Enter your ${currentLabel.toLowerCase()}.` });
@@ -34,9 +35,10 @@ export default function PasswordForm({ currentLabel = 'Current password', submit
   return (
     <>
       {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
-      <Field label={currentLabel} value={current} onChangeText={setCurrent} secureTextEntry autoComplete="password" />
-      <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password-new" hint="At least 8 characters." />
-      <Field label="New password again" value={confirm} onChangeText={setConfirm} secureTextEntry autoComplete="password-new" />
+      <Field label={currentLabel} value={current} onChangeText={setCurrent} secureTextEntry={!show} autoComplete="password" />
+      <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry={!show} autoComplete="password-new" hint="At least 8 characters." />
+      <Field label="New password again" value={confirm} onChangeText={setConfirm} secureTextEntry={!show} autoComplete="password-new" />
+      <Button title={show ? 'Hide passwords' : 'Show passwords'} variant="ghost" onPress={() => setShow(!show)} style={{ marginBottom: 12, paddingVertical: 10 }} />
       <Button title={busy ? 'Saving…' : submitLabel} onPress={submit} disabled={busy} />
     </>
   );

@@ -6,6 +6,7 @@ import { companySetupInput, friendlyError, validate } from '@siteflow/shared';
 import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Signup() {
   useTitle('Create your account');
@@ -46,7 +47,7 @@ export default function Signup() {
         <div className="field"><label htmlFor="c">Company name</label><input id="c" value={f.company} onChange={set('company')} /></div>
         <div className="field"><label htmlFor="n">Your name</label><input id="n" value={f.name} onChange={set('name')} /></div>
         <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="email" value={f.email} onChange={set('email')} /></div>
-        <div className="field"><label htmlFor="p">Password</label><input id="p" type="password" autoComplete="new-password" value={f.password} onChange={set('password')} /></div>
+        <div className="field"><label htmlFor="p">Password</label><PasswordInput id="p" autoComplete="new-password" value={f.password} onChange={set('password')} /></div>
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         <p className="row-between"><span /><Link to="/login">I already have an account</Link></p>
       </form>
