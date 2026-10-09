@@ -43,10 +43,11 @@ const sender = (channel: 'whatsapp' | 'email', address: string, kind: Notificati
 export async function deliver(d: {
   cid: string; kind: NotificationKind; key: string; siteId?: string;
   values: Record<string, string | number>; subject: string; emailText?: string; recipients: Recipient[];
+  channels?: { whatsapp: boolean; email: boolean }; // chosen by the sender (report requests); otherwise the company's setting
 }) {
   const db = getFirestore();
   const company = (await db.doc(paths.company(d.cid)).get()).data() as Company | undefined;
-  const rule = notificationRule(company, d.kind);
+  const rule = d.channels ?? notificationRule(company, d.kind);
   const dial = companyLocale(company).dial; // local numbers (024...) get the company's country code
   const params = templateParams(d.kind, d.values);
   const text = notificationText(d.kind, d.values);

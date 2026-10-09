@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useExpenses, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
-  big, budgetUsedPct, cedi, getLocale, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
+  big, budgetUsedPct, cedi, getLocale, reportAuthor, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
   scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
@@ -263,7 +263,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                   <article key={`${r.siteId}-${r.id}`}>
                     <Ring pct={siteById[r.siteId]?.progress ?? r.progress ?? 0} size={46} />
                     <div>
-                      <p className="when"><Link to={`/reports/${r.siteId}/${r.id}`}>{r.siteName}</Link>, {r.date === today ? `sent ${r.time}` : `${r.date.slice(8)}/${r.date.slice(5, 7)} at ${r.time}`} by {r.createdByName}</p>
+                      <p className="when"><Link to={`/reports/${r.siteId}/${r.id}`}>{r.siteName}</Link>, {r.date === today ? `sent ${r.time}` : `${r.date.slice(8)}/${r.date.slice(5, 7)} at ${r.time}`} by {reportAuthor(r)}</p>
                       <p className="mt-sm">{r.text}</p>
                       {r.issues && <p className="issue">{r.issues}</p>}
                       {!!(r.thumbs?.length || r.photos?.length) && (

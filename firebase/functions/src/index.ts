@@ -7,3 +7,4 @@ export { onReportSent, onIssueChanged, onStockChanged } from './alerts';
 export { retryNotifications } from './deliver';
 export { loadDemo, removeDemo } from './demo';
 export { inviteInfo, acceptInvite } from './invites';
+export { requestReport, cancelReportRequest } from './requests';

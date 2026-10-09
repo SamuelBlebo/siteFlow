@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { prettyDate } from '@siteflow/shared';
+import { prettyDate, reportAuthor } from '@siteflow/shared';
 import PhotoViewer from './PhotoViewer';
 
 // A report in a list: the essentials, linking to the full report
@@ -9,7 +9,7 @@ export function ReportRow({ r, showSite }) {
       <Link className="it report-row" to={`/reports/${r.siteId}/${r.id}`}>
         <span className="grow">
           <b>{showSite ? `${r.siteName}, ` : ''}{prettyDate(r.date)}</b>
-          <small>{r.createdByName}, sent {r.time}. {r.workersPresent} workers, {r.stage} {r.progress}%{r.weather ? `, ${r.weather.toLowerCase()}` : ''}</small>
+          <small>{reportAuthor(r)}, sent {r.time}. {r.workersPresent} workers, {r.stage} {r.progress}%{r.weather ? `, ${r.weather.toLowerCase()}` : ''}</small>
           <span className="excerpt">{r.text}</span>
         </span>
         <span className="tags">
@@ -29,7 +29,7 @@ export default function ReportCard({ r, showSite }) {
     <article className="report">
       <h3>{showSite ? <><Link to={`/sites/${r.siteId}`}>{r.siteName}</Link>, </> : ''}{prettyDate(r.date)}, sent {r.time}</h3>
       <p className="muted small">
-        By {r.createdByName}{r.source === 'app' ? ' (phone)' : ''}. {r.workersPresent} workers on site. Stage: {r.stage}, {r.progress}% complete.
+        By <b>{reportAuthor(r)}</b>{r.createdByEmail ? <> (<a href={`mailto:${r.createdByEmail}`}>{r.createdByEmail}</a>)</> : null}{r.source === 'app' ? ', from the phone' : ''}. {r.workersPresent} workers on site. Stage: {r.stage}, {r.progress}% complete.
         {r.weather ? ` Weather: ${r.weather}.` : ''}
       </p>
       <h4>Work done</h4>

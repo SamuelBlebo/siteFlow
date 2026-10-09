@@ -190,7 +190,7 @@ async function sendOne(item) {
   b.set(firestore().doc(reportPath), {
     ...reportDoc(input, {
       companyId: item.cid, siteId: item.sid, siteName: site.data()?.name || item.siteName, date: item.date, time: item.time,
-      uid: item.uid, name, photos: photoUrls, thumbs, materials: item.materials, source: 'app',
+      uid: item.uid, name, role: profile.data()?.role, email: profile.data()?.email || '', photos: photoUrls, thumbs, materials: item.materials, source: 'app',
     }),
     createdAt: firestore.FieldValue.serverTimestamp(),
   });

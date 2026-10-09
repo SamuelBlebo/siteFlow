@@ -5,6 +5,7 @@ import {
 } from '@siteflow/shared';
 import { companyMembers, deliver } from './deliver';
 import { SECRETS } from './notify';
+import { fulfilRequests } from './requests';
 
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 // Sample projects (Explore with sample data) never send messages
@@ -14,7 +15,9 @@ const sample = (sid: string) => sid.startsWith(SAMPLE_PREFIX);
 export const onReportSent = onDocumentCreated({ document: 'companies/{cid}/sites/{sid}/reports/{rid}', secrets: SECRETS }, async (event) => {
   const { cid, sid, rid } = event.params;
   const r = event.data?.data() as Report | undefined;
-  if (!r || sample(sid)) return;
+  if (!r) return;
+  await fulfilRequests(cid, sid, r, rid); // anyone who asked for this report sees it has come in
+  if (sample(sid)) return;
   const members = await companyMembers(cid);
   await deliver({
     cid, kind: 'report_submitted', key: `report_${sid}_${rid}`, siteId: sid,

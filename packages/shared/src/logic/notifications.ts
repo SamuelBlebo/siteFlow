@@ -5,12 +5,13 @@ import type { Company, NotificationRule, Role } from '../types';
 // WhatsApp messages started by a business must use a template Meta has approved; the template
 // names and wording here are what to submit (see docs/WHATSAPP_TEMPLATES.md).
 
-export type NotificationKind = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest';
+export type NotificationKind = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest' | 'report_request';
 export type Channel = 'whatsapp' | 'email';
 
 export interface NotificationDef {
   label: string; description: string; who: string;
   defaults: NotificationRule;
+  chosenEachTime?: boolean; // the sender picks WhatsApp and/or email each time (not a company setting)
   template: { name: string; body: string; params: string[] }; // {{1}}, {{2}} ... in body, named in params
 }
 
@@ -45,6 +46,12 @@ export const NOTIFICATIONS: Record<NotificationKind, NotificationDef> = {
     defaults: { whatsapp: false, email: false },
     template: { name: 'siteflow_report_sent', body: 'SiteFlow: {{1}} sent the daily report for {{2}}: {{3}}% done, {{4}} workers. {{5}}', params: ['who', 'site', 'progress', 'workers', 'issues'] },
   },
+  report_request: {
+    label: 'Report requested', description: 'When a manager asks someone for a report. The person asking picks WhatsApp, email or both.',
+    who: 'The person asked', chosenEachTime: true,
+    defaults: { whatsapp: true, email: true },
+    template: { name: 'siteflow_report_request', body: 'Hi {{1}}, {{2}} ({{3}}) has asked you for the daily report for {{4}} by {{5}}. {{6}} Please send it from the SiteFlow app.', params: ['name', 'who', 'role', 'site', 'due', 'note'] },
+  },
   weekly_digest: {
     label: 'Weekly summary', description: 'Friday at 5pm: progress, spending and what needs attention.',
     who: 'Owner and admins',
@@ -53,6 +60,8 @@ export const NOTIFICATIONS: Record<NotificationKind, NotificationDef> = {
   },
 };
 export const NOTIFICATION_KINDS = Object.keys(NOTIFICATIONS) as NotificationKind[];
+// The ones a company switches on or off (Reminders page); the rest are chosen each time they are sent
+export const COMPANY_NOTIFICATION_KINDS = NOTIFICATION_KINDS.filter((k) => !NOTIFICATIONS[k].chosenEachTime);
 
 // The company's choice for a notification, or its default
 export function notificationRule(company: Pick<Company, 'notifications'> | null | undefined, kind: NotificationKind): NotificationRule {
@@ -69,7 +78,8 @@ export function recipientsFor(kind: NotificationKind, members: Member[], ctx: { 
   switch (kind) {
     case 'critical_issue':
     case 'low_stock': return [...managers, ...siteSupervisors];
-    case 'issue_assigned': return on.filter((m) => m.id === ctx.assignedTo);
+    case 'issue_assigned':
+    case 'report_request': return on.filter((m) => m.id === ctx.assignedTo);
     case 'report_missing': return siteSupervisors;
     case 'report_submitted': return managers;
     case 'weekly_digest': return on.filter((m) => m.role === 'owner' || m.role === 'admin');

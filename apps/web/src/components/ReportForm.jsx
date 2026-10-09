@@ -66,7 +66,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
       return;
     }
     try {
-      const { done } = sendReport(cid, site, v.data, { uid: user.uid, name: profile.name, ...up, materials, progressFromMilestones: fromMilestones });
+      const { done } = sendReport(cid, site, v.data, { uid: user.uid, name: profile.name, role: profile.role, email: profile.email || '', ...up, materials, progressFromMilestones: fromMilestones });
       const res = await save(done, "Today's report");
       clearDraft(key);
       setQueued(res.queued);

@@ -48,9 +48,14 @@ export default function AlertsPanel({ alerts, className = '' }) {
 }
 
 function Action({ a }) {
-  if (a.kind === 'report' && a.site.foremanPhone) {
+  if (a.kind === 'report') {
     const text = `Hi ${a.site.foremanName || ''}, please send today's SiteFlow report for ${a.site.name}.`;
-    return <a className="btn sm ghost" target="_blank" rel="noreferrer" href={`https://wa.me/${waPhone(a.site.foremanPhone)}?text=${encodeURIComponent(text)}`}>Remind on WhatsApp</a>;
+    return (
+      <span className="actions">
+        <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=reports&request=1`}>Request report</Link>
+        {a.site.foremanPhone && <a className="btn sm ghost" target="_blank" rel="noreferrer" href={`https://wa.me/${waPhone(a.site.foremanPhone)}?text=${encodeURIComponent(text)}`}>WhatsApp foreman</a>}
+      </span>
+    );
   }
   if (a.kind === 'issue') return <Link className="btn sm ghost" to={`/issues?site=${a.site.id}`}>See issue</Link>;
   if (a.kind === 'stock' || a.kind === 'usage') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=materials`}>Materials</Link>;

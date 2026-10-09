@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NOTIFICATIONS, NOTIFICATION_KINDS, notificationRule } from '@siteflow/shared';
+import { COMPANY_NOTIFICATION_KINDS as NOTIFICATION_KINDS, NOTIFICATIONS, notificationRule } from '@siteflow/shared';
 import { useQuery } from '../lib/hooks';
 import { notificationsQuery, updateNotifications } from '../lib/db';
 import { save, toast } from '../lib/save';

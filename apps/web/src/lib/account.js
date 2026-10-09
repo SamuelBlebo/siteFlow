@@ -36,3 +36,7 @@ export const removeDemo = call('removeDemo');
 // Invitation links (no sign-in needed): what the link is for, and setting a password from it
 export const inviteInfo = call('inviteInfo');
 export const acceptInvite = call('acceptInvite');
+
+// Asking people for a report (owners, admins and project managers), and cancelling a request
+export const requestReport = call('requestReport');
+export const cancelReportRequest = call('cancelReportRequest');

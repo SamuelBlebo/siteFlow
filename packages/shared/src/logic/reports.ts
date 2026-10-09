@@ -1,3 +1,5 @@
+import { ROLE_LABELS } from '../permissions';
+import type { Role } from '../types';
 import type { MaterialLog, Report } from '../types';
 
 // One report per person per site per day. A fixed id makes sending idempotent: a retry after a
@@ -45,7 +47,7 @@ export function materialsUsed(logs: Pick<MaterialLog, 'type' | 'materialId' | 'm
 export function reportDoc(input: {
   text: string; notes?: string; issues?: string; weather?: string; stage: string; progress: number; workersPresent: number;
 }, meta: {
-  companyId: string; siteId: string; siteName: string; date: string; time: string; uid: string; name: string;
+  companyId: string; siteId: string; siteName: string; date: string; time: string; uid: string; name: string; role?: string; email?: string;
   photos?: string[]; thumbs?: string[]; materials?: MaterialUsed[]; source: 'web' | 'app';
 }) {
   return {
@@ -55,7 +57,7 @@ export function reportDoc(input: {
     stage: input.stage, progress: input.progress, workersPresent: input.workersPresent,
     materialsUsed: meta.materials || [],
     photos: meta.photos || [], thumbs: meta.thumbs || [], photoCount: (meta.photos || []).length,
-    createdBy: meta.uid, createdByName: meta.name, source: meta.source,
+    createdBy: meta.uid, createdByName: meta.name, ...(meta.role ? { createdByRole: meta.role } : {}), ...(meta.email ? { createdByEmail: meta.email } : {}), source: meta.source,
   };
 }
 
@@ -95,3 +97,7 @@ export function recentWorkDays(n: number, now: Date = new Date()): string[] {
   }
   return out;
 }
+
+// Who sent a report: their name and role ("Yaw Boateng, Project manager"). Older reports have no role.
+export const reportAuthor = (r: { createdByName?: string; createdByRole?: string }) =>
+  `${r.createdByName || 'Someone'}${r.createdByRole && ROLE_LABELS[r.createdByRole as Role] ? `, ${ROLE_LABELS[r.createdByRole as Role]}` : ''}`;

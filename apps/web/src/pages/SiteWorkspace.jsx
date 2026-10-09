@@ -4,6 +4,7 @@ import { useDoc, useSiteData, useTitle } from '../lib/hooks';
 import { companyDoc, siteDoc } from '../lib/db';
 import { isOn, isSiteOpen, longToday, todayKey } from '@siteflow/shared';
 import PageHead from '../components/PageHead';
+import { MyRequests } from '../components/ReportRequests';
 import Tabs from '../components/Tabs';
 import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
@@ -56,6 +57,7 @@ export default function SiteWorkspace() {
 
       {tab === 'today' && (
         <>
+          <MyRequests cid={cid} site={site} />
           <ol className="steps">
             {steps.map((s) => (
               <li key={s.key} className={s.done ? 'done' : ''}>

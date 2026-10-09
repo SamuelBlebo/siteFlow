@@ -145,6 +145,16 @@ export const memberUpdateInput = z.object({
 });
 export const memberActiveInput = z.object({ uid: memberId, active: z.boolean() });
 export const memberRefInput = z.object({ uid: memberId });
+// Asking one or more people for a report on a project (requestReport function)
+export const reportRequestInput = z.object({
+  siteId: z.string().min(1).max(128),
+  uids: z.array(memberId).min(1, 'Choose who should send the report.').max(20),
+  due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick the day the report is for.'),
+  note: z.string().trim().max(300, 'Keep the note under 300 characters.').optional().default(''),
+  whatsapp: z.boolean().default(true),
+  email: z.boolean().default(true),
+});
+export const reportRequestRefInput = z.object({ siteId: z.string().min(1).max(128), id: z.string().min(1).max(128) });
 // Invitation links: the token from the link, and the password the person chooses
 const inviteToken = z.string().regex(/^[A-Za-z0-9_-]{30,100}$/, 'This invitation link is not valid.');
 export const inviteTokenInput = z.object({ token: inviteToken });

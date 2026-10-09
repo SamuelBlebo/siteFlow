@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import {
-  REPORT_PHOTO_LIMIT, STAGES, STAGE_MAX, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportId, reportInput, stagesFor, todayKey, validate, photoThumb, workTypeOf,
+  REPORT_PHOTO_LIMIT, STAGES, STAGE_MAX, WEATHER, WORK_PHRASES, materialsUsed, prettyDate, reportAuthor, reportId, reportInput, stagesFor, todayKey, validate, photoThumb, workTypeOf,
 } from '@siteflow/shared';
 import { useSite } from '../site/SiteContext';
 import { useAuth } from '../auth/AuthProvider';
@@ -219,7 +219,7 @@ function RecentReports({ cid, sid, outbox }) {
         {list.map((r, i) => (
           <Pressable key={r.id} onPress={() => setOpen(open === r.id ? null : r.id)} accessibilityRole="button"
             style={[s.row, i === 0 && !waiting.length && { borderTopWidth: 0 }, { flexDirection: 'column', alignItems: 'stretch' }]}>
-            <Text style={{ fontWeight: '600', color: colors.ink }}>{prettyDate(r.date)}, {r.createdByName}</Text>
+            <Text style={{ fontWeight: '600', color: colors.ink }}>{prettyDate(r.date)}, {reportAuthor(r)}</Text>
             <Muted numberOfLines={open === r.id ? undefined : 1}>{r.text}</Muted>
             {open === r.id ? (
               <>

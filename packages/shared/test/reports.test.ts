@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterReports, materialsUsed, missingReportDays, recentWorkDays, reportDoc, reportId } from '../src';
+import { filterReports, materialsUsed, reportAuthor, missingReportDays, recentWorkDays, reportDoc, reportId } from '../src';
 
 describe('report ids', () => {
   it('one per person per day, so a resend overwrites instead of duplicating', () => {
@@ -82,5 +82,12 @@ describe('photo thumbnails', () => {
     expect(photoThumb({ photos: ['a', 'b'], thumbs: ['ta', ''] }, 1)).toBe('b');
     expect(photoThumb({ photos: ['a'] }, 0)).toBe('a');
     expect(photoThumb(null, 0)).toBe('');
+  });
+});
+
+describe('who sent a report', () => {
+  it('shows the name with the role when the report has one', () => {
+    expect(reportAuthor({ createdByName: 'Yaw Boateng', createdByRole: 'manager' })).toBe('Yaw Boateng, Project manager');
+    expect(reportAuthor({ createdByName: 'Kwame Mensah' })).toBe('Kwame Mensah');
   });
 });

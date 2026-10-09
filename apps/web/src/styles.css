@@ -655,3 +655,8 @@ main:focus { outline: none; }
 .notice.warn.invite-sent { color: var(--ink); }
 .linkbox { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 6px 12px; background: var(--surface); margin-top: 10px; }
 .linkbox code { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+
+/* report requests */
+.requests .list .it { flex-wrap: wrap; }
+.request-banner p + p { margin-top: 6px; }
+.chip input { accent-color: var(--brass); }

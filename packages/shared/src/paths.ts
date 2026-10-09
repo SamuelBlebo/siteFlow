@@ -4,7 +4,7 @@
 export type SiteCollection =
   | 'materials' | 'materialLogs' | 'workers' | 'workerPay' | 'attendance' | 'reports' | 'issues' | 'milestones' | 'expenses' | 'finance'
   | 'changeOrders' | 'rfis' | 'inspections' | 'punchItems' | 'subcontractors' | 'incidents'
-  | 'toolboxTalks' | 'tasks' | 'drawings' | 'documents' | 'billing';
+  | 'toolboxTalks' | 'tasks' | 'drawings' | 'documents' | 'billing' | 'reportRequests';
 
 export const paths = {
   users: () => 'users',

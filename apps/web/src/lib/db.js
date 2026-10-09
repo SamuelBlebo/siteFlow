@@ -166,12 +166,12 @@ export const myReportId = (uid, date = todayKey()) => reportId(date, uid);
 // Writes the report and moves the site's stage/progress on, in one batch.
 // site: the site document (for its name and current last report date)
 // progressFromMilestones: the site has milestones, so its progress comes from them, not from reports
-export function sendReport(cid, site, input, { uid, name, photos = [], thumbs = [], materials = [], date = todayKey(), time = timeHM(), progressFromMilestones = false }) {
+export function sendReport(cid, site, input, { uid, name, role = '', email = '', photos = [], thumbs = [], materials = [], date = todayKey(), time = timeHM(), progressFromMilestones = false }) {
   const b = writeBatch(db);
   const rid = reportId(date, uid);
   if (progressFromMilestones) input = { ...input, progress: site.progress || 0 };
   b.set(reportRef(cid, site.id, rid), {
-    ...reportDoc(input, { companyId: cid, siteId: site.id, siteName: site.name, date, time, uid, name, photos, thumbs, materials, source: 'web' }),
+    ...reportDoc(input, { companyId: cid, siteId: site.id, siteName: site.name, date, time, uid, name, role, email, photos, thumbs, materials, source: 'web' }),
     createdAt: serverTimestamp(),
   });
   // Only move the site forward: an older report never overwrites a newer one
@@ -278,5 +278,8 @@ export function addStandardMilestones(cid, site, stages) {
 
 // ---------- notifications ----------
 // Owner: which notifications go out, by WhatsApp and/or email ({ kind: { whatsapp, email } })
+// Report requests on a project (newest first), and the ones waiting for one person
+export const reportRequestsQuery = (cid, sid, n = 20) => query(sub(cid, sid, 'reportRequests'), orderBy('createdAt', 'desc'), limit(n));
+export const myReportRequestsQuery = (cid, sid, uid) => query(sub(cid, sid, 'reportRequests'), where('to', '==', uid), where('status', '==', 'open'));
 export const updateNotifications = (cid, notifications) => updateDoc(companyDoc(cid), { notifications, updatedAt: serverTimestamp() });
 export const notificationsQuery = (cid, n = 50) => query(collection(db, paths.notifications(cid)), orderBy('createdAt', 'desc'), limit(n));

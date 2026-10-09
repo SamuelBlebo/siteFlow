@@ -16,6 +16,7 @@ goes out).
 | Material running low | `siteflow_low_stock` | Owner, admins, project managers and the site's supervisors |
 | Daily report sent | `siteflow_report_sent` | Owner, admins and project managers |
 | Weekly summary | `siteflow_weekly_summary` | Owner and admins |
+| Report requested | `siteflow_report_request` | The person asked (sent only when the person asking ticks WhatsApp) |
 
 ## siteflow_critical_issue
 
@@ -58,6 +59,13 @@ Sample: `SiteFlow: Kofi Mensah sent the daily report for Adenta house: 35% done,
 
 Variables: {{1}} company, {{2}} number of sites, {{3}} sites behind, {{4}} spent this week, {{5}} top items, {{6}} link.
 Sample: `SiteFlow weekly summary for Mensah Builders: 4 sites, 1 behind. Spent this week: GH₵48k. Needs attention: Critical issue: Scaffold unsafe (Adenta house). Full summary: https://siteflow.app`
+
+## siteflow_report_request
+
+> Hi {{1}}, {{2}} ({{3}}) has asked you for the daily report for {{4}} by {{5}}. {{6}} Please send it from the SiteFlow app.
+
+Variables: {{1}} first name, {{2}} who asked, {{3}} their role, {{4}} project, {{5}} day the report is for, {{6}} note (may be empty).
+Sample: `Hi Kwame, Esi Darko (owner) has asked you for the daily report for Adenta house by Fri 9 Oct. Note: Photos of the slab please. Please send it from the SiteFlow app.`
 
 ## Setting up the WhatsApp Cloud API
 

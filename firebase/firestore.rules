@@ -235,13 +235,19 @@ service cloud.firestore {
           allow delete: if siteManager(cid);
         }
 
+        // Someone asked for a report: written by the requestReport function only; everyone on the project sees them
+        match /reportRequests/{id} {
+          allow read: if onSite(cid, sid);
+          allow write: if false;
+        }
+
         // One report per person per day: id = {date}_{uid} (reportId in shared). The document names its
         // own company and site so the company-wide reports page can query all reports at once.
         match /reports/{id} {
           function validReport() {
             return data().keys().hasOnly(['companyId', 'siteId', 'siteName', 'date', 'time', 'text', 'notes', 'issues', 'weather',
                                           'stage', 'progress', 'workersPresent', 'materialsUsed', 'photos', 'thumbs', 'photoCount',
-                                          'createdBy', 'createdByName', 'source', 'createdAt'])
+                                          'createdBy', 'createdByName', 'createdByRole', 'createdByEmail', 'source', 'createdAt'])
               && data().companyId == cid && data().siteId == sid && isText(data().siteName, 1, 120)
               && isDateKey(data().date) && id == data().date + '_' + request.auth.uid
               && isText(data().time, 4, 5)
@@ -253,7 +259,10 @@ service cloud.firestore {
               && data().photos is list && data().photos.size() <= 8 && validThumbs()
               && (!('photoCount' in data()) || (data().photoCount is int && data().photoCount >= 0 && data().photoCount <= 8))
               && data().source in ['app', 'web']
-              && data().createdByName == me().name;
+              && data().createdByName == me().name
+              // the sender's role and email, as they are on their profile (shown on the report)
+              && (!('createdByRole' in data()) || data().createdByRole == me().role)
+              && (!('createdByEmail' in data()) || data().createdByEmail == me().get('email', ''));
           }
           allow read: if onSite(cid, sid);
           allow create: if siteWork(cid, sid) && byMe() && validReport();

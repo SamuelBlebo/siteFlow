@@ -13,6 +13,7 @@ import {
   validate, waPhone, currencySymbol } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import ReportHistory from '../components/ReportHistory';
+import ReportRequests from '../components/ReportRequests';
 import MaterialsPanel from '../components/MaterialsPanel';
 import SiteIssues from '../components/SiteIssues';
 import ProgressPanel from '../components/ProgressPanel';
@@ -92,7 +93,7 @@ export default function SiteDetail() {
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <OverviewTab site={site} data={data} />}
-      {tab === 'reports' && <ReportHistory cid={cid} site={site} />}
+      {tab === 'reports' && <><ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} /><ReportHistory cid={cid} site={site} /></>}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
@@ -179,7 +180,7 @@ function TeamTab({ cid, sid, site }) {
 
   const row = (m, action) => (
     <li key={m.id}><span className="it">
-      <span className="grow"><b>{m.name}</b><small>{ROLE_LABELS[m.role]}{m.phone ? `, ${m.phone}` : ''}</small></span>{action}
+      <span className="grow"><b>{m.name}</b><small>{ROLE_LABELS[m.role]}{m.email ? `, ${m.email}` : ''}{m.phone ? `, ${m.phone}` : ''}</small></span>{action}
     </span></li>
   );
   const noneToAdd = can('team.manage')

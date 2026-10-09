@@ -103,6 +103,15 @@ dates, foreman, client, budget) and manage them from the Sites page: details, st
 - **Closed**: finished; records stay readable, but nobody can add reports, attendance, materials or photos
   (enforced in the rules). Sites are never deleted.
 
+## Report requests
+Owners, admins and project managers ask named people for the daily report on a project (project page, Daily reports tab, or
+**Request report** on a missing-report alert): the day it is for, an optional note, and WhatsApp and/or email (`requestReport`).
+The person sees it on their Today screen (web and phone) until their report for that day comes in, which marks it **Report sent**
+(`onReportSent`); the person who asked can cancel it. Requests on sample projects send nothing.
+
+Reports record the sender's **role and email** with their name (the rules check both against their profile), shown as
+"Yaw Boateng, Project manager" on reports, the feed and the phone.
+
 ## Daily reports
 One report per person per site per day (document id `{date}_{uid}`), built by `reportDoc` in shared so web
 and mobile store exactly the same thing. A report has work done, workers on site, stage and progress,

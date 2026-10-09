@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { setMilestoneProgress } from '../lib/db';
 import { Button, Card, Empty, ErrorView, H1, H2, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
+import MyRequests from '../components/MyRequests';
 
 export default function TodayScreen({ navigation }) {
   const { profile, user } = useAuth();
@@ -36,6 +37,7 @@ export default function TodayScreen({ navigation }) {
       {site.status === 'closed' ? <Pill kind="bad">This site is closed. You can view it but not add anything.</Pill> : !work ? <Muted style={{ marginBottom: 12 }}>You can view this site but not change it.</Muted> : null}
       {site.status === 'on_hold' ? <Muted style={{ marginBottom: 12 }}>This site is on hold. Daily reports are not expected, but you can still send one.</Muted> : null}
       {error ? <ErrorView error={error} what="some site data" /> : null}
+      <MyRequests cid={cid} sid={sid} uid={user?.uid} />
       {steps.map((st, i) => (
         <Pressable key={st.tab} onPress={() => navigation.navigate(st.tab)} accessibilityRole="button"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 14, marginBottom: 8 }}>
