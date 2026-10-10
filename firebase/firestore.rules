@@ -291,8 +291,22 @@ service cloud.firestore {
           allow read: if onSite(cid, sid);
           allow create: if siteWork(cid, sid) && byMe() && validReport();
           // Reports are a record: the author may only add photo links as they finish uploading
+          // The author updates a report a manager sent back for changes (review is written by the
+          // requestReportChanges function); only the report's own fields, and the review turns to updated
+          function authorFix() {
+            return resource.data.get('review', {}).get('status', '') == 'changes_requested'
+              && onlyChanges(['text', 'notes', 'issues', 'weather', 'stage', 'progress', 'workersPresent', 'photos', 'thumbs', 'photoCount', 'review', 'editedAt'])
+              && isText(data().text, 1, 5000) && optText('notes', 5000) && optText('issues', 5000)
+              && (!('weather' in data()) || data().weather in ['', 'Sunny', 'Cloudy', 'Light rain', 'Heavy rain', 'Windy'])
+              && isText(data().stage, 1, 60) && isPct(data().progress)
+              && data().workersPresent is int && data().workersPresent >= 0 && data().workersPresent <= 2000
+              && data().photos is list && data().photos.size() <= 8 && validThumbs()
+              && data().review.diff(resource.data.review).affectedKeys().hasOnly(['status', 'updatedAt'])
+              && data().review.status == 'updated';
+          }
           allow update: if siteWork(cid, sid) && resource.data.createdBy == request.auth.uid
-            && onlyChanges(['photos', 'thumbs', 'photoCount']) && data().photos is list && data().photos.size() <= 8 && validThumbs();
+            && ((onlyChanges(['photos', 'thumbs', 'photoCount']) && data().photos is list && data().photos.size() <= 8 && validThumbs())
+                || authorFix());
           allow delete: if siteManager(cid);
         }
 

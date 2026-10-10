@@ -53,3 +53,6 @@ export const saveEmailSettings = call('saveEmailSettings');
 
 // AI overview of a project or its day (SiteFlow AI module)
 export const aiOverview = call('aiOverview');
+
+// Send a daily report back to its author with what to change (owners, admins, project managers)
+export const requestReportChanges = call('requestReportChanges');

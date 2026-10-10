@@ -23,6 +23,7 @@ import AccountScreen from './src/screens/AccountScreen';
 import IssuesScreen from './src/screens/IssuesScreen';
 import IssueScreen from './src/screens/IssueScreen';
 import { DrawingScreen } from './src/components/SiteDrawing';
+import ReportUpdateScreen from './src/screens/ReportUpdateScreen';
 import SyncScreen from './src/screens/SyncScreen';
 
 const Stack = createNativeStackNavigator();
@@ -76,6 +77,7 @@ function Root() {
           <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Your account' }} />
           <Stack.Screen name="Issue" component={IssueScreen} options={{ title: 'Issue' }} />
           <Stack.Screen name="Drawing" component={DrawingScreen} options={{ title: 'Project drawing' }} />
+          <Stack.Screen name="ReportUpdate" component={ReportUpdateScreen} options={{ title: 'Update report' }} />
           <Stack.Screen name="Sync" component={SyncScreen} options={{ title: 'Sync' }} />
           <Stack.Screen name="Site" component={SiteTabs} options={({ route }) => ({ title: route.params.name })} />
         </>

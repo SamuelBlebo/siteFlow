@@ -91,3 +91,17 @@ describe('who sent a report', () => {
     expect(reportAuthor({ createdByName: 'Kwame Mensah' })).toBe('Kwame Mensah');
   });
 });
+
+import { reportChangesInput, reviewText, validate } from '../src';
+describe('asking for changes to a report', () => {
+  it('needs at least one thing to change, and a note when it is "other"', () => {
+    const base = { siteId: 's1', reportId: 'r1' };
+    expect(validate(reportChangesInput, { ...base, items: [] }).ok).toBe(false);
+    expect(validate(reportChangesInput, { ...base, items: ['other'] }).ok).toBe(false);
+    expect(validate(reportChangesInput, { ...base, items: ['photos', 'workers'] })).toMatchObject({ ok: true, data: { whatsapp: true, email: true, note: '' } });
+  });
+  it('reads as a short list with the note', () => {
+    expect(reviewText({ items: ['photos', 'workers'], note: 'Show the slab' })).toBe('add photos, workers on site. “Show the slab”');
+    expect(reviewText({ items: ['other'], note: 'Wrong date' })).toBe('“Wrong date”');
+  });
+});

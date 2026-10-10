@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { setMilestoneProgress } from '../lib/db';
 import { Button, Card, Empty, ErrorView, H1, H2, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import { colors } from '../theme';
-import MyRequests from '../components/MyRequests';
+import MyRequests, { MyChangeRequests } from '../components/MyRequests';
 import SiteDrawingCard from '../components/SiteDrawing';
 
 export default function TodayScreen({ navigation }) {
@@ -41,6 +41,7 @@ export default function TodayScreen({ navigation }) {
       {site.status === 'on_hold' ? <Muted style={{ marginBottom: 12 }}>This site is on hold. Daily reports are not expected, but you can still send one.</Muted> : null}
       {error ? <ErrorView error={error} what="some site data" /> : null}
       <MyRequests cid={cid} sid={sid} uid={user?.uid} />
+      <MyChangeRequests cid={cid} sid={sid} uid={user?.uid} onUpdate={(r) => navigation.navigate('ReportUpdate', { cid, sid, rid: r.id })} />
       {notNeeded && !sent ? <Muted style={{ marginBottom: 12 }}>{day === 'skipped' ? 'No report needed today: your manager skipped today.' : 'Today is a day off on this project: no report needed.'} You can still send one.</Muted> : null}
       {work && !sent && !notNeeded ? <Button title="Make today's report" onPress={() => navigation.navigate('Report')} style={{ marginBottom: 12 }} /> : null}
       {steps.map((st, i) => (

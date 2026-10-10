@@ -157,6 +157,13 @@ export const reportRequestInput = z.object({
 });
 // Owner deletes a project for good: they type its name to confirm
 export const deleteProjectInput = z.object({ siteId: z.string().min(1).max(128), confirmName: z.string().trim().min(1, 'Type the project name to confirm.').max(200) });
+// Sending a report back to its author with what to change (requestReportChanges function)
+export const reportChangesInput = z.object({
+  siteId: z.string().min(1).max(128), reportId: z.string().min(1).max(200),
+  items: z.array(z.enum(['photos', 'workers', 'work', 'issues', 'progress', 'materials', 'other'])).min(1, 'Tick what needs changing.').max(7),
+  note: z.string().trim().max(500).default(''),
+  whatsapp: z.boolean().default(true), email: z.boolean().default(true),
+}).refine((v) => !v.items.includes('other') || v.note.length >= 3, { message: 'Say what else needs changing.', path: ['note'] });
 export const reportRequestRefInput = z.object({ siteId: z.string().min(1).max(128), id: z.string().min(1).max(128) });
 // Invitation links: the token from the link, and the password the person chooses
 const inviteToken = z.string().regex(/^[A-Za-z0-9_-]{30,100}$/, 'This invitation link is not valid.');

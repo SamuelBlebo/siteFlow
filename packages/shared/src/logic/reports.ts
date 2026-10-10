@@ -101,3 +101,21 @@ export function recentWorkDays(n: number, now: Date = new Date()): string[] {
 // Who sent a report: their name and role ("Yaw Boateng, Project manager"). Older reports have no role.
 export const reportAuthor = (r: { createdByName?: string; createdByRole?: string }) =>
   `${r.createdByName || 'Someone'}${r.createdByRole && ROLE_LABELS[r.createdByRole as Role] ? `, ${ROLE_LABELS[r.createdByRole as Role]}` : ''}`;
+
+// ---------- asking for changes to a report ----------
+// An owner, admin or project manager sends a report back to its author with what to fix. The author
+// updates it (only then can a sent report be changed) and the person who asked is told.
+export const REVIEW_ITEMS = {
+  photos: 'Add photos', workers: 'Workers on site', work: 'More detail on the work done', issues: 'Issues or delays',
+  progress: 'Progress or stage', materials: 'Materials used', other: 'Other',
+} as const;
+export type ReviewItem = keyof typeof REVIEW_ITEMS;
+export interface ReportReview {
+  status: 'changes_requested' | 'updated';
+  items: ReviewItem[]; note: string;
+  by: string; byName: string; byRole: string; at?: unknown;
+  channels?: { whatsapp: boolean; email: boolean };
+  updatedAt?: unknown;
+}
+export const reviewText = (r: Pick<ReportReview, 'items' | 'note'>) =>
+  `${r.items.filter((i) => i !== 'other').map((i) => REVIEW_ITEMS[i].toLowerCase()).join(', ')}${r.note ? `${r.items.some((i) => i !== 'other') ? '. ' : ''}“${r.note}”` : ''}`;

@@ -14,6 +14,7 @@ import {
 import Tabs from '../components/Tabs';
 import TodayPanel from '../components/TodayPanel';
 import TodayReport from '../components/TodayReport';
+import { MyChangeRequests } from '../components/ReportReview';
 import ReportHistory from '../components/ReportHistory';
 import ReportRequests from '../components/ReportRequests';
 import MaterialsPanel from '../components/MaterialsPanel';
@@ -111,6 +112,7 @@ export default function SiteDetail() {
       {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
       {tab === 'reports' && (
         <>
+          {work && <MyChangeRequests cid={cid} site={site} />}
           {work && <TodayReport cid={cid} site={site} data={data} startOpen={params.get('write') === '1' || asked === 'report'} />}
           <ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} />
           <h3 className="sub">Report history</h3>

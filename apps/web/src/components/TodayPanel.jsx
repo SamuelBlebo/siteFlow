@@ -1,5 +1,6 @@
 import { REPORT_DAY_LABELS, reportDay, todayKey } from '@siteflow/shared';
 import { MyRequests } from './ReportRequests';
+import { MyChangeRequests } from './ReportReview';
 import MaterialsTable from './MaterialsTable';
 
 // The project's Today tab: what the site team does each day (attendance, materials, the report),
@@ -17,6 +18,7 @@ export default function TodayPanel({ cid, site, data, mod, work, onGo }) {
   return (
     <>
       <MyRequests cid={cid} site={site} />
+      <MyChangeRequests cid={cid} site={site} />
       {!work && <p className="notice warn">You can view this project but not add to it.</p>}
       <ol className="steps">
         {steps.map((s) => (

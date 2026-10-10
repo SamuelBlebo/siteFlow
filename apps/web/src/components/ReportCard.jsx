@@ -13,6 +13,8 @@ export function ReportRow({ r, showSite }) {
           <span className="excerpt">{r.text}</span>
         </span>
         <span className="tags">
+          {r.review?.status === 'changes_requested' && <span className="pill warn">Changes requested</span>}
+          {r.review?.status === 'updated' && <span className="pill ok">Updated</span>}
           {(r.issues || '').trim() && <span className="pill bad">Issue</span>}
           {!!r.photos?.length && <span className="pill">{r.photos.length} photo{r.photos.length === 1 ? '' : 's'}</span>}
           {(r.photoCount || 0) > (r.photos?.length || 0) && <span className="pill warn">Photos uploading</span>}
@@ -29,7 +31,7 @@ export default function ReportCard({ r, showSite }) {
     <article className="report">
       <h3>{showSite ? <><Link to={`/sites/${r.siteId}`}>{r.siteName}</Link>, </> : ''}{prettyDate(r.date)}, sent {r.time}</h3>
       <p className="muted small">
-        By <b>{reportAuthor(r)}</b>{r.createdByEmail ? <> (<a href={`mailto:${r.createdByEmail}`}>{r.createdByEmail}</a>)</> : null}{r.source === 'app' ? ', from the phone' : ''}. {r.workersPresent} workers on site. Stage: {r.stage}, {r.progress}% complete.
+        {r.editedAt && <span className="pill ok edited">Updated after a request</span>} By <b>{reportAuthor(r)}</b>{r.createdByEmail ? <> (<a href={`mailto:${r.createdByEmail}`}>{r.createdByEmail}</a>)</> : null}{r.source === 'app' ? ', from the phone' : ''}. {r.workersPresent} workers on site. Stage: {r.stage}, {r.progress}% complete.
         {r.weather ? ` Weather: ${r.weather}.` : ''}
       </p>
       <h4>Work done</h4>

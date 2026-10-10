@@ -787,3 +787,23 @@ describe('report days', () => {
     await assertFails(updateDoc(ref('supervisor'), { skipDates: ['2026-12-26'] }));
   });
 });
+
+describe('reports sent back for changes', () => {
+  const rref = (db: Firestore) => doc(db, paths.subDoc(C1, S1, 'reports', SEEDED_REPORT));
+  const ask = () => env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore() as unknown as Firestore, paths.subDoc(C1, S1, 'reports', SEEDED_REPORT)), {
+    review: { status: 'changes_requested', items: ['photos'], note: '', by: USERS.manager, byName: 'manager user', byRole: 'manager' },
+  }));
+  it('the author can only change a report once changes are asked for, and must mark it updated', async () => {
+    await assertFails(updateDoc(rref(asRole('supervisor')), { text: 'Changed my mind' }));
+    await ask();
+    await assertFails(updateDoc(rref(asRole('supervisor')), { text: 'More detail', 'review.status': 'changes_requested' }));
+    await assertFails(updateDoc(rref(asRole('supervisor')), { text: 'More detail', 'review.status': 'updated', 'review.note': 'never mind' }));
+    await assertFails(updateDoc(rref(asRole('supervisor')), { createdByName: 'Someone else', 'review.status': 'updated' }));
+    await assertSucceeds(updateDoc(rref(asRole('supervisor')), { text: 'Blockwork, 6 courses, photos added', workersPresent: 7, 'review.status': 'updated', 'review.updatedAt': serverTimestamp(), editedAt: serverTimestamp() }));
+  });
+  it('nobody else can edit it or set the review from an app', async () => {
+    await ask();
+    await assertFails(updateDoc(rref(asRole('manager')), { text: 'Edited by manager', 'review.status': 'updated' }));
+    await assertFails(updateDoc(rref(asRole('owner')), { review: { status: 'changes_requested', items: ['photos'] } }));
+  });
+});

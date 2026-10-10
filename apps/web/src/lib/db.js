@@ -40,6 +40,19 @@ export const activityQuery = (cid, n = 20) => query(collection(db, paths.activit
 // ---------- account and company ----------
 // Name and phone live on the person; a Cloud Function copies them to each company they belong to
 export const updateMyProfile = (uid, { name, phone, callPhone = '' }) => updateDoc(userDoc(uid), { name, phone, callPhone, updatedAt: serverTimestamp() });
+// A report sent back for changes: the author's updated version (rules: only while changes are asked
+// for). New photos are added after the existing ones.
+export function updateMyReport(cid, r, input, up = { photos: [], thumbs: [] }) {
+  const photos = [...(r.photos || []), ...up.photos];
+  const thumbs = [...(r.thumbs || (r.photos || []).map(() => '')), ...up.thumbs];
+  return updateDoc(doc(db, paths.subDoc(cid, r.siteId, 'reports', r.id)), {
+    text: input.text, notes: input.notes || '', issues: input.issues || '', weather: input.weather || '', stage: input.stage,
+    progress: input.progress, workersPresent: input.workersPresent, photos, thumbs, photoCount: photos.length,
+    review: { ...r.review, status: 'updated', updatedAt: serverTimestamp() }, editedAt: serverTimestamp(),
+  });
+}
+export const myChangeRequestsQuery = (cid, sid, uid) =>
+  query(sub(cid, sid, 'reports'), where('createdBy', '==', uid), where('review.status', '==', 'changes_requested'));
 // Personal pins ("companyId/projectId"), newest first, at most 50
 export const togglePin = (uid, current, key, on) => updateDoc(userDoc(uid), {
   pinned: on ? [key, ...current.filter((k) => k !== key)].slice(0, 50) : current.filter((k) => k !== key), updatedAt: serverTimestamp(),

@@ -301,3 +301,27 @@ export function startOutbox() {
   const app = AppState.addEventListener('change', (s) => { if (s === 'active') run(); });
   return () => { unNet(); unAuth(); app.remove(); };
 }
+
+// A report a manager sent back for changes: upload any new photos, then update the report (online only;
+// the rules allow it only while changes are asked for). The review turns to updated.
+export async function updateReportOnline({ cid, report, input, photoUris = [] }) {
+  const net = await NetInfo.fetch();
+  if (net.isConnected === false) throw Object.assign(new Error('Offline'), { code: 'offline' });
+  const added = [];
+  const thumbs = [];
+  for (const [i, uri] of photoUris.entries()) {
+    const name = `u${Date.now()}-${i + 1}.jpg`;
+    const p = await keepPhoto(uri, `${report.id}-${name}`);
+    const path = paths.photo(cid, report.siteId, report.id, name);
+    added.push(await uploadOnce(path, p.local));
+    thumbs.push(p.thumbLocal ? await uploadOnce(thumbName(path), p.thumbLocal).catch(() => '') : '');
+  }
+  const photos = [...(report.photos || []), ...added];
+  const allThumbs = [...(report.thumbs || (report.photos || []).map(() => '')), ...thumbs];
+  const now = firestore.FieldValue.serverTimestamp();
+  await withTimeout(firestore().doc(paths.subDoc(cid, report.siteId, 'reports', report.id)).update({
+    text: input.text, notes: input.notes || '', issues: input.issues || '', weather: input.weather || '', stage: input.stage,
+    progress: input.progress, workersPresent: input.workersPresent, photos, thumbs: allThumbs, photoCount: photos.length,
+    review: { ...report.review, status: 'updated', updatedAt: now }, editedAt: now,
+  }));
+}

@@ -891,3 +891,14 @@ main:focus { outline: none; }
 .pin-btn.on-card { position: absolute; top: 10px; right: 10px; z-index: 2; background: rgba(255, 255, 255, .92); box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
 .pin-btn.on-card.on { background: var(--brass); color: #fff; }
 .pin-btn.sm { width: 28px; height: 28px; }
+
+/* Reports sent back for changes */
+.report-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.review-box { border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid; }
+.review-box.warn { background: var(--warnbg); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.review-box.ok { background: var(--okbg); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.review-box p { margin: 0; }
+.review-items { margin: 6px 0 0; padding-left: 20px; }
+.review-note { margin-top: 6px !important; font-style: italic; }
+.pill.edited { margin-right: 6px; }
+.request-banner .btn { margin-left: 6px; }

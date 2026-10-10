@@ -5,7 +5,8 @@ import type { Company, NotificationRule, Role } from '../types';
 // WhatsApp messages started by a business must use a template Meta has approved; the template
 // names and wording here are what to submit (see docs/WHATSAPP_TEMPLATES.md).
 
-export type NotificationKind = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest' | 'report_request';
+export type NotificationKind = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest' | 'report_request'
+  | 'report_changes' | 'report_updated';
 export type Channel = 'whatsapp' | 'email';
 
 export interface NotificationDef {
@@ -56,6 +57,18 @@ export const NOTIFICATIONS: Record<NotificationKind, NotificationDef> = {
     defaults: { whatsapp: true, email: true },
     template: { name: 'siteflow_report_request', body: 'Hi {{1}}, {{2}} ({{3}}) has asked you for the daily report for {{4}} by {{5}}. {{6}} Please send it from the SiteFlow app.', params: ['name', 'who', 'role', 'site', 'due', 'note'] },
   },
+  report_changes: {
+    label: 'Report sent back for changes', description: 'When a manager asks the author to change a daily report. The person asking picks WhatsApp, email or both.',
+    who: 'The report’s author', chosenEachTime: true,
+    defaults: { whatsapp: true, email: true },
+    template: { name: 'siteflow_report_changes', body: 'Hi {{1}}, {{2}} ({{3}}) asked you to update your daily report for {{4}} on {{5}}: {{6}}. Please update it in the SiteFlow app.', params: ['name', 'who', 'role', 'date', 'site', 'changes'] },
+  },
+  report_updated: {
+    label: 'Report updated', description: 'Tells the manager who asked for changes that the report was updated.',
+    who: 'The person who asked for the changes', chosenEachTime: true,
+    defaults: { whatsapp: true, email: true },
+    template: { name: 'siteflow_report_updated', body: 'SiteFlow: {{1}} updated the daily report for {{2}} on {{3}} as you asked.', params: ['who', 'date', 'site'] },
+  },
   weekly_digest: {
     label: 'Weekly summary', description: 'Friday at 5pm: progress, spending and what needs attention.',
     who: 'Owner and admins',
@@ -83,7 +96,9 @@ export function recipientsFor(kind: NotificationKind, members: Member[], ctx: { 
     case 'critical_issue':
     case 'low_stock': return [...managers, ...siteSupervisors];
     case 'issue_assigned':
-    case 'report_request': return on.filter((m) => m.id === ctx.assignedTo);
+    case 'report_request':
+    case 'report_changes':
+    case 'report_updated': return on.filter((m) => m.id === ctx.assignedTo);
     case 'report_missing': return siteSupervisors;
     case 'report_submitted': return managers;
     case 'weekly_digest': return on.filter((m) => m.role === 'owner' || m.role === 'admin');

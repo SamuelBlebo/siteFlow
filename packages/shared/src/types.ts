@@ -6,7 +6,8 @@ export type ModuleKey =
   | 'reports' | 'ai' | 'materials' | 'labour' | 'safety' | 'budget' | 'changeorders' | 'scheduling'
   | 'documents' | 'rfis' | 'inspections' | 'subcontractors' | 'equipment' | 'portal' | 'audit' | 'integrations';
 // See logic/notifications.ts for what each notification is
-export type NotificationKey = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest' | 'report_request';
+export type NotificationKey = 'report_submitted' | 'report_missing' | 'critical_issue' | 'issue_assigned' | 'low_stock' | 'weekly_digest' | 'report_request'
+  | 'report_changes' | 'report_updated';
 
 export interface NotificationRule { whatsapp: boolean; email: boolean }
 
@@ -116,6 +117,8 @@ export interface Report {
   text: string; notes?: string; issues: string; weather?: string; stage: string; progress: number; workersPresent: number;
   materialsUsed?: { materialId: string; name: string; unit: string; qty: number }[];
   photos: string[]; photoCount?: number; createdBy: string; createdByName: string; source?: ReportSource;
+  review?: import('./logic/reports').ReportReview | null; // changes asked for by a manager, and whether they were made
+  editedAt?: unknown;             // last time the author updated it after a request for changes
 }
 // companies/{cid}/sites/{sid}/milestones/{id}. weight is relative (equal when unset).
 export type MilestoneStatus = 'not_started' | 'in_progress' | 'done';

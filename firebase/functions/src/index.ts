@@ -12,3 +12,4 @@ export { migrateAccount, onAccountChanged } from './members';
 export { deleteProject } from './projects';
 export { onIssueComment, emailSettings, saveEmailSettings, unsubscribe } from './mail';
 export { aiOverview } from './overview';
+export { requestReportChanges, onReportReviewed } from './reviews';
