@@ -77,7 +77,7 @@ export default function Team() {
                       {!m.phone && m.active !== false && <span className="pill" title="Add a WhatsApp number on their account to send them alerts">No WhatsApp number</span>}</td>
                     <td>{ROLE_LABELS[m.role] || m.role}</td>
                     <td>{isSiteScoped(m.role)
-                      ? (m.siteIds?.length ? sites.filter((s) => m.siteIds.includes(s.id)).map((s) => s.name).join(', ') : <span className="pill bad">No sites</span>)
+                      ? (m.siteIds?.length ? sites.filter((s) => m.siteIds.includes(s.id)).map((s) => s.name).join(', ') : <span className="pill warn">No projects yet</span>)
                       : <span className="muted">All sites</span>}</td>
                     <td>{off ? <span className="pill bad">Switched off</span> : <span className="pill ok">Active</span>}</td>
                     <td>{editable && <button type="button" className="btn sm ghost" onClick={() => setEditing(editing === m.id ? null : m.id)}>{editing === m.id ? 'Close' : 'Manage'}</button>}</td>
@@ -147,7 +147,7 @@ function MemberPanel({ m, roles, sites, busy, onSave, onActive, onReset, onRemov
       </div>
       {isSiteScoped(role) && (
         <fieldset className="field"><legend>Sites they can access</legend>
-          {!sites.length ? <p className="hint">No sites yet.</p> : <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
+          {!sites.length ? <p className="hint">No projects yet.</p> : <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
         </fieldset>
       )}
       <div className="actions">

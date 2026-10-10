@@ -18,7 +18,7 @@ export function ReportDayPill({ cid, site }) {
     <span className="report-day">
       {st === 'sent' ? <span className="pill ok">Report sent {site.lastReportTime}</span>
         : st === 'due' ? <span className="pill bad">Report missing</span>
-          : <span className="pill">{REPORT_DAY_LABELS[st]}</span>}
+          : <span className="pill calm">{REPORT_DAY_LABELS[st]}</span>}
       {manage && st === 'due' && <button type="button" className="linkish" onClick={() => skip(true)} title="No work on site today (holiday, rain…): nobody is chased for a report">No work today? Skip</button>}
       {manage && st === 'skipped' && <button type="button" className="linkish" onClick={() => skip(false)}>Undo</button>}
     </span>

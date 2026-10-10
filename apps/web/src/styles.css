@@ -827,3 +827,4 @@ main:focus { outline: none; }
 .row-inline input[type="date"] { max-width: 200px; }
 .skip-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .skip-list li { display: inline-flex; gap: 8px; align-items: center; background: var(--sunk); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; font-size: 13px; }
+.pill.calm { background: var(--sunk); color: var(--muted); border: 1px solid var(--line); }

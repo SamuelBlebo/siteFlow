@@ -60,7 +60,6 @@ export function InviteForm({ roles, sites, onInvited, onCancel }) {
     e.preventDefault();
     const v = validate(inviteInput, f);
     if (!v.ok) return setErr(v.error);
-    if (isSiteScoped(v.data.role) && !v.data.siteIds.length) return setErr('Choose at least one site for this person.');
     setBusy(true); setErr('');
     try {
       const res = await team.invite(v.data);
@@ -93,8 +92,9 @@ export function InviteForm({ roles, sites, onInvited, onCancel }) {
         </select>
         <p className="hint">{ROLE_DESCRIPTIONS[f.role]}</p></div>
       {isSiteScoped(f.role) && (
-        <fieldset className="field"><legend>Sites they can access</legend>
-          {!sites.length ? <p className="hint">Add a site first.</p> : <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={f.siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
+        <fieldset className="field"><legend>Projects they work on (optional)</legend>
+          {!!sites.length && <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={f.siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
+          <p className="hint">{sites.length ? 'None yet is fine: add them to projects later, here on the Team page or from a project’s Team tab.' : 'No projects yet. Add them to projects later, from the Team page or a project’s Team tab.'}</p>
         </fieldset>
       )}
       <div className="actions">
