@@ -79,6 +79,9 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   const critical = openIssues.filter((i) => i.priority === 'critical').length;
   const states = Object.fromEntries(active.map((s) => [s.id, scheduleStatus(s, milestones[s.id] || [])]));
   const behind = active.filter((s) => states[s.id].state === 'behind');
+  const lowSites = active.filter((s) => (materials[s.id] || []).some((m) => m.active !== false && materialStatus(m, usage[s.id]?.[m.id]).low));
+  // Where each headline box leads: one project straight to its tab, several to the projects list
+  const one = (list, tab) => (list.length === 1 ? `/sites/${list[0].id}?tab=${tab}` : '/sites');
   const lowStock = active.reduce((n, s) => n + (materials[s.id] || []).filter((m) => m.active !== false && materialStatus(m, usage[s.id]?.[m.id]).low).length, 0);
   const budgetAll = active.reduce((n, s) => n + (finance[s.id]?.budget || 0), 0);
   const spentAll = active.reduce((n, s) => n + (finance[s.id]?.spent || 0), 0);
@@ -124,13 +127,13 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         <dl className="tiles">
           {money && (
             <>
-              <div className="tile"><dt>Portfolio value</dt><dd>{big(budgetAll)}</dd>
+              <div className="tile"><TileLink to={can('finance.view') ? '/finance' : '/sites'} label="Open finance" /><dt>Portfolio value</dt><dd>{big(budgetAll)}</dd>
                 <div className="foot"><span className="delta nt">{active.length} active project{active.length === 1 ? '' : 's'}</span></div></div>
-              <div className="tile"><dt>Spent to date</dt><dd>{big(spentAll)}</dd>
+              <div className="tile"><TileLink to="/finance" label="Open finance" /><dt>Spent to date</dt><dd>{big(spentAll)}</dd>
                 <div className="foot"><span className={`delta ${usedPct >= 90 ? 'dn' : usedPct > 70 ? 'nt' : 'up'}`}>{budgetAll ? `${usedPct}% of budget` : 'No budget'}</span><Spark data={weeks.map((w) => w.total)} /></div></div>
             </>
           )}
-          <div className="tile"><dt>Daily reports</dt>
+          <div className="tile"><TileLink to="/reports" label="Open daily reports" /><dt>Daily reports</dt>
             <dd>{period === 'today' ? reportsIn : sentInPeriod}<small> of {period === 'today' ? reporting.length : expected}</small></dd>
             <div className="foot">
               {period === 'today'
@@ -139,21 +142,21 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
               <Spark data={perDay.map((d) => d.reports)} color="var(--ok)" />
             </div></div>
           {mod('labour') && (
-            <div className="tile"><dt>Workforce today</dt><dd>{workers}<small> of {crewAll}</small></dd>
+            <div className="tile"><TileLink to={one(active, 'labour')} label="Open the workforce" /><dt>Workforce today</dt><dd>{workers}<small> of {crewAll}</small></dd>
               <div className="foot"><span className="delta up">{crewAll ? `${Math.round((workers / crewAll) * 100)}% on site` : 'No crews yet'}</span><Spark data={perDay.map((d) => d.workers)} color="var(--c-done)" /></div></div>
           )}
-          <div className="tile"><dt>Open issues</dt><dd><Link to="/issues">{openIssues.length}</Link></dd>
+          <div className="tile"><TileLink to="/issues" label="Open issues" /><dt>Open issues</dt><dd>{openIssues.length}</dd>
             <div className="foot"><span className={`delta ${critical ? 'dn' : 'up'}`}>{critical ? `${critical} critical` : 'None critical'}</span></div></div>
         </dl>
 
         <dl className="tiles mtiles">
-          <div className="tile"><dt>Programme</dt><dd>{behind.length ? `${behind.length} behind` : 'On time'}</dd>
+          <div className="tile"><TileLink to={one(behind, 'progress')} label="Open the programme" /><dt>Programme</dt><dd>{behind.length ? `${behind.length} behind` : 'On time'}</dd>
             <div className="foot"><span className={`delta ${behind.length ? 'dn' : 'up'}`}>{behind.length ? behind.map((s) => s.name.split(' ')[0]).join(', ') : 'No project behind plan'}</span></div></div>
           {mod('materials') && (
-            <div className="tile"><dt>Materials to reorder</dt><dd>{lowStock}</dd>
+            <div className="tile"><TileLink to={one(lowSites, 'materials')} label="Open materials to reorder" /><dt>Materials to reorder</dt><dd>{lowStock}</dd>
               <div className="foot"><span className={`delta ${lowStock ? 'nt' : 'up'}`}>{lowStock ? 'Below reorder level' : 'Stock levels fine'}</span></div></div>
           )}
-          <div className="tile"><dt>On hold</dt><dd>{active.length - reporting.length}</dd>
+          <div className="tile"><TileLink to="/sites?status=on_hold" label="Open projects on hold" /><dt>On hold</dt><dd>{active.length - reporting.length}</dd>
             <div className="foot"><span className="delta nt">Not chased for reports</span></div></div>
         </dl>
 
@@ -310,4 +313,9 @@ function FirstRun({ can, company }) {
       </div>
     </div>
   );
+}
+
+// Makes a whole headline box a link (the box stays a description list for screen readers)
+function TileLink({ to, label }) {
+  return <Link to={to} className="tile-link" aria-label={label} />;
 }

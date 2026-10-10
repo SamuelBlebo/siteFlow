@@ -800,3 +800,12 @@ main:focus { outline: none; }
 .today-report.sent .today-icon { background: var(--ok); font-size: 15px; }
 .today-report .chev { color: var(--muted); font-size: 14px; }
 .today-body { padding: 4px 18px 18px; border-top: 1px solid var(--line); }
+
+/* Dashboard headline boxes: the whole box opens the page behind it */
+.tile { position: relative; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.tile:has(.tile-link):hover { border-color: color-mix(in srgb, var(--brass) 55%, var(--line)); box-shadow: 0 10px 26px rgba(15, 29, 39, .12); transform: translateY(-1px); }
+.tile-link { position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+.tile-link:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.tile:has(.tile-link) dt::after { content: ' \2192'; color: var(--muted); opacity: 0; transition: opacity .15s ease; }
+.tile:has(.tile-link):hover dt::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tile, .tile:has(.tile-link):hover { transform: none; transition: none; } }

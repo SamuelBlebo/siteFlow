@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
 import { prettyDate, todayKey } from '@siteflow/shared';
@@ -27,7 +27,9 @@ export default function Sites() {
   const mine = useDocsByIds((id) => siteDoc(cid, id), all ? [] : profile?.siteIds || [], [cid]);
   const { data: sites, loading } = all ? everyone : mine;
   const error = all ? everyone.error : null;
-  const [filter, setFilter] = useState('open');
+  const [params] = useSearchParams();
+  // ?status=on_hold (from the dashboard) opens on that filter
+  const [filter, setFilter] = useState(() => (FILTERS.some(([k]) => k === params.get('status')) ? params.get('status') : 'open'));
   const [q, setQ] = useState('');
   const [view, setViewState] = useState(savedView);
   const setView = (v) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* private window: not remembered */ } };
