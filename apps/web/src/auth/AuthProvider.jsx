@@ -13,6 +13,9 @@ const AuthCtx = createContext(null);
 // projects there. profile joins the two, so screens keep using profile.role, profile.siteIds and cid.
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  // false until Firebase has said whether someone is signed in (it restores the session on load):
+  // until then nothing may treat the person as signed out, or links opened directly would be lost
+  const [ready, setReady] = useState(false);
   const [account, setAccount] = useState(undefined); // undefined: loading, null: none yet
   const [member, setMember] = useState(undefined);
   const [error, setError] = useState(null);
@@ -25,6 +28,7 @@ export function AuthProvider({ children }) {
       unsubAccount();
       let hadAccount = false;
       setUser(u);
+      setReady(true);
       setError(null);
       setMember(undefined);
       if (!u) { setAccount(null); return; }
@@ -79,7 +83,7 @@ export function AuthProvider({ children }) {
     name: member.name || account.name, email: member.email || account.email || '', phone: member.phone ?? account.phone,
     mustChangePassword: account.mustChangePassword, emailPrefs: account.emailPrefs ?? null,
   } : null), [account, member, current, companyIds]);
-  const loading = !!user && !error && (account === undefined || legacy || (!!current && member === undefined));
+  const loading = !ready || (!!user && !error && (account === undefined || legacy || (!!current && member === undefined)));
 
   // A switched-off membership or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);

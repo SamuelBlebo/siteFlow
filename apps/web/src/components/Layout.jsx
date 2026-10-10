@@ -52,7 +52,7 @@ export default function Layout() {
           </div>
         ) : (
           <div className="org"><b>{company.name}</b>
-            <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : 'Site workspace'}</span></div>
+            <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">
           {all && <NavLink to="/" end>Dashboard</NavLink>}

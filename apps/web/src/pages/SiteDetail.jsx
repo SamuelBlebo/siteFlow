@@ -64,7 +64,7 @@ export default function SiteDetail() {
   return (
     <>
     <div className="dtop">
-      <p className="crumb" style={{ marginRight: 'auto' }}><Link to="/">Dashboard</Link> / <Link to="/sites">Projects</Link> / {site.name}</p>
+      <p className="crumb" style={{ marginRight: 'auto' }}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
       <ReportButton cid={cid} site={site} />
     </div>
     <section className="wrap">
@@ -107,7 +107,7 @@ export default function SiteDetail() {
       {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
       {tab === 'reports' && (
         <>
-          {work && <ReportForm cid={cid} site={site} presentCount={data.presentCount} logs={data.logs} />}
+          {work && <><h3 className="sub">Today’s report</h3><ReportForm cid={cid} site={site} presentCount={data.presentCount} logs={data.logs} /></>}
           <ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} />
           <h3 className="sub">Report history</h3>
           <ReportHistory cid={cid} site={site} />
