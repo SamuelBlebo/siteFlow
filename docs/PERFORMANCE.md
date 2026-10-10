@@ -17,7 +17,7 @@ What SiteFlow reads, writes and downloads, and why. Stage 14 audit, October 2026
 ## Reads, by screen
 
 - **Dashboard** (managers): sites, open issues, the last two weeks of reports (max 500), and the last 100 issues. Per open site, live: materials, today's material entries, today's attendance, milestones, and finance (finance roles only). These listeners only cost reads when something changes. With many sites (50+), the next step would be a per-site summary document kept by a trigger.
-- **Site workspace / phone:** one site's materials, workers, today's entries, today's attendance and milestones, live. Pay only for finance roles.
+- **Project page / phone:** one site's materials, workers, today's entries, today's attendance and milestones, live. Pay only for finance roles.
 - **Reports, issues, notifications and activity:** always limited (`limit`) and filtered by date in the query, never whole collections.
 - **Phone:** the Firestore cache is unlimited and kept on disk, so reopening the app reads from the phone first.
 

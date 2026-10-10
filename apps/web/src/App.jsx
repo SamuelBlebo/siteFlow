@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useAuth } from './auth/AuthProvider';
@@ -32,8 +32,6 @@ const IssueDetail = lazy(() => import('./pages/IssueDetail'));
 const Finance = lazy(() => import('./pages/Finance'));
 const SiteDetail = lazy(() => import('./pages/SiteDetail'));
 const Team = lazy(() => import('./pages/Team'));
-const MySites = lazy(() => import('./pages/MySites'));
-const SiteWorkspace = lazy(() => import('./pages/SiteWorkspace'));
 
 // Signed in, with an active profile, and (optionally) a permission.
 // Hiding a page is only convenience: the security rules enforce the same permissions.
@@ -60,13 +58,19 @@ function Guard({ perm, children }) {
     );
   }
   if (profile.mustChangePassword) return <SetPassword />;
-  if (perm && !can(perm)) return <Navigate to="/work" replace />;
+  if (perm && !can(perm)) return <Navigate to="/sites" replace />;
   return children;
+}
+
+function WorkRedirect() {
+  const { sid } = useParams();
+  const { search } = useLocation();
+  return <Navigate to={`/sites/${sid}${search}`} replace />;
 }
 
 function Home() {
   const { can } = useAuth();
-  return can('sites.all') ? <Dashboard /> : <Navigate to="/work" replace />;
+  return can('sites.all') ? <Dashboard /> : <Navigate to="/sites" replace />;
 }
 
 export default function App() {
@@ -81,14 +85,14 @@ export default function App() {
         <Route path="/email-settings" element={<EmailSettings />} />
         <Route element={<Guard><Layout /></Guard>}>
           <Route index element={<Home />} />
-          <Route path="sites" element={<Guard perm="sites.all"><Sites /></Guard>} />
+          <Route path="sites" element={<Sites />} />
           <Route path="reports" element={<Guard perm="sites.all"><Reports /></Guard>} />
           <Route path="reports/:sid/:rid" element={<ReportDetail />} />
           <Route path="issues" element={<Guard perm="sites.all"><Issues /></Guard>} />
           <Route path="issues/:sid/:id" element={<IssueDetail />} />
           <Route path="finance" element={<Guard perm="finance.view"><Finance /></Guard>} />
           <Route path="sites/new" element={<Guard perm="sites.manage"><NewSite /></Guard>} />
-          <Route path="sites/:sid" element={<Guard perm="sites.all"><SiteDetail /></Guard>} />
+          <Route path="sites/:sid" element={<SiteDetail />} />
           <Route path="team" element={<Guard perm="team.manage"><Team /></Guard>} />
           <Route path="company" element={<Guard perm="company.settings"><Company /></Guard>} />
           <Route path="modules" element={<Guard perm="company.settings"><Modules /></Guard>} />
@@ -96,8 +100,9 @@ export default function App() {
           <Route path="welcome" element={<Guard perm="company.settings"><Welcome /></Guard>} />
           <Route path="photo-credits" element={<PhotoCredits />} />
           <Route path="account" element={<Account />} />
-          <Route path="work" element={<MySites />} />
-          <Route path="work/:sid" element={<SiteWorkspace />} />
+          {/* The site workspace is now part of the project page: old links (emails, WhatsApp) still work */}
+          <Route path="work" element={<Navigate to="/sites" replace />} />
+          <Route path="work/:sid" element={<WorkRedirect />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

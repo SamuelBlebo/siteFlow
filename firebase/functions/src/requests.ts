@@ -64,7 +64,7 @@ export const requestReport = onCall({ ...callOpts, secrets: SECRETS }, async (re
       channels: { whatsapp: input.whatsapp, email: input.email },
       values: { name: m.name.split(' ')[0], who: me.name, role, site: site.name, due, note: input.note ? `Note: ${input.note}` : '' },
       subject: `${me.name} asked for the daily report: ${site.name}`,
-      emailText: `Hi ${m.name.split(' ')[0]},\n\n${me.name} (${role}) has asked you for the daily report for ${site.name} for ${due}.${input.note ? `\n\nNote: ${input.note}` : ''}\n\nSend it from the SiteFlow app, or here: ${APP_URL}/work/${input.siteId}?tab=report\n\nSiteFlow`,
+      emailText: `Hi ${m.name.split(' ')[0]},\n\n${me.name} (${role}) has asked you for the daily report for ${site.name} for ${due}.${input.note ? `\n\nNote: ${input.note}` : ''}\n\nSend it from the SiteFlow app, or here: ${APP_URL}/sites/${input.siteId}?tab=reports\n\nSiteFlow`,
       recipients: [m],
     });
   }

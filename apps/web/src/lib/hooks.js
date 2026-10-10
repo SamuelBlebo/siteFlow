@@ -19,6 +19,24 @@ export function useQuery(makeQuery, deps) {
   return { data, loading, error };
 }
 
+// Live documents by id (site teams read only the projects they are on, one by one). Missing or
+// unreadable ones are left out.
+export function useDocsByIds(makeRef, ids, deps) {
+  const [docs, setDocs] = useState({});
+  const [loading, setLoading] = useState(true);
+  const key = ids.join(',');
+  useEffect(() => {
+    if (!ids.length) { setDocs({}); setLoading(false); return undefined; }
+    setLoading(true);
+    const seen = new Set();
+    const unsubs = ids.map((id) => onSnapshot(makeRef(id),
+      (s) => { seen.add(id); setDocs((d) => ({ ...d, [id]: s.exists() ? { id: s.id, ...s.data() } : null })); if (seen.size === ids.length) setLoading(false); },
+      () => { seen.add(id); setDocs((d) => ({ ...d, [id]: null })); if (seen.size === ids.length) setLoading(false); }));
+    return () => unsubs.forEach((u) => u());
+  }, [key, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { data: ids.map((id) => docs[id]).filter(Boolean), loading };
+}
+
 // A long list read a page at a time. makeQuery returns a query ending in limit(pageSize).
 // The first page stays live; "more" fetches the next page once, starting after the last item
 // already loaded (a cursor), so earlier pages are never downloaded again.

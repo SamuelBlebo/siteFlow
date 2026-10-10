@@ -9,9 +9,11 @@ import { save, savedText, toast } from '../lib/save';
 import { deleteProject, team } from '../lib/account';
 import {
   ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, big, budgetInput, budgetUsedPct, cedi, isOn,
-  friendlyError, isSiteOpen, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
+  friendlyError, isSiteOpen, isSiteScoped, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
   validate, waPhone, currencySymbol } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
+import TodayPanel from '../components/TodayPanel';
+import ReportForm from '../components/ReportForm';
 import ReportHistory from '../components/ReportHistory';
 import ReportRequests from '../components/ReportRequests';
 import MaterialsPanel from '../components/MaterialsPanel';
@@ -30,9 +32,8 @@ import { Ring } from '../components/Charts';
 
 export default function SiteDetail() {
   const { sid } = useParams();
-  const { cid, can } = useAuth();
+  const { cid, can, role } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') || 'overview';
   const setTab = (t) => setParams({ tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const data = useSiteData(cid, sid, { withPay: can('finance.view') });
@@ -48,18 +49,22 @@ export default function SiteDetail() {
 
   const open = isSiteOpen(site);
   const work = can('site.work') && open;
-  const tabs = [['overview', 'Overview'], ['reports', 'Daily reports'], ['progress', 'Progress'], ['issues', 'Issues']];
+  // One page per project for everyone. The site team starts on Today; managers on Overview.
+  // Older addresses (the site workspace's tab names) still land on the right tab.
+  const OLD_TABS = { report: 'reports', history: 'reports', drawing: 'overview', workers: 'labour' };
+  const asked = params.get('tab');
+  const tab = OLD_TABS[asked] || asked || (can('site.work') && isSiteScoped(role) ? 'today' : 'overview');
+  const tabs = [...(can('site.work') ? [['today', 'Today']] : []), ['overview', 'Overview'], ['reports', 'Daily reports'], ['progress', 'Progress'], ['issues', 'Issues']];
   if (mod('materials')) tabs.push(['materials', 'Materials']);
   if (mod('labour')) tabs.push(['labour', 'Labour']);
   if (money) tabs.push(['budget', 'Budget']);
-  tabs.push(['team', 'Team']);
+  if (can('team.manage') || can('sites.manage')) tabs.push(['team', 'Team']);
   if (can('sites.manage')) tabs.push(['settings', 'Settings']);
 
   return (
     <>
     <div className="dtop">
       <p className="crumb" style={{ marginRight: 'auto' }}><Link to="/">Dashboard</Link> / <Link to="/sites">Projects</Link> / {site.name}</p>
-      {work && <Link to={`/work/${sid}`} className="btn ghost">Open site workspace</Link>}
       <ReportButton cid={cid} site={site} />
     </div>
     <section className="wrap">
@@ -99,11 +104,19 @@ export default function SiteDetail() {
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} /></>}
-      {tab === 'reports' && <><ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} /><ReportHistory cid={cid} site={site} /></>}
+      {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
+      {tab === 'reports' && (
+        <>
+          {work && <ReportForm cid={cid} site={site} presentCount={data.presentCount} logs={data.logs} />}
+          <ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} />
+          <h3 className="sub">Report history</h3>
+          <ReportHistory cid={cid} site={site} />
+        </>
+      )}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
-      {tab === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
-      {tab === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
+      {tab === 'materials' && mod('materials') && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
+      {tab === 'labour' && mod('labour') && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'budget' && money && <BudgetPanel cid={cid} site={site} data={data} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
       {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} />}

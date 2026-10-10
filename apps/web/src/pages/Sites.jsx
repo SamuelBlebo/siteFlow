@@ -4,8 +4,8 @@ import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
 import { prettyDate, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useQuery, useTitle } from '../lib/hooks';
-import { sitesCol } from '../lib/db';
+import { useDocsByIds, useQuery, useTitle } from '../lib/hooks';
+import { siteDoc, sitesCol } from '../lib/db';
 import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
 import PageHead from '../components/PageHead';
@@ -18,10 +18,15 @@ const FILTERS = [['open', 'Active and on hold'], ['active', 'Active'], ['on_hold
 
 // All sites in the company, for roles that see every site
 export default function Sites() {
-  useTitle('Sites');
-  const { cid, can } = useAuth();
+  useTitle('Projects');
+  const { cid, can, profile } = useAuth();
   const nav = useNavigate();
-  const { data: sites, loading, error } = useQuery(() => cid && sitesCol(cid), [cid]);
+  // Roles that see every project list them all; site teams load the projects they are on
+  const all = can('sites.all');
+  const everyone = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
+  const mine = useDocsByIds((id) => siteDoc(cid, id), all ? [] : profile?.siteIds || [], [cid]);
+  const { data: sites, loading } = all ? everyone : mine;
+  const error = all ? everyone.error : null;
   const [filter, setFilter] = useState('open');
   const [q, setQ] = useState('');
   const [view, setViewState] = useState(savedView);
@@ -40,7 +45,7 @@ export default function Sites() {
 
   return (
     <>
-    <PageHead title="Projects" sub={`${sites.length} project${sites.length === 1 ? '' : 's'} in total`}>
+    <PageHead title={all ? 'Projects' : 'My projects'} sub={all ? `${sites.length} project${sites.length === 1 ? '' : 's'} in total` : 'The projects you work on. Open one to send today’s report, mark attendance or log materials.'}>
       {can('sites.manage') && <Link to="/sites/new" className="btn gold">New project</Link>}
     </PageHead>
     <section className="wrap">
@@ -48,7 +53,7 @@ export default function Sites() {
       </div>
       {!sites.length ? (
         <div className="mt">
-          <Empty title="No sites yet." action={can('sites.manage') && <Link to="/sites/new" className="btn">Add a site</Link>}>{can('sites.manage') ? 'Add your first site to start tracking reports, materials and workers.' : 'A manager adds sites. They will appear here.'}</Empty>
+          <Empty title="No sites yet." action={can('sites.manage') && <Link to="/sites/new" className="btn">Add a site</Link>}>{can('sites.manage') ? 'Add your first site to start tracking reports, materials and workers.' : all ? 'A manager adds projects. They will appear here.' : 'You have not been added to a project yet. Ask your manager to add you.'}</Empty>
         </div>
       ) : (
         <>

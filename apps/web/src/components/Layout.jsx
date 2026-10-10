@@ -56,11 +56,10 @@ export default function Layout() {
         ))}
         <nav className="snav" aria-label="Main">
           {all && <NavLink to="/" end>Dashboard</NavLink>}
-          {all && <NavLink to="/sites" end>Projects</NavLink>}
+          <NavLink to="/sites" end>{all ? 'Projects' : 'My projects'}</NavLink>
           {all && <NavLink to="/reports">Daily reports</NavLink>}
           {all && <NavLink to="/issues">Issues</NavLink>}
           {can('finance.view') && mod('budget') && <NavLink to="/finance">Finance</NavLink>}
-          <NavLink to="/work">{all ? 'Site work' : 'My sites'}</NavLink>
           {can('team.manage') && <NavLink to="/team">Team</NavLink>}
           {can('company.settings') && <NavLink to="/modules">Modules</NavLink>}
           {can('company.settings') && <NavLink to="/reminders">Reminders</NavLink>}
@@ -93,7 +92,7 @@ function MySiteLink({ cid, sid }) {
   const { data: s } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   if (!s || s.status === 'closed') return null;
   return (
-    <NavLink to={`/work/${sid}`} className="site-link">
+    <NavLink to={`/sites/${sid}`} className="site-link">
       <span className="dot" style={{ background: late(s) ? 'var(--bad)' : 'var(--ok)' }} aria-hidden="true" /><span>{s.name}</span>
     </NavLink>
   );

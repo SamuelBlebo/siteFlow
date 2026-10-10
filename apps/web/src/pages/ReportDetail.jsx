@@ -9,10 +9,10 @@ import { ErrorState, Loading } from '../components/States';
 export default function ReportDetail() {
   useTitle('Daily report');
   const { sid, rid } = useParams();
-  const { cid, can } = useAuth();
+  const { cid } = useAuth();
   const nav = useNavigate();
   const { data: r, loading, error } = useDoc(() => cid && reportRef(cid, sid, rid), [cid, sid, rid]);
-  const back = can('sites.all') ? `/sites/${sid}?tab=reports` : `/work/${sid}`;
+  const back = `/sites/${sid}?tab=reports`;
 
   if (loading) return <Loading what="report" />;
   return (

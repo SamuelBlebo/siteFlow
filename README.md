@@ -75,6 +75,12 @@ Owners also get **Modules** (switch built modules on or off; the `setModule` fun
 built yet show as Coming soon) and **Reminders** (which alerts go by WhatsApp and email, and the message log). Materials, Labour
 and Budget screens follow the modules, on web and mobile; switching a module off keeps its data.
 
+**One page per project, for everyone** (`/sites/:id`).
+- **Projects:** a grid or list of projects. The site team sees only theirs, as **My projects**.
+- **Tabs:** Today (the day's checklist: attendance, materials, report), Overview (drawing and facts), Daily reports (today's report form above the history), Progress, Issues, Materials, Labour, then Budget, Team and Settings for the roles that have them.
+- **Where a project opens:** supervisors and viewers on Today, managers on Overview. *Make a report* is at the top of the page and on every project card.
+- **Old links:** the old site workspace addresses (`/work`, `/work/:id?tab=…`) redirect to the project page, so older email and WhatsApp links still work.
+
 ## Countries, currency and time zone
 SiteFlow works in any country (`packages/shared/src/locale.ts`: Ghana, Nigeria, Kenya, South Africa and 28 more). Each company picks its
 country at sign-up (guessed from the device), which sets its **currency**, **time zone** and **dialling code**; the owner can change all

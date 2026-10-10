@@ -124,7 +124,7 @@ export async function mailReport(cid: string, sid: string, rid: string, r: Repor
   const step = await threadStep(db, cid, thread);
   let sent = 0;
   for (const m of people) {
-    const links = await linksFor(db, cid, { id: m.id, email: m.email! }, openFor(m, sid, { manager: `/sites/{sid}?tab=reports`, site: `/work/{sid}?tab=history` }));
+    const links = await linksFor(db, cid, { id: m.id, email: m.email! }, openFor(m, sid, { manager: `/sites/{sid}?tab=reports`, site: `/sites/{sid}?tab=reports` }));
     const mail = reportMail(r, links, 'You get each daily report on your projects. Reports for one project and week are one conversation.');
     if (await sendThreadMail(db, { cid, siteId: sid, key: `rmail_${rid}`, thread, step, to: { id: m.id, name: m.name, email: m.email! }, mail, unsubscribe: links.unsubscribe, kind: 'report_email' }) === 'sent') sent++;
   }
@@ -186,7 +186,7 @@ export async function sendReportDigests(company: Company, now = new Date()) {
   for (const m of people) {
     const mine = sites.filter((s) => can(m.role, 'sites.all') || m.siteIds?.includes(s.id));
     if (!mine.length) continue;
-    const reports = mine.flatMap((s) => (todays.get(s.id) || []).map((r) => ({ ...r, link: openFor(m, s.id, { manager: `/sites/{sid}?tab=reports`, site: `/work/{sid}?tab=history` }) })));
+    const reports = mine.flatMap((s) => (todays.get(s.id) || []).map((r) => ({ ...r, link: openFor(m, s.id, { manager: `/sites/{sid}?tab=reports`, site: `/sites/{sid}?tab=reports` }) })));
     const missing = mine.filter((s) => !(todays.get(s.id) || []).length).map((s) => s.name);
     const links = await linksFor(db, company.id, { id: m.id, email: m.email! }, APP_URL);
     const mail = digestMail(m.name, prettyDate(today), reports, missing, links);
