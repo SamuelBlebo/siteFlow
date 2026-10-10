@@ -59,11 +59,11 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, delete: if false;
       allow update: if signedIn() && request.auth.uid == uid
-        && onlyChanges(['name', 'phone', 'mustChangePassword', 'companyId', 'emailPrefs', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'callPhone', 'mustChangePassword', 'companyId', 'emailPrefs', 'updatedAt'])
         // Report and issue emails (logic/mail in shared)
         && (!('emailPrefs' in data()) || (data().emailPrefs is map && data().emailPrefs.keys().hasOnly(['reports', 'issues'])
             && data().emailPrefs.get('reports', 'each') in ['each', 'daily', 'off'] && data().emailPrefs.get('issues', 'all') in ['all', 'mine', 'off']))
-        && isText(data().name, 2, 100) && optText('phone', 20)
+        && isText(data().name, 2, 100) && optText('phone', 20) && optText('callPhone', 20)
         && data().get('mustChangePassword', false) == false
         && (data().get('companyId', '') == resource.data.get('companyId', '')
             || (data().companyId in resource.data.get('companyIds', []) && member(data().companyId)));

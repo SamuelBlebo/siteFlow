@@ -36,12 +36,12 @@ export async function actorOf(db: Firestore, uid: string | undefined): Promise<M
 }
 
 // Adds a company to a person's list and makes it the one they look at if they have none
-export async function joinCompany(db: Firestore, uid: string, cid: string, person: { name: string; email: string; phone?: string }) {
+export async function joinCompany(db: Firestore, uid: string, cid: string, person: { name: string; email: string; phone?: string; callPhone?: string }) {
   const ref = db.doc(paths.user(uid));
   await db.runTransaction(async (t) => {
     const a = (await t.get(ref)).data();
     if (!a) {
-      t.set(ref, { name: person.name, email: person.email, ...(person.phone ? { phone: person.phone } : {}), companyIds: [cid], companyId: cid, createdAt: FieldValue.serverTimestamp() });
+      t.set(ref, { name: person.name, email: person.email, ...(person.phone ? { phone: person.phone } : {}), ...(person.callPhone ? { callPhone: person.callPhone } : {}), companyIds: [cid], companyId: cid, createdAt: FieldValue.serverTimestamp() });
     } else {
       t.update(ref, { companyIds: FieldValue.arrayUnion(cid), ...(a.companyId ? {} : { companyId: cid }), updatedAt: FieldValue.serverTimestamp() });
     }
@@ -98,17 +98,17 @@ export const migrateAccount = onCall(callOpts, async (req) => {
   return { moved };
 });
 
-// A person changed their name or phone: copy it to each company they belong to, so team lists,
+// A person changed their name or phone numbers: copy them to each company they belong to, so team lists,
 // reports and the security rules (which check report authors' names) all use the new one
 export const onAccountChanged = onDocumentUpdated('users/{uid}', async (event) => {
   const before = event.data?.before.data();
   const after = event.data?.after.data();
-  if (!after || (before?.name === after.name && (before?.phone ?? '') === (after.phone ?? ''))) return;
+  if (!after || (before?.name === after.name && (before?.phone ?? '') === (after.phone ?? '') && (before?.callPhone ?? '') === (after.callPhone ?? ''))) return;
   const db = getFirestore();
   const uid = event.params.uid;
   for (const cid of (after.companyIds || []) as string[]) {
     const ref = db.doc(paths.member(cid, uid));
-    await ref.update({ name: after.name, phone: after.phone ? after.phone : FieldValue.delete() }).catch((e) => {
+    await ref.update({ name: after.name, phone: after.phone ? after.phone : FieldValue.delete(), callPhone: after.callPhone ? after.callPhone : FieldValue.delete() }).catch((e) => {
       if (e?.code !== 5) logger.warn('Could not copy profile to membership', { cid, uid, error: String(e) }); // 5: not found
     });
   }

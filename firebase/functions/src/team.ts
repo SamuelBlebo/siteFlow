@@ -111,7 +111,7 @@ export const inviteMember = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, async 
   const db = getFirestore();
   const me = await teamActor(db, req);
   await checkLimit(me.id, 'invite');
-  const { name, email, phone, siteIds, ...rest } = parse(inviteInput, req.data);
+  const { name, email, phone, callPhone, siteIds, ...rest } = parse(inviteInput, req.data);
   const role = rest.role as Role;
   if (!assignableRoles(me.role).includes(role)) throw new HttpsError('permission-denied', `You can't add someone as ${roleName(role)}.`);
   const cid = me.companyId;
@@ -122,7 +122,7 @@ export const inviteMember = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, async 
     if (e?.code === 'auth/invalid-email') throw new HttpsError('invalid-argument', 'Enter a valid email.');
     throw e;
   });
-  if (login) return addExisting(db, me, login.uid, { name, email, phone, role, sites, disabled: !!login.disabled });
+  if (login) return addExisting(db, me, login.uid, { name, email, phone, callPhone, role, sites, disabled: !!login.disabled });
 
   // A strong random password nobody sees: the person sets their own from the invitation link
   let uid: string;
@@ -134,10 +134,10 @@ export const inviteMember = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, async 
     logger.error('inviteMember: createUser failed', { code: e?.code });
     throw new HttpsError('internal', 'Could not create the account.');
   }
-  const member = { role, name, email, ...(phone ? { phone } : {}), siteIds: sites, active: true };
+  const member = { role, name, email, ...(phone ? { phone } : {}), ...(callPhone ? { callPhone } : {}), siteIds: sites, active: true };
   try {
     await db.doc(paths.member(cid, uid)).set({ ...member, invitePending: true, createdAt: FieldValue.serverTimestamp() });
-    await joinCompany(db, uid, cid, { name, email, phone });
+    await joinCompany(db, uid, cid, { name, email, phone, callPhone });
   } catch (e) {
     await db.doc(paths.member(cid, uid)).delete().catch(() => {});
     await getAuth().deleteUser(uid).catch(() => {}); // don't leave a login with no profile behind
@@ -150,7 +150,7 @@ export const inviteMember = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, async 
 });
 
 // Someone with a SiteFlow login joins one more company. No link or password: they sign in as usual.
-async function addExisting(db: Firestore, me: Membership, uid: string, p: { name: string; email: string; phone?: string; role: Role; sites: string[]; disabled: boolean }) {
+async function addExisting(db: Firestore, me: Membership, uid: string, p: { name: string; email: string; phone?: string; callPhone?: string; role: Role; sites: string[]; disabled: boolean }) {
   const cid = me.companyId;
   const ref = db.doc(paths.member(cid, uid));
   const account = (await db.doc(paths.user(uid)).get()).data();
@@ -159,13 +159,14 @@ async function addExisting(db: Firestore, me: Membership, uid: string, p: { name
   const created = await db.runTransaction(async (t) => {
     if ((await t.get(ref)).exists) return false;
     t.set(ref, {
-      role: p.role, name, email: p.email, ...(account?.phone || p.phone ? { phone: account?.phone || p.phone } : {}), siteIds: p.sites, active: true,
+      role: p.role, name, email: p.email, ...(account?.phone || p.phone ? { phone: account?.phone || p.phone } : {}),
+      ...(account?.callPhone || p.callPhone ? { callPhone: account?.callPhone || p.callPhone } : {}), siteIds: p.sites, active: true,
       invitePending: false, joinedAt: FieldValue.serverTimestamp(), createdAt: FieldValue.serverTimestamp(),
     });
     return true;
   });
   if (!created) throw new HttpsError('already-exists', `${name} is already in your team.`);
-  await joinCompany(db, uid, cid, { name, email: p.email, phone: p.phone });
+  await joinCompany(db, uid, cid, { name, email: p.email, phone: p.phone, callPhone: p.callPhone });
   if (p.disabled) await getAuth().updateUser(uid, { disabled: false }); // switched off everywhere before; switches stay per company
   await logActivity(db, me, `added ${name} as ${roleName(p.role)} (already on SiteFlow)`);
 

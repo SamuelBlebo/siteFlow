@@ -43,9 +43,9 @@ describe('change password', () => {
 });
 
 describe('profile update', () => {
-  it('writes name and phone to the user profile path', async () => {
-    await updateMyProfile('u1', { name: 'Kofi Asante', phone: '0241234567' });
-    expect(calls[0]).toEqual(['doc', 'users/u1', { name: 'Kofi Asante', phone: '0241234567', updatedAt: 'ts' }]);
+  it('writes name, WhatsApp number and call number to the user profile path', async () => {
+    await updateMyProfile('u1', { name: 'Kofi Asante', phone: '0241234567', callPhone: '0201112222' });
+    expect(calls[0]).toEqual(['doc', 'users/u1', { name: 'Kofi Asante', phone: '0241234567', callPhone: '0201112222', updatedAt: 'ts' }]);
   });
   it('a rejected update is kept for retry, not lost', async () => {
     failProfile = { code: 'firestore/permission-denied' };

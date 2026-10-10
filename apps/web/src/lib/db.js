@@ -39,7 +39,7 @@ export const activityQuery = (cid, n = 20) => query(collection(db, paths.activit
 
 // ---------- account and company ----------
 // Name and phone live on the person; a Cloud Function copies them to each company they belong to
-export const updateMyProfile = (uid, { name, phone }) => updateDoc(userDoc(uid), { name, phone, updatedAt: serverTimestamp() });
+export const updateMyProfile = (uid, { name, phone, callPhone = '' }) => updateDoc(userDoc(uid), { name, phone, callPhone, updatedAt: serverTimestamp() });
 // Report and issue emails (logic/mail in shared)
 export const saveEmailPrefs = (uid, prefs) => updateDoc(userDoc(uid), { emailPrefs: prefs, updatedAt: serverTimestamp() });
 // Owner or manager: copy the client on each daily report by email

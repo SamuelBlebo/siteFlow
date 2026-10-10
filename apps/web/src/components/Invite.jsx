@@ -50,7 +50,7 @@ function AddedExisting({ issued, onDone }) {
 
 // onCancel: shows a Cancel button (the Team page opens this form from its Add team member button)
 export function InviteForm({ roles, sites, onInvited, onCancel }) {
-  const blank = { name: '', email: '', phone: '', role: 'supervisor', siteIds: [] };
+  const blank = { name: '', email: '', phone: '', callPhone: '', role: 'supervisor', siteIds: [] };
   const [f, setF] = useState(blank);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -82,6 +82,10 @@ export function InviteForm({ roles, sites, onInvited, onCancel }) {
         <div className="field"><label htmlFor="t-n">Name</label><input id="t-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
         <div className="field"><label htmlFor="t-e">Email (used to sign in)</label><input id="t-e" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
         <div className="field"><label htmlFor="t-p">WhatsApp number</label><input id="t-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder={getLocale().phoneExample} /></div>
+      </div>
+      <div className="grid3">
+        <div className="field"><label htmlFor="t-c">Phone for calls (if different)</label><input id="t-c" type="tel" value={f.callPhone} onChange={(e) => setF({ ...f, callPhone: e.target.value })} placeholder={getLocale().phoneExample} />
+          <p className="hint">Leave empty if they take calls on their WhatsApp number.</p></div>
       </div>
       <div className="field"><label htmlFor="t-r">Role</label>
         <select id="t-r" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>

@@ -14,7 +14,7 @@ export default function Account() {
   useTitle('Your account');
   const { user, profile, role, cid } = useAuth();
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
-  const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '' });
+  const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '', callPhone: profile.callPhone || '' });
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
 
@@ -52,6 +52,8 @@ export default function Account() {
           <div className="field"><label htmlFor="a-n">Name</label><input id="a-n" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <div className="field"><label htmlFor="a-p">WhatsApp number</label><input id="a-p" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder={getLocale().phoneExample} />
             <p className="hint">Used for SiteFlow alerts on WhatsApp.</p></div>
+          <div className="field"><label htmlFor="a-c">Phone for calls (if different)</label><input id="a-c" type="tel" value={f.callPhone} onChange={(e) => setF({ ...f, callPhone: e.target.value })} placeholder={getLocale().phoneExample} />
+            <p className="hint">Your team taps Call to reach you. Leave empty to use your WhatsApp number.</p></div>
         </div>
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
       </form>

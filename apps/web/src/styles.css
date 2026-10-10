@@ -813,3 +813,9 @@ main:focus { outline: none; }
 /* Team: the Add team member form, opened from its button */
 .add-member { scroll-margin-top: 90px; }
 .add-member .form.inline { margin-top: 0; border-color: color-mix(in srgb, var(--brass) 45%, var(--line)); box-shadow: var(--shadow); }
+
+/* Call and WhatsApp buttons for a person */
+.contact-links { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.contact-links .btn { display: inline-flex; align-items: center; gap: 5px; }
+.contact-links.compact .btn { padding: 4px 10px; font-size: 12.5px; }
+.mt-xs { margin-top: 6px; }

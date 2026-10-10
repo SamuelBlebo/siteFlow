@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
 
   const profile = useMemo(() => (account && member ? {
     ...member, id: account.id, companyId: current, companyIds,
-    name: member.name || account.name, email: member.email || account.email || '', phone: member.phone ?? account.phone,
+    name: member.name || account.name, email: member.email || account.email || '', phone: member.phone ?? account.phone, callPhone: member.callPhone ?? account.callPhone,
     mustChangePassword: account.mustChangePassword, emailPrefs: account.emailPrefs ?? null,
   } : null), [account, member, current, companyIds]);
   const loading = !ready || (!!user && !error && (account === undefined || legacy || (!!current && member === undefined)));

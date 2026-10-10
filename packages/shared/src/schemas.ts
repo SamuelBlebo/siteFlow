@@ -109,6 +109,7 @@ export const inviteInput = z.object({
   name: personName,
   email: z.string().trim().toLowerCase().email('Enter a valid email.'),
   phone,
+  callPhone: phone, // for calls, when different from the WhatsApp number
   role: roleEnum.refine((r) => r !== 'owner', 'Choose a role.'),
   siteIds: z.array(z.string().min(1)).max(200).default([]),
 });
@@ -120,7 +121,7 @@ export const companySetupInput = z.object({
 });
 
 // Account and organisation
-export const profileInput = z.object({ name: personName, phone });
+export const profileInput = z.object({ name: personName, phone, callPhone: phone });
 // Switch one module on or off (Modules page, owner only, applied by a Cloud Function)
 export const moduleSwitchInput = z.object({ key: z.string().min(1).max(40), on: z.boolean() });
 

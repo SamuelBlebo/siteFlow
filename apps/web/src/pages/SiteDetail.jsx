@@ -25,6 +25,7 @@ import SiteForm from '../components/SiteForm';
 import ProjectDrawing from '../components/ProjectDrawing';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
+import ContactLinks from '../components/ContactLinks';
 import { removeCover, uploadCover } from '../lib/cover';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -200,7 +201,7 @@ function TeamTab({ cid, sid, site }) {
 
   const row = (m, action) => (
     <li key={m.id}><span className="it">
-      <span className="grow"><b>{m.name}</b><small>{ROLE_LABELS[m.role]}{m.email ? `, ${m.email}` : ''}{m.phone ? `, ${m.phone}` : ''}</small></span>{action}
+      <span className="grow"><b>{m.name}</b><small>{ROLE_LABELS[m.role]}{m.email ? `, ${m.email}` : ''}</small></span><ContactLinks person={m} compact />{action}
     </span></li>
   );
   const noneToAdd = can('team.manage')

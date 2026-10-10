@@ -15,6 +15,7 @@ export default function AccountScreen({ navigation }) {
   const [company, setCompany] = useState(null);
   const [name, setName] = useState(profile?.name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
+  const [callPhone, setCallPhone] = useState(profile?.callPhone || '');
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const prefs = emailPrefsFor(profile?.emailPrefs, role);
   const setPref = (k, v) => saveEmailPrefs(user.uid, { ...prefs, [k]: v }).catch((e) => Alert.alert('Could not save', e?.message || 'Try again when you have signal.'));
@@ -28,10 +29,10 @@ export default function AccountScreen({ navigation }) {
   }, [cid]);
 
   function save() {
-    const v = validate(profileInput, { name, phone });
+    const v = validate(profileInput, { name, phone, callPhone });
     if (!v.ok) return setMsg({ kind: 'err', text: v.error });
     updateMyProfile(user.uid, v.data);
-    setName(v.data.name); setPhone(v.data.phone);
+    setName(v.data.name); setPhone(v.data.phone); setCallPhone(v.data.callPhone);
     setMsg({ kind: 'ok', text: 'Your details are saved.' });
   }
 
@@ -64,6 +65,7 @@ export default function AccountScreen({ navigation }) {
       {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
       <Field label="Name" value={name} onChangeText={setName} />
       <Field label="WhatsApp number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder={getLocale().phoneExample} hint="Used for SiteFlow alerts on WhatsApp." />
+      <Field label="Phone for calls (if different)" value={callPhone} onChangeText={setCallPhone} keyboardType="phone-pad" placeholder={getLocale().phoneExample} hint="Your team taps Call to reach you. Leave empty to use your WhatsApp number." />
       <Button title="Save details" onPress={save} />
 
       <H2>Emails</H2>

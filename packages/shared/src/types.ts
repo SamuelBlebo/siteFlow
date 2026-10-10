@@ -43,7 +43,8 @@ export interface UserProfile {
   role: Role;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string;                // WhatsApp number (alerts)
+  callPhone?: string;            // for calls, when different from the WhatsApp number
   siteIds: string[];
   active?: boolean;              // false = switched off; treated as having no access
   mustChangePassword?: boolean;  // users/{uid}; set when an admin issues a temporary password (before invitation links)

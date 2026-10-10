@@ -11,6 +11,7 @@ import {
 import { Empty, ErrorState, Loading } from '../components/States';
 import { NotificationLog } from '../components/Notifications';
 import PageHead from '../components/PageHead';
+import ContactLinks from '../components/ContactLinks';
 import { InviteForm, IssuedLogin } from '../components/Invite';
 
 export default function Team() {
@@ -70,8 +71,9 @@ export default function Team() {
                 const off = m.active === false;
                 return (
                   <tr key={m.id} className={off ? 'muted' : ''}>
-                    <td><b>{m.name}</b>{m.id === user.uid && <span className="muted small"> (you)</span>}<div className="muted small">{m.email}{m.phone ? `, ${m.phone}` : ''}</div>
+                    <td><b>{m.name}</b>{m.id === user.uid && <span className="muted small"> (you)</span>}<div className="muted small">{m.email}{m.phone ? `, WhatsApp ${m.phone}` : ''}{m.callPhone ? `, calls ${m.callPhone}` : ''}</div>
                       <InviteStatus m={m} />
+                      {m.id !== user.uid && <div className="mt-xs"><ContactLinks person={m} compact /></div>}
                       {!m.phone && m.active !== false && <span className="pill" title="Add a WhatsApp number on their account to send them alerts">No WhatsApp number</span>}</td>
                     <td>{ROLE_LABELS[m.role] || m.role}</td>
                     <td>{isSiteScoped(m.role)
