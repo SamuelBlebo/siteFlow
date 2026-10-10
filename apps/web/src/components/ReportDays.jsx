@@ -4,23 +4,35 @@ import { useAuth } from '../auth/AuthProvider';
 import { setSkipDay, setWorkDays } from '../lib/db';
 import { save, toast } from '../lib/save';
 
+// Skip a day after asking; the message after it has Undo. Undo itself needs no question.
+export function skipDay(cid, site, date, on) {
+  const day = prettyDate(date);
+  if (on && !window.confirm(`Skip ${day}? No daily report will be needed that day and nobody will be chased for it. You can undo this later.`)) return Promise.resolve(false);
+  return save(setSkipDay(cid, site, date, on), 'Report days')
+    .then(() => {
+      toast(on ? `${day} skipped: no report needed.` : `${day} needs a report again.`, 'ok', {
+        action: { label: 'Undo', run: () => save(setSkipDay(cid, { ...site, skipDates: on ? [...(site.skipDates || []), date] : (site.skipDates || []).filter((d) => d !== date) }, date, !on), 'Report days').catch((e) => toast(friendlyError(e), 'err')) },
+      });
+      return true;
+    })
+    .catch((e) => { toast(friendlyError(e), 'err'); return false; });
+}
+
 // Today's report state on the project header, with Skip today / Undo for managers
 export function ReportDayPill({ cid, site }) {
   const { can } = useAuth();
   const today = todayKey();
   const st = reportDay(site, today);
   const manage = can('sites.manage');
-  const skip = (on) => save(setSkipDay(cid, site, today, on), 'Report days')
-    .then(() => toast(on ? 'Today is skipped: no report needed.' : 'Today needs a report again.'))
-    .catch((e) => toast(friendlyError(e), 'err'));
+  const skip = (on) => skipDay(cid, site, today, on);
   if (st === 'not_active') return null;
   return (
     <span className="report-day">
       {st === 'sent' ? <span className="pill ok">Report sent {site.lastReportTime}</span>
         : st === 'due' ? <span className="pill bad">Report missing</span>
-          : <span className="pill calm">{REPORT_DAY_LABELS[st]}</span>}
+          : <span className={`pill ${st === 'skipped' ? 'ok skipped' : 'calm'}`}>{REPORT_DAY_LABELS[st]}</span>}
       {manage && st === 'due' && <button type="button" className="linkish" onClick={() => skip(true)} title="No work on site today (holiday, rain…): nobody is chased for a report">No work today? Skip</button>}
-      {manage && st === 'skipped' && <button type="button" className="linkish" onClick={() => skip(false)}>Undo</button>}
+      {manage && st === 'skipped' && <button type="button" className="linkish" onClick={() => skip(false)}>Undo skip</button>}
     </span>
   );
 }
@@ -34,7 +46,7 @@ export function ReportDaysSetting({ cid, site }) {
     if (!next.length) return toast('Keep at least one working day, or put the project on hold.', 'err');
     save(setWorkDays(cid, site.id, next), 'Working days').catch((e) => toast(friendlyError(e), 'err'));
   };
-  const skip = (d, on) => save(setSkipDay(cid, site, d, on), 'Report days').catch((e) => toast(friendlyError(e), 'err'));
+  const skip = (d, on) => skipDay(cid, site, d, on);
   const today = todayKey();
   const skipped = (site.skipDates || []).filter((d) => d >= today).concat((site.skipDates || []).filter((d) => d < today).slice(-5)).sort();
   const isDefault = days.join() === DEFAULT_WORK_DAYS.join();

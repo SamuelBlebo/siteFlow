@@ -235,7 +235,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                           <td>{f ? <>{big(f.spent || 0)} {f.budget ? <span className="muted small">of {big(f.budget)}</span> : null}</> : '–'}</td>
                         </>
                       )}
-                      <td>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill calm">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[reportDay(s, today)]}</td>
+                      <td>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill ok skipped">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[reportDay(s, today)]}</td>
                       {mod('labour') && <td>{present[s.id] || 0} / {crew[s.id] || 0}</td>}
                       <td>{iss.length ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
                     </tr>

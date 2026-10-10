@@ -19,10 +19,11 @@ function emit(patch) {
 export function subscribe(fn) { listeners.add(fn); fn(state); return () => listeners.delete(fn); }
 export const getState = () => state;
 
-export function toast(message, kind = 'ok', { sticky = kind === 'err' } = {}) {
+// action: { label, run } shows a button on the toast (e.g. Undo); such toasts stay a little longer
+export function toast(message, kind = 'ok', { sticky = kind === 'err', action = null } = {}) {
   const id = nextId++;
-  emit({ toasts: [...state.toasts, { id, message, kind }] });
-  if (!sticky) setTimeout(() => dismiss(id), 5000);
+  emit({ toasts: [...state.toasts, { id, message, kind, action }] });
+  if (!sticky) setTimeout(() => dismiss(id), action ? 9000 : 5000);
   return id;
 }
 export const dismiss = (id) => emit({ toasts: state.toasts.filter((t) => t.id !== id) });

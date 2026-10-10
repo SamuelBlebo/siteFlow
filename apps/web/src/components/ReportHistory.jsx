@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { filterReports, friendlyError, prettyDate, reportDay, todayKey } from '@siteflow/shared';
+import { filterReports, prettyDate, reportDay, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { setSkipDay } from '../lib/db';
-import { save, toast } from '../lib/save';
+import { skipDay } from './ReportDays';
 import { usePagedQuery } from '../lib/hooks';
 import { siteReportsQuery } from '../lib/db';
 
@@ -66,9 +65,7 @@ function DayStrip({ cid, site, reports }) {
   const days = lastDays(14, today).reverse();
   const state = (d) => reportDay({ ...site, lastReportDate: byDate.has(d) ? d : null }, d);
   const missed = days.filter((d) => state(d) === 'due' && d < today).length;
-  const skip = (d, on) => save(setSkipDay(cid, site, d, on), 'Report days')
-    .then(() => toast(on ? `${prettyDate(d)} skipped: no report needed.` : `${prettyDate(d)} needs a report again.`))
-    .catch((e) => toast(friendlyError(e), 'err'));
+  const skip = (d, on) => skipDay(cid, site, d, on);
   return (
     <>
       <h3 className="sub">Last two weeks</h3>
@@ -83,13 +80,13 @@ function DayStrip({ cid, site, reports }) {
           const tip = st === 'due' && manage ? `${label}. Click to skip (no report needed).` : st === 'skipped' && manage ? `${label}. Click to undo.` : label;
           return (
             <li key={d} className={`${cls}${d === today ? ' today' : ''}`}>
-              {act ? <button type="button" onClick={act} title={tip} aria-label={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}</button>
-                : <span title={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}</span>}
+              {act ? <button type="button" onClick={act} title={tip} aria-label={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}{st === 'skipped' && <small>skipped{manage ? ' ↺' : ''}</small>}</button>
+                : <span title={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}{st === 'skipped' && <small>skipped</small>}</span>}
             </li>
           );
         })}
       </ol>
-      <p className="hint">{missed ? `${missed} working day${missed === 1 ? '' : 's'} without a report.` : 'A report every working day.'}{manage ? ' Click a red day to skip it (no work that day), a grey one to undo.' : ''} Green days open the report.</p>
+      <p className="hint">{missed ? `${missed} working day${missed === 1 ? '' : 's'} without a report.` : 'A report every working day.'}{manage ? ' Click a red day to skip it (no work that day); click a skipped day (↺) to undo.' : ''} Green days open the report.</p>
     </>
   );
 }

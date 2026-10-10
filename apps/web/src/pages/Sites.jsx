@@ -130,6 +130,6 @@ function LastReport({ s, today }) {
   if (d === 'sent') return <span className="pill ok">Today {s.lastReportTime}</span>;
   const last = s.lastReportDate ? prettyDate(s.lastReportDate) : 'None yet';
   if (d === 'due') return <><span className="pill bad">Due today</span><div className="muted small">Last: {last}</div></>;
-  if (d === 'skipped' || d === 'day_off') return <><span className="pill calm">{d === 'skipped' ? 'Skipped today' : 'Day off'}</span><div className="muted small">Last: {last}</div></>;
+  if (d === 'skipped' || d === 'day_off') return <><span className={`pill ${d === 'skipped' ? 'ok skipped' : 'calm'}`}>{d === 'skipped' ? 'Skipped today' : 'Day off'}</span><div className="muted small">Last: {last}</div></>;
   return <span className="muted">{last}</span>;
 }
