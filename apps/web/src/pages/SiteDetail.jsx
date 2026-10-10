@@ -64,7 +64,7 @@ export default function SiteDetail() {
     </div>
     <section className="wrap">
       <div className="panel">
-        <div className="sitehead">
+        <div className={`sitehead ${site.cover ? 'with-cover' : ''}`}>
           {site.cover && <ProjectCover site={site} className="head" />}
           <Ring pct={site.progress || 0} size={84} />
           <div>

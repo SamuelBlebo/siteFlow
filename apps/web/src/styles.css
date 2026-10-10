@@ -780,8 +780,10 @@ main:focus { outline: none; }
 @media (prefers-reduced-motion: reduce) { .pcard, .pcard:hover, .pcard-media .cover img, .pcard:hover .pcard-media .cover img { transform: none; transition: none; } }
 
 /* Project page: the image beside the progress ring */
-.sitehead .cover.head { width: 168px; border-radius: 12px; flex: none; }
-@media (max-width: 640px) { .sitehead .cover.head { width: 100%; } }
+.sitehead.with-cover { grid-template-columns: 168px auto 1fr auto; }
+.sitehead .cover.head { width: 168px; border-radius: 12px; }
+@media (max-width: 1100px) { .sitehead.with-cover { grid-template-columns: 120px auto 1fr; } .sitehead .cover.head { width: 120px; } }
+@media (max-width: 640px) { .sitehead.with-cover { grid-template-columns: auto 1fr; } .sitehead .cover.head { grid-column: 1 / -1; width: 100%; } }
 .cover-setting { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: center; margin-bottom: 8px; }
 .cover-setting .cover { border-radius: 10px; }
 .cover-setting label.btn { cursor: pointer; }
