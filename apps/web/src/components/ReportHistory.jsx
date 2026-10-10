@@ -16,7 +16,7 @@ function lastDays(n, today = todayKey()) {
 const STRIP = {
   sent: ['ok', 'report sent: open it'],
   due: ['miss', 'no report'],
-  skipped: ['skip', 'skipped: no report needed'],
+  skipped: ['skipped-day', 'skipped: no report needed'],
   day_off: ['off', 'day off'],
   not_active: ['off', 'no report expected'],
 };

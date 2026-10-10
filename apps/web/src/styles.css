@@ -835,7 +835,7 @@ main:focus { outline: none; }
 .days li > button { cursor: pointer; }
 .days li > button:hover { filter: brightness(.95); text-decoration: underline; }
 .days li > button:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
-.days li.skip { background: var(--sunk); color: var(--muted); border: 1px dashed var(--line); text-decoration: line-through; }
+.days li.skipped-day { background: var(--sunk); color: var(--muted); border: 1px dashed var(--line); text-decoration: line-through; }
 .days li.off { background: transparent; color: var(--muted); opacity: .65; border: 1px solid var(--line); }
 .days li.today { box-shadow: inset 0 0 0 2px var(--brass); }
 
@@ -869,6 +869,6 @@ main:focus { outline: none; }
 
 .linkbtn.strong { font-weight: 700; color: var(--brass); margin-right: 6px; }
 /* Skipped days read as settled (green) but marked as skipped */
-.days li.skip { background: var(--okbg); color: var(--ok); border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); text-decoration: none; }
+.days li.skipped-day { background: var(--okbg); color: var(--ok); border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); text-decoration: none; }
 .days li small { display: block; font-size: 10px; line-height: 1.1; text-transform: lowercase; opacity: .85; }
 .pill.ok.skipped { border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); }
