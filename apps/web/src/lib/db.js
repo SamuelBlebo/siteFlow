@@ -40,6 +40,10 @@ export const activityQuery = (cid, n = 20) => query(collection(db, paths.activit
 // ---------- account and company ----------
 // Name and phone live on the person; a Cloud Function copies them to each company they belong to
 export const updateMyProfile = (uid, { name, phone, callPhone = '' }) => updateDoc(userDoc(uid), { name, phone, callPhone, updatedAt: serverTimestamp() });
+// Personal pins ("companyId/projectId"), newest first, at most 50
+export const togglePin = (uid, current, key, on) => updateDoc(userDoc(uid), {
+  pinned: on ? [key, ...current.filter((k) => k !== key)].slice(0, 50) : current.filter((k) => k !== key), updatedAt: serverTimestamp(),
+});
 // Report and issue emails (logic/mail in shared)
 export const saveEmailPrefs = (uid, prefs) => updateDoc(userDoc(uid), { emailPrefs: prefs, updatedAt: serverTimestamp() });
 // Days that need a daily report: working days, and single days skipped (logic/sites in shared)

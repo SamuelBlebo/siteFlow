@@ -9,6 +9,7 @@ import { PLAN_LABELS, ROLE_LABELS, isOn, planFor, reportDay, todayKey } from '@s
 import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
 import ThemeSwitch from './ThemeSwitch';
+import { usePins } from './PinButton';
 
 const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 // Red dot: an active site whose daily report hasn't come in today
@@ -24,7 +25,8 @@ export default function Layout() {
   const all = can('sites.all');
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
   const { data: sites } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
-  const open = sites.filter((s) => s.status !== 'closed').sort((a, b) => a.name.localeCompare(b.name));
+  const pinned = usePins();
+  const open = sites.filter((s) => s.status !== 'closed').sort((a, b) => (pinned(b.id) - pinned(a.id)) || a.name.localeCompare(b.name));
   const mod = (k) => isOn(company, k);
 
   // A new page starts at the top, and screen readers start reading it from its heading

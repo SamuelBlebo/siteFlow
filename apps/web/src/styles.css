@@ -873,3 +873,21 @@ main:focus { outline: none; }
 .days li small { display: block; font-size: 10px; line-height: 1.1; text-transform: lowercase; opacity: .85; }
 .pill.ok.skipped { border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); }
 .days li.skipped-day > button:hover { background: color-mix(in srgb, var(--ok) 14%, transparent); text-decoration: none; }
+
+/* Projects grid: four in a row on wide screens */
+.pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1400px) { .pgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .pgrid { grid-template-columns: minmax(0, 1fr); } }
+.pgrid + .pgroup-title { margin-top: 26px; }
+.pgroup-title { font-size: 14px; font-family: var(--font-ui, inherit); font-weight: 600; color: var(--muted); margin: 6px 0 10px; letter-spacing: .2px; }
+
+/* Pin buttons (personal: pinned projects come first) */
+.pcard { position: relative; }
+.pin-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
+.pin-btn:hover { color: var(--ink); border-color: var(--brass); }
+.pin-btn.on { color: var(--brass); border-color: var(--brass); background: var(--brass-soft); }
+.pin-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.pin-btn.on-card { position: absolute; top: 10px; right: 10px; z-index: 2; background: rgba(255, 255, 255, .92); box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
+.pin-btn.on-card.on { background: var(--brass); color: #fff; }
+.pin-btn.sm { width: 28px; height: 28px; }

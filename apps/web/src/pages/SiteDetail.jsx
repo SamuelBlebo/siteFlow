@@ -241,8 +241,15 @@ function SettingsTab({ cid, sid, site }) {
     toast(savedText(res, 'Site details'));
   }
   async function changeStatus(status) {
-    const closing = `Close ${site.name}? The site team will no longer be able to add reports, attendance or materials. You can reopen it later.`;
-    if (status === 'closed' && !window.confirm(closing)) return;
+    // Ask before every change of status
+    const question = {
+      on_hold: `Put ${site.name} on hold? Daily reports won't be expected and nobody will be chased for them. The site team can still send reports. You can make it active again at any time.`,
+      closed: `Close ${site.name}? The site team will no longer be able to add reports, attendance or materials. Everything recorded stays. You can reopen it later.`,
+      active: site.status === 'closed'
+        ? `Reopen ${site.name}? The site team will be able to add reports, attendance and materials again, and daily reports will be expected on working days.`
+        : `Make ${site.name} active again? Daily reports will be expected on working days, and missing ones chased.`,
+    }[status];
+    if (question && !window.confirm(question)) return;
     setStatusBusy(true);
     try {
       await save(setSiteStatus(cid, sid, status), 'Site status');

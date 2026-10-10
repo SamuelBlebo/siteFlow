@@ -59,7 +59,9 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, delete: if false;
       allow update: if signedIn() && request.auth.uid == uid
-        && onlyChanges(['name', 'phone', 'callPhone', 'mustChangePassword', 'companyId', 'emailPrefs', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'callPhone', 'mustChangePassword', 'companyId', 'emailPrefs', 'pinned', 'updatedAt'])
+        // Pinned projects ("companyId/projectId"), shown first on Projects
+        && (!('pinned' in data()) || (data().pinned is list && data().pinned.size() <= 50))
         // Report and issue emails (logic/mail in shared)
         && (!('emailPrefs' in data()) || (data().emailPrefs is map && data().emailPrefs.keys().hasOnly(['reports', 'issues'])
             && data().emailPrefs.get('reports', 'each') in ['each', 'daily', 'off'] && data().emailPrefs.get('issues', 'all') in ['all', 'mine', 'off']))

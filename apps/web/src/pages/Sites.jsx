@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
+import PinButton, { usePins } from '../components/PinButton';
 import { prettyDate, reportDay, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDocsByIds, useQuery, useTitle } from '../lib/hooks';
@@ -38,11 +39,14 @@ export default function Sites() {
   if (loading) return <Loading what="sites" />;
   if (error) return <section className="wrap"><ErrorState error={error} what="your sites" /></section>;
 
+  const pinned = usePins();
   const term = q.trim().toLowerCase();
   const shown = sites
     .filter((s) => filter === 'all' || (filter === 'open' ? s.status !== 'closed' : s.status === filter))
     .filter((s) => !term || `${s.name} ${s.location} ${s.foremanName || ''} ${s.client?.name || ''}`.toLowerCase().includes(term))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => (pinned(b.id) - pinned(a.id)) || a.name.localeCompare(b.name)); // pinned first
+  const pins = shown.filter((s) => pinned(s.id));
+  const rest = shown.filter((s) => !pinned(s.id));
   const count = (f) => sites.filter((s) => (f === 'open' ? s.status !== 'closed' : f === 'all' || s.status === f)).length;
 
   return (
@@ -70,14 +74,19 @@ export default function Sites() {
             <input type="search" aria-label="Search sites" placeholder="Search name, location, foreman or client" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           {!shown.length ? <Empty title="No sites match." action={<button type="button" className="btn sm ghost" onClick={() => { setQ(''); setFilter('all'); }}>Clear search and filter</button>}>Try another filter or search.</Empty> : view === 'grid' ? (
-            <ul className="pgrid">{shown.map((s) => <ProjectCard key={s.id} cid={cid} site={s} today={today} />)}</ul>
+            <>
+              {!!pins.length && <h2 className="pgroup-title"><span aria-hidden="true">📌</span> Pinned</h2>}
+              {!!pins.length && <ul className="pgrid">{pins.map((s) => <ProjectCard key={s.id} cid={cid} site={s} today={today} />)}</ul>}
+              {!!pins.length && !!rest.length && <h2 className="pgroup-title">All projects</h2>}
+              {!!rest.length && <ul className="pgrid">{rest.map((s) => <ProjectCard key={s.id} cid={cid} site={s} today={today} />)}</ul>}
+            </>
           ) : (
             <div className="scroll"><table>
               <thead><tr><th>Site</th><th>Status</th><th>Stage</th><th>Progress</th><th>Planned finish</th><th>Last report</th>{can('site.work') && <th><span className="visually-hidden">Report</span></th>}</tr></thead>
               <tbody>
                 {shown.map((s) => (
                   <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
-                    <td><div className="pname"><ProjectCover site={s} className="thumb" label={false} /><div><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link>{s.sample && <> <span className="pill sample">Sample</span></>}<div className="muted small">{s.location}{s.client?.name ? `, for ${s.client.name}` : ''}</div></div></div></td>
+                    <td><div className="pname"><PinButton site={s} className="sm" /><ProjectCover site={s} className="thumb" label={false} /><div><Link className="sname" to={`/sites/${s.id}`}>{s.name}</Link>{s.sample && <> <span className="pill sample">Sample</span></>}<div className="muted small">{s.location}{s.client?.name ? `, for ${s.client.name}` : ''}</div></div></div></td>
                     <td><StatusPill status={s.status} /></td>
                     <td>{s.stage || '–'}</td>
                     <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small></td>
@@ -119,6 +128,7 @@ function ProjectCard({ cid, site: s, today }) {
           </dl>
         </div>
       </Link>
+      <PinButton site={s} className="on-card" />
       <div className="pcard-foot"><ReportButton cid={cid} site={s} size="sm" /></div>
     </li>
   );
