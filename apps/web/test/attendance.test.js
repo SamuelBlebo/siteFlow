@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getDoc, getDocs, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { attendanceTotals, dailyWages, dateRange, markAllPresent, siteInput, validate, wageSheet } from '@siteflow/shared';
+import { attendanceTotals, dailyWages, dateRange, markAllPresent, siteInput, todayKey, validate, wageSheet } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
   addWorker, attendanceDoc, attendanceRangeQuery, createSite, markAttendance, setWorkerActive, setWorkerRate, sub, subDoc, updateWorker,
@@ -62,7 +62,9 @@ describe('workers', () => {
 });
 
 describe('marking attendance', () => {
-  const day = '2026-06-15';
+  // The site team may mark today and yesterday only (the rules), so the tests use those days
+  const day = todayKey();
+  const yesterday = todayKey(new Date(Date.now() - 86400000));
   it('one tap per worker, and two supervisors marking at once do not clash', async () => {
     const u = await as('super');
     await save(markAttendance(cid, sid, { marks: { [W.Ama]: 'late' }, uid: u.uid, date: day }));
@@ -77,7 +79,7 @@ describe('marking attendance', () => {
   });
   it('"mark everyone present" fills only the unmarked', async () => {
     const u = await as('super');
-    const d2 = '2026-06-16';
+    const d2 = yesterday;
     await save(markAttendance(cid, sid, { marks: { [W.Ama]: 'leave' }, uid: u.uid, date: d2 }));
     const active = [{ id: W.Ama }, { id: W.Yaw }];
     await save(markAttendance(cid, sid, { marks: markAllPresent(active, await marksOn(d2)), uid: u.uid, date: d2 }));
@@ -91,25 +93,37 @@ describe('marking attendance', () => {
     const u = await as('super');
     await expect(save(markAttendance(cid, sid, { marks: { [W.Ama]: 'sick' }, uid: u.uid, date: day }))).rejects.toBeInstanceOf(SaveError);
   });
+  it('the site team cannot mark days long past or in the future; the owner can', async () => {
+    const u = await as('super');
+    const old = todayKey(new Date(Date.now() - 5 * 86400000));
+    const next = todayKey(new Date(Date.now() + 3 * 86400000));
+    await expect(save(markAttendance(cid, sid, { marks: { [W.Ama]: 'present' }, uid: u.uid, date: old }))).rejects.toBeInstanceOf(SaveError);
+    await expect(save(markAttendance(cid, sid, { marks: { [W.Ama]: 'present' }, uid: u.uid, date: next }))).rejects.toBeInstanceOf(SaveError);
+    const o = await as('owner');
+    await save(markAttendance(cid, sid, { marks: { [W.Ama]: 'present' }, uid: o.uid, date: old }));
+  });
 });
 
 describe('history and wages', () => {
+  const today = todayKey();
+  const yesterday = todayKey(new Date(Date.now() - 86400000));
+  const tomorrow = todayKey(new Date(Date.now() + 86400000));
   it('a date range returns the days in order, with totals per worker', async () => {
     await as('super');
-    const records = (await getDocs(attendanceRangeQuery(cid, sid, '2026-06-15', '2026-06-17'))).docs.map((d) => d.data());
-    expect(records.map((r) => r.date)).toEqual(['2026-06-15', '2026-06-16']);
+    const records = (await getDocs(attendanceRangeQuery(cid, sid, yesterday, tomorrow))).docs.map((d) => d.data());
+    expect(records.map((r) => r.date)).toEqual([yesterday, today]);
     const workers = await workerList();
-    const t = attendanceTotals(workers, records, dateRange('2026-06-15', '2026-06-17'));
+    const t = attendanceTotals(workers, records, dateRange(yesterday, tomorrow));
     expect(t.find((x) => x.workerId === W.Ama)).toMatchObject({ worked: 1, late: 1, leave: 1, unmarked: 1 });
     expect(t.find((x) => x.workerId === W.Yaw)).toMatchObject({ worked: 2, present: 2, unmarked: 1 });
   });
   it('finance sees wages; the supervisor cannot read pay', async () => {
     await as('finance');
     const pay = Object.fromEntries((await getDocs(sub(cid, sid, 'workerPay'))).docs.map((d) => [d.id, d.data()]));
-    const records = (await getDocs(attendanceRangeQuery(cid, sid, '2026-06-15', '2026-06-16'))).docs.map((d) => d.data());
+    const records = (await getDocs(attendanceRangeQuery(cid, sid, yesterday, today))).docs.map((d) => d.data());
     const workers = await workerList();
     expect(wageSheet(workers, pay, records).total).toBe(150 * 1 + 100 * 2); // Ama late once (paid), Yaw present twice
-    expect(dailyWages(workers, pay, records[0].marks)).toBe(250);
+    expect(dailyWages(workers, pay, records.find((r) => r.date === today).marks)).toBe(250); // Ama late, Yaw present today
     await as('super');
     expect(await code(getDocs(sub(cid, sid, 'workerPay')))).toBe('permission-denied');
   });

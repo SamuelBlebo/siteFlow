@@ -56,3 +56,6 @@ export const aiOverview = call('aiOverview');
 
 // Send a daily report back to its author with what to change (owners, admins, project managers)
 export const requestReportChanges = call('requestReportChanges');
+
+// Wages for a period: worked out on the server from attendance and rates; the period is locked once paid
+export const recordWages = call('recordWages');

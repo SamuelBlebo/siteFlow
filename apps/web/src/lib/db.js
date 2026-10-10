@@ -1,7 +1,7 @@
 import {
-  collection, collectionGroup, deleteDoc, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
+  collection, collectionGroup, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
-import { db, getStorage } from '../firebase';
+import { auth, db, getStorage } from '../firebase';
 import {
   countDifference, withSkip, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, thumbName, todayKey, timeHM,
 } from '@siteflow/shared';
@@ -80,7 +80,7 @@ export function createSite(cid, { budget, ...details }) {
   const b = writeBatch(db);
   const siteRef = doc(sitesCol(cid));
   b.set(siteRef, { ...siteFields(details), progress: 0, status: 'active', lastReportDate: null, createdAt: serverTimestamp() });
-  b.set(financeDoc(cid, siteRef.id), { budget, spent: 0, updatedAt: serverTimestamp() }); // spent is kept by the server from here on
+  b.set(financeDoc(cid, siteRef.id), { budget, spent: 0, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid }); // spent is kept by the server from here on
   return { id: siteRef.id, done: b.commit() };
 }
 
@@ -89,7 +89,8 @@ export const updateSiteDetails = (cid, sid, details) => updateDoc(siteDoc(cid, s
 export const setSiteStatus = (cid, sid, status) => updateDoc(siteDoc(cid, sid), { status, updatedAt: serverTimestamp() });
 // Site managers: total budget and (optionally) budget per category
 export const setBudget = (cid, sid, budget, budgetByCategory) =>
-  updateDoc(financeDoc(cid, sid), { budget, ...(budgetByCategory ? { budgetByCategory } : {}), updatedAt: serverTimestamp() });
+  // updatedBy: the rules require it, and the change goes in the activity log
+  updateDoc(financeDoc(cid, sid), { budget, ...(budgetByCategory ? { budgetByCategory } : {}), updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid });
 
 export const addMaterial = (cid, sid, m) => setDoc(doc(sub(cid, sid, 'materials')), { ...m, active: true, createdAt: serverTimestamp() });
 
@@ -148,13 +149,20 @@ export function materialLogsQuery(cid, sid, { from = '', materialId = '' } = {},
 }
 
 // Expenses (finance roles). The recalcSiteSpending function keeps the totals right.
-export const addExpense = (cid, sid, input, { uid, name }) =>
-  setDoc(doc(sub(cid, sid, 'expenses')), { ...input, createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
-export const updateExpense = (cid, sid, id, input) => updateDoc(subDoc(cid, sid, 'expenses', id), { ...input, updatedAt: serverTimestamp() });
-export const deleteExpense = (cid, sid, id) => deleteDoc(subDoc(cid, sid, 'expenses', id));
-// Wages for a period, worked out from attendance, recorded as one Labour expense
-export const recordWages = (cid, sid, { from, to, amount, date = todayKey(), method = '' }, me) =>
-  addExpense(cid, sid, { date, category: 'Labour', amount, note: `Wages ${from} to ${to}`, payee: 'Site workers', method, ref: '' }, me);
+// A new expense's id is made when the form opens and kept until it is saved, so a double click or a
+// retry after a slow save writes the same expense instead of a second one (the rules refuse the repeat)
+export const newExpenseId = (cid, sid) => doc(sub(cid, sid, 'expenses')).id;
+export const addExpense = (cid, sid, input, { uid, name }, id = newExpenseId(cid, sid)) =>
+  setDoc(subDoc(cid, sid, 'expenses', id), { ...input, createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
+// Every change names who made it (checked by the rules); the server keeps the history
+export const updateExpense = (cid, sid, id, input, { uid, name }) =>
+  updateDoc(subDoc(cid, sid, 'expenses', id), { ...input, updatedBy: uid, updatedByName: name, updatedAt: serverTimestamp() });
+// Expenses are never deleted: a void keeps the original amount and the reason, and is final
+export const voidExpense = (cid, sid, x, reason, { uid, name }) => updateDoc(subDoc(cid, sid, 'expenses', x.id), {
+  voided: true, voidReason: reason, voidedAmount: x.amount, amount: 0, voidedBy: uid, voidedByName: name, voidedAt: serverTimestamp(),
+  updatedBy: uid, updatedByName: name, updatedAt: serverTimestamp(),
+});
+export const expenseHistoryQuery = (cid, sid, id) => query(collection(db, `${paths.subDoc(cid, sid, 'expenses', id)}/history`), orderBy('at', 'desc'), limit(30));
 
 // Marks one or more workers for a day, e.g. { w1: 'present', w2: 'late' }. Merged per worker, so
 // two people marking at once don't overwrite each other.

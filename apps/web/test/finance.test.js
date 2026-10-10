@@ -1,15 +1,15 @@
 // Budgets, expenses and server-computed totals against the emulators (Cloud Function included)
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getDoc, getDocs, increment, terminate, updateDoc } from 'firebase/firestore';
+import { deleteDoc, getDoc, getDocs, increment, terminate, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { budgetVariance, siteFinanceSummary, siteInput, validate, wageSheet } from '@siteflow/shared';
+import { budgetVariance, siteFinanceSummary, siteInput, todayKey, validate, wageSheet } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
-  addExpense, addWorker, attendanceRangeQuery, createSite, deleteExpense, expensesQuery, financeDoc, markAttendance, recordWages, setBudget,
-  setWorkerRate, sub, updateExpense,
+  addExpense, addWorker, attendanceDoc, attendanceRangeQuery, createSite, expenseHistoryQuery, expensesQuery, financeDoc, markAttendance, setBudget,
+  setWorkerRate, sub, subDoc, updateExpense, voidExpense,
 } from '../src/lib/db';
-import { team } from '../src/lib/account';
+import { recordWages, team } from '../src/lib/account';
 import { save, SaveError } from '../src/lib/save';
 import { waitFor } from './wait';
 import { join } from './join';
@@ -58,16 +58,39 @@ describe('expenses and server totals', () => {
     const f = await until((x) => x.expenseCount === 2);
     expect(f).toMatchObject({ spent: 46200.5, byCategory: { Materials: 45000.5, Transport: 1200 } });
   });
-  it('correcting and deleting an expense keeps the totals right', async () => {
+  it('correcting and voiding an expense keeps the totals right, and both are in its history', async () => {
     const me = await as('finance');
     const [first] = (await getDocs(expensesQuery(cid, sid))).docs.filter((d) => d.data().category === 'Transport');
-    await save(updateExpense(cid, sid, first.id, expense({ category: 'Transport', amount: 800, note: 'Corrected' })));
+    await save(updateExpense(cid, sid, first.id, expense({ category: 'Transport', amount: 800, note: 'Corrected' }), me));
     await until((x) => x.byCategory?.Transport === 800);
-    await save(deleteExpense(cid, sid, first.id));
-    const f = await until((x) => x.expenseCount === 1);
-    expect(f.spent).toBe(45000.5);
+    await save(voidExpense(cid, sid, { id: first.id, amount: 800 }, 'Entered twice', me));
+    const f = await until((x) => x.spent === 45000.5);
     expect(f.byCategory.Transport ?? 0).toBe(0);
-    void me;
+    const x = (await getDoc(subDoc(cid, sid, 'expenses', first.id))).data();
+    expect(x).toMatchObject({ voided: true, amount: 0, voidedAmount: 800, voidReason: 'Entered twice', voidedBy: me.uid });
+    const history = await waitFor(async () => (await getDocs(expenseHistoryQuery(cid, sid, first.id))).docs.map((d) => d.data()), (h) => h.some((x) => x.action === 'voided'));
+    expect(history.map((h) => h.action)).toEqual(expect.arrayContaining(['edited', 'voided']));
+    expect(history.find((h) => h.action === 'edited')).toMatchObject({ byName: names.finance, before: { amount: 1200 }, after: { amount: 800 } });
+  });
+  it('expenses are never deleted; a void is final; every change names its author', async () => {
+    const me = await as('finance');
+    const docs = (await getDocs(expensesQuery(cid, sid))).docs;
+    const live = docs.find((d) => !d.data().voided);
+    const dead = docs.find((d) => d.data().voided);
+    await expect(deleteDoc(subDoc(cid, sid, 'expenses', live.id))).rejects.toThrow();
+    await expect(updateDoc(subDoc(cid, sid, 'expenses', dead.id), { note: 'Un-void it', updatedBy: me.uid, updatedByName: me.name })).rejects.toThrow();
+    await expect(updateDoc(subDoc(cid, sid, 'expenses', live.id), { amount: 1 })).rejects.toThrow(); // unsigned
+    const owner = await as('owner');
+    await expect(updateDoc(subDoc(cid, sid, 'expenses', live.id), { amount: 1, updatedBy: me.uid, updatedByName: me.name })).rejects.toThrow(); // signed as someone else
+    void owner;
+  });
+  it('a double save of the same new expense does not create two', async () => {
+    const me = await as('finance');
+    const id = 'dup-check-1';
+    await save(addExpense(cid, sid, expense({ category: 'Other', amount: 5 }), me, id));
+    await expect(save(addExpense(cid, sid, expense({ category: 'Other', amount: 5 }), me, id))).rejects.toBeInstanceOf(SaveError);
+    await save(voidExpense(cid, sid, { id, amount: 5 }, 'Test entry', me));
+    await until((x) => x.spent === 45000.5);
   });
   it('nobody can write the totals from the app, not even the owner', async () => {
     await as('owner');
@@ -83,30 +106,52 @@ describe('expenses and server totals', () => {
 });
 
 describe('labour cost and summaries', () => {
-  it('wages from attendance are recorded as a Labour expense', async () => {
+  it('wages are worked out on the server, a period is paid once, and its attendance is locked until voided', async () => {
     const sup = await as('super');
     await save(addWorker(cid, sid, { name: 'Kojo Badu', trade: 'Mason', phone: '' }, sup.uid));
     await save(addWorker(cid, sid, { name: 'Esi Arthur', trade: 'Labourer', phone: '' }, sup.uid));
     const workers = (await getDocs(sub(cid, sid, 'workers'))).docs.map((d) => ({ id: d.id, ...d.data() }));
-    await save(markAttendance(cid, sid, { marks: { [workers[0].id]: 'present', [workers[1].id]: 'late' }, uid: sup.uid, date: '2026-06-08' }));
-    await save(markAttendance(cid, sid, { marks: { [workers[0].id]: 'present', [workers[1].id]: 'absent' }, uid: sup.uid, date: '2026-06-09' }));
-    const me = await as('finance');
+    // The site team marks today and yesterday (the rules allow recent days only)
+    const today = todayKey();
+    const yesterday = todayKey(new Date(Date.now() - 86400000));
+    await save(markAttendance(cid, sid, { marks: { [workers[0].id]: 'present', [workers[1].id]: 'late' }, uid: sup.uid, date: yesterday }));
+    await save(markAttendance(cid, sid, { marks: { [workers[0].id]: 'present', [workers[1].id]: 'absent' }, uid: sup.uid, date: today }));
+    await as('finance');
     await save(setWorkerRate(cid, sid, workers[0].id, 150));
     await save(setWorkerRate(cid, sid, workers[1].id, 90));
     const pay = Object.fromEntries((await getDocs(sub(cid, sid, 'workerPay'))).docs.map((d) => [d.id, d.data()]));
-    const att = (await getDocs(attendanceRangeQuery(cid, sid, '2026-06-08', '2026-06-14'))).docs.map((d) => d.data());
-    const sheet = wageSheet(workers, pay, att);
-    expect(sheet.total).toBe(150 * 2 + 90);
-    await save(recordWages(cid, sid, { from: '2026-06-08', to: '2026-06-14', amount: sheet.total, date: '2026-06-15' }, me));
-    const f = await until((x) => x.byCategory?.Labour === 390);
+    const att = (await getDocs(attendanceRangeQuery(cid, sid, yesterday, today))).docs.map((d) => d.data());
+    expect(wageSheet(workers, pay, att).total).toBe(150 * 2 + 90);
+    const paid = await recordWages({ siteId: sid, from: yesterday, to: today });
+    expect(paid).toMatchObject({ amount: 390, workers: 2 });
+    // The same days can't be paid twice
+    await expect(recordWages({ siteId: sid, from: today, to: today })).rejects.toMatchObject({ code: 'functions/already-exists' });
+    // Paid attendance is locked for everyone, managers included
+    const sup2 = await as('super');
+    await expect(save(markAttendance(cid, sid, { marks: { [workers[1].id]: 'present' }, uid: sup2.uid, date: today }))).rejects.toBeInstanceOf(SaveError);
+    const pm = await as('manager');
+    await expect(save(markAttendance(cid, sid, { marks: { [workers[1].id]: 'present' }, uid: pm.uid, date: today }))).rejects.toBeInstanceOf(SaveError);
+    expect((await getDoc(attendanceDoc(cid, sid, today))).data().paidBy).toBe(paid.id);
+    // Wage payments can be voided (not edited); voiding unlocks their attendance
+    const fin2 = await as('finance');
+    await expect(updateDoc(subDoc(cid, sid, 'expenses', paid.id), { amount: 1, updatedBy: fin2.uid, updatedByName: fin2.name })).rejects.toThrow();
+    await save(voidExpense(cid, sid, { id: paid.id, amount: 390 }, 'Wrong rates', fin2));
+    await waitFor(async () => (await getDoc(attendanceDoc(cid, sid, today))).data().paidBy, (p) => p === undefined);
+    const sup3 = await as('super');
+    await save(markAttendance(cid, sid, { marks: { [workers[1].id]: 'present' }, uid: sup3.uid, date: today }));
+    // ... and the period can be paid again
+    await as('finance');
+    const again = await recordWages({ siteId: sid, from: yesterday, to: today });
+    expect(again.amount).toBe(150 * 2 + 90 * 2);
+    const f = await until((x) => x.byCategory?.Labour === 480);
     const v = budgetVariance(f);
-    expect(v.rows.find((r) => r.category === 'Labour')).toMatchObject({ budget: 40000, actual: 390 });
-    expect(v.total).toMatchObject({ budget: 120000, actual: 45390.5 });
+    expect(v.rows.find((r) => r.category === 'Labour')).toMatchObject({ budget: 40000, actual: 480 });
+    expect(v.total).toMatchObject({ budget: 120000, actual: 45480.5 });
   });
   it('summary: used, remaining and the expected final cost', async () => {
     await as('owner');
     const s = siteFinanceSummary(await fin(), 25);
-    expect(s).toMatchObject({ budget: 120000, spent: 45390.5, remaining: 74609.5, usedPct: 38, forecast: 181562 });
+    expect(s).toMatchObject({ budget: 120000, spent: 45480.5, remaining: 74519.5, usedPct: 38, forecast: 181922 });
     expect(s.overspendRisk).toBe(false); // 38% used vs 25% done is a 13-point gap, under the 15-point threshold
     expect(siteFinanceSummary(await fin(), 20).overspendRisk).toBe(true);
   });

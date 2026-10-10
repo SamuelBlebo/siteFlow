@@ -1,4 +1,13 @@
 import { defineConfig } from 'vitest/config';
+import { BaseSequencer } from 'vitest/node';
+
+class LastSequencer extends BaseSequencer {
+  async sort(files) {
+    const sorted = await super.sort(files);
+    const last = (f) => (f.moduleId ?? f[1] ?? '').toString().replaceAll('\\', '/').endsWith('test/demo.test.js');
+    return [...sorted.filter((f) => !last(f)), ...sorted.filter(last)];
+  }
+}
 
 // Integration tests against the Firebase emulators (npm run test:web from the repo root)
 export default defineConfig({
@@ -6,6 +15,9 @@ export default defineConfig({
     include: ['test/**/*.test.js'],
     environment: 'node',
     fileParallelism: false, // one emulator set; keep the load predictable
+    // Loading and removing the sample projects fires a couple of thousand triggers, which the
+    // emulator runs one by one: run that file last so other files don't wait behind them
+    sequence: { sequencer: LastSequencer },
     testTimeout: 30000,
     hookTimeout: 60000,
     env: {

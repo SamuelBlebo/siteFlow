@@ -49,8 +49,10 @@ describe('critical issues', () => {
     issueId = newIssueId(cid, sid);
     await save(createIssue(cid, await site(), issue(), { id: issueId, ...me }));
     // The first trigger in a fresh emulator can take a while to start
-    const all = await waitFor(logs, (l) => of(l, 'critical_issue').length >= 3, { timeout: 45000 });
-    expect(of(all, 'critical_issue')).toEqual([`${names.manager}/email`, `${names.manager}/whatsapp`, `${names.owner}/email`].sort()); // the owner has no number
+    // WhatsApp as a critical alert; email as the issue's email thread (one conversation per issue)
+    const all = await waitFor(logs, (l) => of(l, 'critical_issue').length >= 1 && of(l, 'issue_email').length >= 2, { timeout: 45000 });
+    expect(of(all, 'critical_issue')).toEqual([`${names.manager}/whatsapp`]); // the owner has no number
+    expect(of(all, 'issue_email')).toEqual([`${names.manager}/email`, `${names.owner}/email`].sort());
     const n = all.find((x) => x.kind === 'critical_issue' && x.channel === 'whatsapp');
     expect(n).toMatchObject({ status: 'skipped', to: '…2222', error: expect.stringMatching(/Test mode/) });
     expect(n.text).toBe(`SiteFlow: critical issue at Sunyani clinic: Scaffold unsafe on level 2. Reported by ${names.super}. Open SiteFlow to assign it.`);
@@ -59,7 +61,7 @@ describe('critical issues', () => {
     const me = await as('super');
     await save(addComment(cid, sid, issueId, 'Boards on the way', me));
     await new Promise((r) => setTimeout(r, 2500));
-    expect(of(await logs(), 'critical_issue')).toHaveLength(3);
+    expect(of(await logs(), 'critical_issue')).toHaveLength(1);
   });
   it('giving the issue to the supervisor tells them (WhatsApp by default)', async () => {
     const m = await as('manager');
@@ -70,14 +72,15 @@ describe('critical issues', () => {
 });
 
 describe('owner settings', () => {
-  it('switching WhatsApp off for critical issues leaves email only', async () => {
+  it('switching WhatsApp off for critical issues leaves the email thread only', async () => {
     await as('owner');
     await save(updateNotifications(cid, { critical_issue: { whatsapp: false, email: true } }));
     const me = await as('super');
     const id = newIssueId(cid, sid);
     await save(createIssue(cid, await site(), issue({ title: 'Generator fire risk' }), { id, ...me }));
-    const all = await waitFor(logs, (l) => l.filter((n) => n.kind === 'critical_issue' && n.text.includes('Generator')).length >= 2);
-    expect(all.filter((n) => n.kind === 'critical_issue' && n.text.includes('Generator')).map((n) => n.channel)).toEqual(['email', 'email']);
+    const all = await waitFor(logs, (l) => l.filter((n) => n.kind === 'issue_email' && n.text.includes('Generator')).length >= 2);
+    expect(all.filter((n) => n.kind === 'issue_email' && n.text.includes('Generator')).map((n) => n.channel)).toEqual(['email', 'email']);
+    expect(all.filter((n) => n.kind === 'critical_issue' && n.text.includes('Generator'))).toHaveLength(0);
   });
   it('daily report alerts are off by default, and come once switched on', { timeout: 60000 }, async () => {
     const me = await as('super');

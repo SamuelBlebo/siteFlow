@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
 import {
-  addExpense, attendanceRangeQuery, deleteExpense, expensesQuery, financeDoc, recordWages, setBudget, sub, updateExpense,
+  addExpense, attendanceRangeQuery, expenseHistoryQuery, expensesQuery, financeDoc, newExpenseId, setBudget, sub, updateExpense, voidExpense,
 } from '../lib/db';
+import { recordWages } from '../lib/account';
 import { save, toast } from '../lib/save';
 import {
-  EXPENSE_CATEGORIES, PAYMENT_METHODS, budgetLinesInput, budgetVariance, cedi, expenseCsv, expenseInput, prettyDate, siteFinanceSummary,
-  spendByMonth, todayKey, validate, wageSheet, weekStart, currencySymbol } from '@siteflow/shared';
+  EXPENSE_CATEGORIES, PAYMENT_METHODS, budgetLinesInput, budgetVariance, cedi, expenseCsv, expenseInput, friendlyError, periodsOverlap, prettyDate, siteFinanceSummary,
+  spendByMonth, todayKey, validate, voidExpenseInput, wageSheet, weekStart, currencySymbol } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from './States';
 
 const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
@@ -120,7 +121,7 @@ function BudgetForm({ cid, sid, f, onDone }) {
 
 // Labour cost from attendance and daily rates, and recording it as a Labour expense
 function Wages({ cid, site, data, expenses }) {
-  const { user, profile, can } = useAuth();
+  const { can } = useAuth();
   const [period, setPeriod] = useState('last');
   const [from, to] = useMemo(() => {
     const thisMon = weekStart();
@@ -133,13 +134,17 @@ function Wages({ cid, site, data, expenses }) {
   const { data: payDocs } = useQuery(() => sub(cid, site.id, 'workerPay'), [cid, site.id]);
   const pay = Object.fromEntries(payDocs.map((p) => [p.id, p]));
   const sheet = wageSheet(data.allWorkers, pay, att);
-  const recorded = expenses.find((e) => e.category === 'Labour' && e.note === `Wages ${from} to ${to}`);
+  // A wage payment (not voided) covering any day of this period
+  const recorded = expenses.find((e) => !e.voided && e.period && periodsOverlap(e.period, { from, to }))
+    || expenses.find((e) => !e.voided && e.category === 'Labour' && e.note === `Wages ${from} to ${to}`);
+  const [busy, setBusy] = useState(false);
   const noRate = data.allWorkers.filter((w) => !pay[w.id] && att.some((a) => a.marks?.[w.id] === 'present' || a.marks?.[w.id] === 'late')).length;
 
   async function record() {
-    if (!window.confirm(`Record ${cedi(sheet.total)} wages for ${prettyDate(from)} to ${prettyDate(to)} as a Labour expense?`)) return;
-    try { await save(recordWages(cid, site.id, { from, to, amount: sheet.total }, { uid: user.uid, name: profile.name }), 'Wages'); toast('Wages recorded.'); }
-    catch (e) { toast(e.message, 'err'); }
+    if (!window.confirm(`Record ${cedi(sheet.total)} wages for ${prettyDate(from)} to ${prettyDate(to)} as a Labour expense? Attendance for these days is then locked, so it matches what was paid.`)) return;
+    setBusy(true);
+    try { const r = await recordWages({ siteId: site.id, from, to }); toast(`Wages of ${cedi(r.amount)} recorded for ${r.workers} workers. Attendance for the period is locked.`); }
+    catch (e) { toast(friendlyError(e), 'err'); } finally { setBusy(false); }
   }
   return (
     <div className="form inline">
@@ -149,8 +154,8 @@ function Wages({ cid, site, data, expenses }) {
         </select></div>
       <p className="mt-sm">{prettyDate(from)} to {prettyDate(to)}: <b>{cedi(sheet.total)}</b> for {sheet.rows.length} worker{sheet.rows.length === 1 ? '' : 's'} ({sheet.rows.reduce((s, r) => s + r.days, 0)} days worked).</p>
       {noRate > 0 && <p className="hint">{noRate} worker{noRate === 1 ? ' has' : 's have'} no daily rate, so {noRate === 1 ? 'is' : 'are'} not counted. Set rates under Labour, Workers.</p>}
-      {recorded ? <p className="notice ok">Recorded as an expense on {prettyDate(recorded.date)}.</p>
-        : can('finance.edit') && sheet.total > 0 && <button type="button" className="btn ghost" onClick={record}>Record these wages as an expense</button>}
+      {recorded ? <p className="notice ok">Paid: {cedi(recorded.amount)} recorded {recorded.period ? `for ${prettyDate(recorded.period.from)} to ${prettyDate(recorded.period.to)}` : `on ${prettyDate(recorded.date)}`}. {recorded.period ? 'Attendance for those days is locked. To correct it, void that wage payment in the expenses below, then record again.' : ''}</p>
+        : can('finance.edit') && sheet.total > 0 && <button type="button" className="btn ghost" onClick={record} disabled={busy}>{busy ? 'Recording…' : 'Record these wages as an expense'}</button>}
     </div>
   );
 }
@@ -174,23 +179,29 @@ function ExpenseForm({ cid, sid }) {
   const { user, profile } = useAuth();
   const [f, setF] = useState(blankExpense());
   const [msg, setMsg] = useState({});
+  const [busy, setBusy] = useState(false);
+  const idRef = useRef(null); // one id per expense being entered (see newExpenseId)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   async function submit(e) {
     e.preventDefault();
+    if (busy) return;
     const v = validate(expenseInput, f);
     if (!v.ok) return setMsg({ kind: 'err', text: v.error });
+    idRef.current = idRef.current || newExpenseId(cid, sid);
+    setBusy(true);
     try {
-      await save(addExpense(cid, sid, v.data, { uid: user.uid, name: profile.name }), 'Expense');
+      await save(addExpense(cid, sid, v.data, { uid: user.uid, name: profile.name }, idRef.current), 'Expense');
+      idRef.current = null;
       setMsg({ kind: 'ok', text: `${cedi(v.data.amount)} recorded. Totals update in a moment.` });
       setF({ ...blankExpense(), category: f.category, method: f.method });
-    } catch (e2) { setMsg({ kind: 'err', text: e2.message }); }
+    } catch (e2) { setMsg({ kind: 'err', text: e2.message }); } finally { setBusy(false); }
   }
   return (
     <form className="form inline" onSubmit={submit}>
       <h3>Record an expense</h3>
       {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
       {expenseFields(f, set, 'ne')}
-      <button type="submit" className="btn ghost">Save expense</button>
+      <button type="submit" className="btn ghost" disabled={busy}>{busy ? 'Saving…' : 'Save expense'}</button>
     </form>
   );
 }
@@ -200,6 +211,7 @@ function ExpenseList({ cid, site, expenses }) {
   const [days, setDays] = useState('90');
   const [category, setCategory] = useState('');
   const [editing, setEditing] = useState(null);
+  const [history, setHistory] = useState(null);
   const from = days === 'all' ? '' : ago(Number(days) - 1);
   const older = useQuery(() => days === 'all' && expensesQuery(cid, site.id, '', 2000), [cid, site.id, days === 'all']);
   const source = days === 'all' ? older.data : expenses;
@@ -212,7 +224,7 @@ function ExpenseList({ cid, site, expenses }) {
         <span className="actions">
           <select aria-label="Period" value={days} onChange={(e) => setDays(e.target.value)}><option value="30">Last 30 days</option><option value="90">Last 3 months</option><option value="all">All</option></select>
           <select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)}><option value="">All categories</option>{EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
-          <button type="button" className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown))}>Download (CSV)</button>
+          <button type="button" className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown.map((x) => (x.voided ? { ...x, note: `VOID (${cedi(x.voidedAmount)}): ${x.voidReason}. ${x.note || ''}` } : x))))}>Download (CSV)</button>
         </span>
       </div>
       {days === 'all' && older.loading ? <Loading what="all expenses" /> : !shown.length ? <Empty title="No expenses in this period." /> : (
@@ -222,12 +234,19 @@ function ExpenseList({ cid, site, expenses }) {
             {shown.map((x) => editing === x.id
               ? <tr key={x.id}><td colSpan={7}><EditExpense cid={cid} sid={site.id} x={x} onDone={() => setEditing(null)} /></td></tr>
               : (
-                <tr key={x.id}>
+                [<tr key={x.id} className={x.voided ? 'voided' : ''}>
                   <td>{prettyDate(x.date)}</td><td>{x.category}</td>
-                  <td>{x.note}{x.ref ? <div className="muted small">Ref {x.ref}</div> : null}<div className="muted small">{x.createdByName}</div></td>
-                  <td>{x.payee || '–'}</td><td>{x.method || '–'}</td><td><b>{cedi(x.amount)}</b></td>
-                  <td>{can('finance.edit') && <button type="button" className="btn sm ghost" onClick={() => setEditing(x.id)}>Edit</button>}</td>
-                </tr>
+                  <td>{x.note}{x.ref ? <div className="muted small">Ref {x.ref}</div> : null}
+                    <div className="muted small">{x.createdByName}{x.updatedByName && x.updatedByName !== x.createdByName ? `, changed by ${x.updatedByName}` : ''}</div>
+                    {x.voided && <div className="small void-note">Void: {x.voidReason} ({x.voidedByName})</div>}</td>
+                  <td>{x.payee || '–'}</td><td>{x.method || '–'}</td>
+                  <td>{x.voided ? <><s>{cedi(x.voidedAmount)}</s><div className="small muted">not counted</div></> : <b>{cedi(x.amount)}</b>}</td>
+                  <td className="nowrap">
+                    {can('finance.edit') && !x.voided && <button type="button" className="btn sm ghost" onClick={() => setEditing(x.id)}>Edit</button>}{' '}
+                    <button type="button" className="btn sm ghost" aria-expanded={history === x.id} onClick={() => setHistory(history === x.id ? null : x.id)}>History</button>
+                  </td>
+                </tr>,
+                history === x.id && <tr key={`${x.id}-h`}><td colSpan={7}><ExpenseHistory cid={cid} sid={site.id} id={x.id} /></td></tr>]
               ))}
             <tr className="total"><td colSpan={5}><b>Total shown</b></td><td><b>{cedi(total)}</b></td><td /></tr>
           </tbody>
@@ -238,6 +257,10 @@ function ExpenseList({ cid, site, expenses }) {
 }
 
 function EditExpense({ cid, sid, x, onDone }) {
+  const { user, profile } = useAuth();
+  const me = { uid: user.uid, name: profile.name };
+  const [voiding, setVoiding] = useState(false);
+  const [reason, setReason] = useState('');
   const [f, setF] = useState({ date: x.date, category: x.category, amount: x.amount, note: x.note || '', payee: x.payee || '', method: x.method || '', ref: x.ref || '' });
   const [err, setErr] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -245,18 +268,45 @@ function EditExpense({ cid, sid, x, onDone }) {
     e.preventDefault();
     const v = validate(expenseInput, f);
     if (!v.ok) return setErr(v.error);
-    try { await save(updateExpense(cid, sid, x.id, v.data), 'Expense'); onDone(); } catch (e2) { setErr(e2.message); }
+    try { await save(updateExpense(cid, sid, x.id, v.data, me), 'Expense'); onDone(); } catch (e2) { setErr(e2.message); }
   }
-  async function remove() {
-    if (!window.confirm(`Delete this ${cedi(x.amount)} expense? The site's totals will be worked out again.`)) return;
-    try { await save(deleteExpense(cid, sid, x.id), 'Expense'); onDone(); } catch (e2) { setErr(e2.message); }
+  async function voidIt() {
+    const v = validate(voidExpenseInput, { reason });
+    if (!v.ok) return setErr(v.error);
+    if (!window.confirm(`Void this ${cedi(x.amount)} expense? It stays on record with your reason but is no longer counted. This can't be undone.`)) return;
+    try { await save(voidExpense(cid, sid, x, v.data.reason, me), 'Expense'); toast('Expense voided.'); onDone(); } catch (e2) { setErr(e2.message); }
   }
   return (
     <form className="form compact" onSubmit={submit}>
       {err && <p className="err" role="alert">{err}</p>}
-      {expenseFields(f, set, `ee-${x.id}`)}
-      <button className="btn">Save</button> <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>{' '}
-      <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>
+      {x.period ? <p className="hint">This is a wage payment for {prettyDate(x.period.from)} to {prettyDate(x.period.to)}, worked out from attendance. It can be voided (which unlocks that attendance) but not edited.</p> : expenseFields(f, set, `ee-${x.id}`)}
+      {!x.period && <><button className="btn">Save</button>{' '}</>}<button type="button" className="btn ghost" onClick={onDone}>Cancel</button>{' '}
+      {!voiding ? <button type="button" className="btn ghost danger" onClick={() => setVoiding(true)}>Void…</button> : (
+        <span className="void-form">
+          <label htmlFor={`vr-${x.id}`} className="visually-hidden">Reason</label>
+          <input id={`vr-${x.id}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is it void? e.g. Entered twice" maxLength={300} />
+          <button type="button" className="btn danger-solid sm" onClick={voidIt}>Void expense</button>
+        </span>
+      )}
     </form>
+  );
+}
+
+// Who changed an expense and how (written by the server, never edited)
+function ExpenseHistory({ cid, sid, id }) {
+  const { data, loading } = useQuery(() => expenseHistoryQuery(cid, sid, id), [cid, sid, id]);
+  if (loading) return <Loading what="history" />;
+  if (!data.length) return <p className="muted small">No changes recorded. (Expenses entered before the history started show none.)</p>;
+  const when = (t) => (t?.toDate ? t.toDate().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+  const fmt = (k, v) => (k === 'amount' ? cedi(v || 0) : k === 'date' && v ? prettyDate(v) : (v || '–'));
+  return (
+    <ol className="history">
+      {data.map((h) => (
+        <li key={h.id}><b>{h.byName}</b> {h.action === 'created' ? 'entered it' : h.action === 'voided' ? `voided it: ${h.reason}` : 'changed it'} <span className="muted small">{when(h.at)}</span>
+          {h.action === 'edited' && <ul>{(h.changed || []).map((k) => <li key={k} className="small">{k}: {fmt(k, h.before?.[k])} → {fmt(k, h.after?.[k])}</li>)}</ul>}
+          {h.detail && <div className="small muted">{h.detail}</div>}
+        </li>
+      ))}
+    </ol>
   );
 }

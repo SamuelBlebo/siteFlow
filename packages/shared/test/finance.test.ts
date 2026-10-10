@@ -84,3 +84,22 @@ describe('money alerts', () => {
     expect(siteAlerts(site, [], {}, { now, finance: { budget: 100, spent: 95 } }).map((x) => x.title)).toEqual(['Budget nearly used']);
   });
 });
+
+import { datesIn, periodsOverlap, voidExpenseInput, wagePeriodInput } from '../src';
+describe('wage periods and voids', () => {
+  it('a wage period has real dates, starts before it ends, and is at most two months', () => {
+    expect(validate(wagePeriodInput, { siteId: 's', from: '2026-10-05', to: '2026-10-11' }).ok).toBe(true);
+    expect(validate(wagePeriodInput, { siteId: 's', from: '2026-10-11', to: '2026-10-05' }).ok).toBe(false);
+    expect(validate(wagePeriodInput, { siteId: 's', from: '2026-01-01', to: '2026-06-30' }).ok).toBe(false);
+    expect(validate(wagePeriodInput, { siteId: 's', from: 'last week', to: '2026-10-05' }).ok).toBe(false);
+  });
+  it('overlapping periods share at least one day; every day of a period is listed', () => {
+    expect(periodsOverlap({ from: '2026-10-05', to: '2026-10-11' }, { from: '2026-10-11', to: '2026-10-17' })).toBe(true);
+    expect(periodsOverlap({ from: '2026-10-05', to: '2026-10-11' }, { from: '2026-10-12', to: '2026-10-18' })).toBe(false);
+    expect(datesIn('2026-09-29', '2026-10-02')).toEqual(['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02']);
+  });
+  it('voiding needs a reason', () => {
+    expect(validate(voidExpenseInput, { reason: ' ' }).ok).toBe(false);
+    expect(validate(voidExpenseInput, { reason: 'Entered twice' }).ok).toBe(true);
+  });
+});

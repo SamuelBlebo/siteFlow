@@ -902,3 +902,11 @@ main:focus { outline: none; }
 .review-note { margin-top: 6px !important; font-style: italic; }
 .pill.edited { margin-right: 6px; }
 .request-banner .btn { margin-left: 6px; }
+
+/* Expenses: voided rows stay on record, struck through; history of each */
+tr.voided td { color: var(--muted); }
+.void-note { color: var(--bad); }
+.void-form { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.void-form input { min-width: 240px; }
+ol.history { margin: 6px 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+ol.history ul { margin: 2px 0 0; padding-left: 18px; }

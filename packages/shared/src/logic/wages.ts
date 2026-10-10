@@ -25,3 +25,14 @@ export function wageSheetCsv(rows: WageRow[]) {
   return [['Name', 'Trade', 'Days', 'Daily rate', 'Amount', 'Bank', 'Account (last 4)'], ...rows.map((r) => [r.name, r.trade, r.days, r.rate, r.total, r.bankName, r.accountLast4])]
     .map((line) => line.map(esc).join(',')).join('\n');
 }
+
+// Two wage periods overlap when any day is in both (dates are YYYY-MM-DD, inclusive)
+export const periodsOverlap = (a: { from: string; to: string }, b: { from: string; to: string }) => a.from <= b.to && b.from <= a.to;
+// Every date in a period, inclusive
+export function datesIn(from: string, to: string): string[] {
+  const out: string[] = [];
+  const d = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  while (d <= end && out.length < 400) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+  return out;
+}

@@ -155,6 +155,9 @@ export interface IssueComment { id?: string; text: string; kind: 'comment' | 'up
 export interface Expense {
   id?: string; date: string; category: string; note: string; amount: number; payee?: string; method?: string; ref?: string;
   createdBy: string; createdByName?: string;
+  updatedBy?: string; updatedByName?: string;   // who last changed it (checked by the rules)
+  voided?: boolean; voidReason?: string; voidedAmount?: number; voidedBy?: string; voidedByName?: string; // a void keeps the original amount here; amount becomes 0
+  period?: { from: string; to: string };        // wage sheets: the days paid (recordWages function)
 }
 
 export interface ChangeOrder {

@@ -4,7 +4,7 @@ import {
   collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, increment, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
   type Firestore,
 } from 'firebase/firestore';
-import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, type Permission, type Role, type SiteCollection } from '@siteflow/shared';
+import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, todayKey, type Permission, type Role, type SiteCollection } from '@siteflow/shared';
 import { C1, C2, MULTI, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, putPerson, seed, site } from './setup';
 
 let env: RulesTestEnvironment;
@@ -360,12 +360,15 @@ describe('finance', () => {
     }
   });
   it('site managers set the budget, total and per category; finance cannot', async () => {
-    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: 200000, budgetByCategory: { Materials: 120000, Labour: 60000 } }));
-    await assertFails(updateDoc(doc(asRole('finance'), paths.finance(C1, S1)), { budget: 1 }));
-    await assertFails(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: -5 }));
+    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: 200000, budgetByCategory: { Materials: 120000, Labour: 60000 }, updatedBy: USERS.manager }));
+    await assertFails(updateDoc(doc(asRole('finance'), paths.finance(C1, S1)), { budget: 1, updatedBy: USERS.finance }));
+    await assertFails(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: -5, updatedBy: USERS.manager }));
+    // every budget change names who made it, truthfully
+    await assertFails(updateDoc(doc(asRole('owner'), paths.finance(C1, S1)), { budget: 210000 })); // still names the manager
+    await assertFails(updateDoc(doc(asRole('manager'), paths.finance(C1, S1)), { budget: 210000, updatedBy: USERS.owner }));
     await assertFails(deleteDoc(doc(asRole('owner'), paths.finance(C1, S1))));
   });
-  it('finance records, corrects and deletes expenses under their own name', async () => {
+  it('finance records and corrects expenses under their own name; nothing is deleted', async () => {
     const db = asRole('finance');
     const ref = doc(db, paths.subDoc(C1, S1, 'expenses', 'f1'));
     await assertSucceeds(setDoc(ref, expense(USERS.finance, { payee: 'Ghacem', method: 'Bank transfer', ref: 'INV-22' })));
@@ -373,10 +376,41 @@ describe('finance', () => {
     await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f3')), expense(USERS.finance, { amount: 0 })));
     await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f4')), expense(USERS.finance, { date: 'yesterday' })));
     await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f5')), expense(USERS.finance, { approved: true })));
-    await assertSucceeds(updateDoc(ref, { amount: 450, note: 'Corrected amount', updatedAt: serverTimestamp() }));
-    await assertFails(updateDoc(ref, { createdBy: USERS.owner }));
-    await assertSucceeds(deleteDoc(ref));
+    const signed = { updatedBy: USERS.finance, updatedByName: 'finance user' };
+    await assertFails(updateDoc(ref, { amount: 450, note: 'Corrected amount', updatedAt: serverTimestamp() })); // unsigned
+    await assertFails(updateDoc(ref, { amount: 450, updatedBy: USERS.owner, updatedByName: 'owner user' })); // signed as someone else
+    await assertSucceeds(updateDoc(ref, { amount: 450, note: 'Corrected amount', updatedAt: serverTimestamp(), ...signed }));
+    await assertFails(updateDoc(ref, { createdBy: USERS.owner, ...signed }));
+    await assertFails(updateDoc(ref, { amount: 0, ...signed })); // zero only through a void
+    await assertFails(deleteDoc(ref));
+    await assertFails(deleteDoc(doc(asRole('owner'), paths.subDoc(C1, S1, 'expenses', 'f1'))));
+    await assertFails(setDoc(doc(db, paths.subDoc(C1, S1, 'expenses', 'f6')), expense(USERS.finance, { period: { from: '2026-06-01', to: '2026-06-07' } }))); // wages: server only
     await assertSucceeds(setDoc(doc(db, paths.workerPay(C1, S1, 'w1')), { dailyRate: 180, bankName: 'GCB', accountLast4: '1234' }));
+  });
+  it('a wrong expense is voided with a reason, keeping its amount; a void is final', async () => {
+    const db = asRole('finance');
+    const ref = doc(db, paths.subDoc(C1, S1, 'expenses', 'v1'));
+    await assertSucceeds(setDoc(ref, expense(USERS.finance, { amount: 300 })));
+    const voidIt = { voided: true, amount: 0, voidedAmount: 300, voidReason: 'Entered twice', voidedBy: USERS.finance, voidedByName: 'finance user', updatedBy: USERS.finance, updatedByName: 'finance user' };
+    await assertFails(updateDoc(ref, { ...voidIt, voidReason: '' }));            // needs a reason
+    await assertFails(updateDoc(ref, { ...voidIt, voidedAmount: 50 }));          // must keep the real amount
+    await assertFails(updateDoc(ref, { ...voidIt, note: 'and change the note' })); // a void changes nothing else
+    await assertSucceeds(updateDoc(ref, voidIt));
+    await assertFails(updateDoc(ref, { voided: false, amount: 300, updatedBy: USERS.finance, updatedByName: 'finance user' })); // final
+    await assertFails(updateDoc(ref, { note: 'edit after void', updatedBy: USERS.finance, updatedByName: 'finance user' }));
+  });
+  it('wage payments (from the server) can be voided but not edited; history is read-only', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore() as unknown as Firestore, paths.subDoc(C1, S1, 'expenses', 'wage1')),
+      expense(USERS.finance, { category: 'Labour', amount: 390, period: { from: '2026-06-01', to: '2026-06-07' } })));
+    const ref = doc(asRole('finance'), paths.subDoc(C1, S1, 'expenses', 'wage1'));
+    const signed = { updatedBy: USERS.finance, updatedByName: 'finance user' };
+    await assertFails(updateDoc(ref, { amount: 400, ...signed }));
+    await assertFails(updateDoc(ref, { period: { from: '2026-06-01', to: '2026-06-02' }, ...signed }));
+    await assertSucceeds(updateDoc(ref, { voided: true, amount: 0, voidedAmount: 390, voidReason: 'Wrong rates', voidedBy: USERS.finance, voidedByName: 'finance user', ...signed }));
+    const h = doc(asRole('finance'), `${paths.subDoc(C1, S1, 'expenses', 'wage1')}/history/x`);
+    await assertSucceeds(getDoc(h));
+    await assertFails(setDoc(h, { action: 'edited' }));
+    await assertFails(getDoc(doc(asRole('supervisor'), `${paths.subDoc(C1, S1, 'expenses', 'wage1')}/history/x`)));
   });
   it('new sites start with nothing spent', async () => {
     await assertFails(setDoc(doc(asRole('manager'), paths.finance(C1, 'new')), { budget: 10, spent: 5 }));
@@ -444,6 +478,8 @@ describe('materials', () => {
 });
 
 describe('workers and attendance', () => {
+  const today = todayKey(new Date()); // the rules let the site team mark recent days only, so use real dates
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
   it('supervisor adds workers but cannot put pay on them', async () => {
     const db = asRole('supervisor');
     const w = { name: 'Ama Owusu', trade: 'Labourer', phone: '0241112222', active: true, createdBy: USERS.supervisor, createdAt: serverTimestamp() };
@@ -479,14 +515,33 @@ describe('workers and attendance', () => {
     await assertFails(setDoc(ref, { ...ok, marks: { w1: true } }, { merge: true }));
     await assertFails(setDoc(ref, { ...ok, wages: 150 }, { merge: true }));
     await assertFails(setDoc(ref, { ...ok, markedBy: USERS.owner }, { merge: true }));
-    await assertFails(setDoc(doc(db, paths.attendance(C1, S1, '2026-06-16')), ok));
+    await assertFails(setDoc(doc(db, paths.attendance(C1, S1, daysAgo(-1))), ok)); // the date must match the day
     await assertFails(setDoc(doc(asRole('viewer'), paths.attendance(C1, S1, today)), { ...ok, markedBy: USERS.viewer }));
     await assertFails(setDoc(doc(asRole('finance'), paths.attendance(C1, S1, today)), { ...ok, markedBy: USERS.finance }));
     await assertSucceeds(setDoc(ref, ok, { merge: true }));
   });
-  it('past days can be marked (with their own date)', async () => {
-    const past = '2026-06-10';
-    await assertSucceeds(setDoc(doc(asRole('supervisor'), paths.attendance(C1, S1, past)), { date: past, marks: { w1: 'late' }, markedBy: USERS.supervisor }, { merge: true }));
+  it('the site team marks today or yesterday; managers any day', async () => {
+    const y = daysAgo(1);
+    const old = daysAgo(5);
+    const next = daysAgo(-3);
+    await assertSucceeds(setDoc(doc(asRole('supervisor'), paths.attendance(C1, S1, y)), { date: y, marks: { w1: 'late' }, markedBy: USERS.supervisor }, { merge: true }));
+    await assertFails(setDoc(doc(asRole('supervisor'), paths.attendance(C1, S1, old)), { date: old, marks: { w1: 'late' }, markedBy: USERS.supervisor }, { merge: true }));
+    await assertFails(setDoc(doc(asRole('supervisor'), paths.attendance(C1, S1, next)), { date: next, marks: { w1: 'late' }, markedBy: USERS.supervisor }, { merge: true }));
+    await assertSucceeds(setDoc(doc(asRole('manager'), paths.attendance(C1, S1, old)), { date: old, marks: { w1: 'present' }, markedBy: USERS.manager }, { merge: true }));
+  });
+  it('days whose wages are recorded are locked for everyone, and the lock cannot be set or removed from an app', async () => {
+    const d = daysAgo(1);
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore() as unknown as Firestore, paths.attendance(C1, S1, d)), { date: d, marks: { w1: 'present' }, markedBy: USERS.supervisor, paidBy: 'wage1' }));
+    await assertFails(setDoc(doc(asRole('supervisor'), paths.attendance(C1, S1, d)), { date: d, marks: { w1: 'absent' }, markedBy: USERS.supervisor }, { merge: true }));
+    await assertFails(setDoc(doc(asRole('owner'), paths.attendance(C1, S1, d)), { date: d, marks: { w1: 'absent' }, markedBy: USERS.owner }, { merge: true }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.attendance(C1, S1, d)), { paidBy: null }));
+    await assertFails(deleteDoc(doc(asRole('owner'), paths.attendance(C1, S1, d))));
+    const t = today;
+    await assertFails(setDoc(doc(asRole('manager'), paths.attendance(C1, S1, t)), { date: t, marks: {}, markedBy: USERS.manager, paidBy: 'fake' }, { merge: true }));
+    // who changed which mark: managers and finance read it, nobody writes it
+    await assertSucceeds(getDoc(doc(asRole('finance'), `${paths.attendance(C1, S1, d)}/changes/x`)));
+    await assertFails(getDoc(doc(asRole('supervisor'), `${paths.attendance(C1, S1, d)}/changes/x`)));
+    await assertFails(setDoc(doc(asRole('owner'), `${paths.attendance(C1, S1, d)}/changes/x`), { by: 'me' }));
   });
 });
 
@@ -733,7 +788,7 @@ describe('project drawings', () => {
   });
   it('managers choose the overview drawing; issues carry a pin inside the sheet', async () => {
     await assertSucceeds(updateDoc(doc(asRole('manager'), paths.site(C1, S1)), { overviewDrawingId: 'd1' }));
-    await assertFails(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { overviewDrawingId: 'd1' }));
+    await assertFails(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { overviewDrawingId: 'd2' }));
     const issue = (id: string, pin: object) => setDoc(doc(asRole('supervisor'), paths.subDoc(C1, S1, 'issues', id)), {
       ...issueDoc({ title: 'Crack above window', priority: 'medium', category: 'Quality' },
         { companyId: C1, siteId: S1, siteName: `Site ${S1}`, uid: USERS.supervisor, name: 'supervisor user', date: today }),

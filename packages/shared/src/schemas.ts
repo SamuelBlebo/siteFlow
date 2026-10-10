@@ -99,6 +99,13 @@ export const expenseInput = z.object({
   method: z.string().max(40).default(''),
   ref: z.string().trim().max(60).default(''),
 });
+// Expenses are never deleted: they are voided with a reason (and keep their history)
+export const voidExpenseInput = z.object({ reason: z.string().trim().min(3, 'Say why this expense is void.').max(300) });
+// Wages for a period, worked out on the server from attendance and daily rates (recordWages function)
+const dayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date.');
+export const wagePeriodInput = z.object({ siteId: z.string().min(1).max(128), from: dayKey, to: dayKey, method: z.string().max(40).default('') })
+  .refine((v) => v.from <= v.to, { message: 'The period must start before it ends.', path: ['to'] })
+  .refine((v) => (Date.parse(v.to) - Date.parse(v.from)) / 864e5 <= 62, { message: 'Record wages for up to two months at a time.', path: ['to'] });
 // Budget per category (site managers). Empty means no budget for that category.
 export const budgetLinesInput = z.record(z.string(), z.coerce.number({ invalid_type_error: 'Enter an amount.' }).min(0, 'Amounts cannot be negative.'));
 export const changeOrderInput = z.object({ title: z.string().trim().min(3, 'Describe the change.'), reason: z.enum(CO_REASONS as [string, ...string[]]), amount: positive('cost'), extraDays: z.coerce.number().int().min(0).default(0) });

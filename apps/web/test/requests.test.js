@@ -54,9 +54,9 @@ describe('report requests', () => {
     const r = sendReport(cid, site, { text: 'Roof sheets on bay 2', stage: 'Roofing', progress: 40, workersPresent: 6 }, { uid: u.uid, name: 'super person', role: 'supervisor', email: email('super') });
     await save(r.done);
     expect((await getDoc(reportRef(cid, sid, r.id))).data()).toMatchObject({ createdByRole: 'supervisor', createdByEmail: email('super') });
-    const after = await until(async () => (await getDocs(reportRequestsQuery(cid, sid))).docs.map((d) => d.data())[0], (x) => x.status === 'done');
+    const after = await until(async () => (await getDocs(reportRequestsQuery(cid, sid))).docs.map((d) => d.data())[0], (x) => x.status === 'done', 25000); // the trigger can queue behind earlier files' triggers
     expect(after).toMatchObject({ status: 'done', reportId: r.id });
-  });
+  }, 45000);
 
   it('a report cannot claim someone else\x27s role', async () => {
     const u = await as('super');

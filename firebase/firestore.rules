@@ -161,11 +161,13 @@ service cloud.firestore {
               && (!('budgetByCategory' in data()) || (data().budgetByCategory is map && data().budgetByCategory.size() <= 20));
           }
           allow read: if financeView(cid);
+          // Every budget change names who made it (the onBudgetChanged function logs it)
           allow create: if siteManager(cid) && docId == 'summary'
-            && data().keys().hasOnly(['budget', 'budgetByCategory', 'spent', 'updatedAt'])
-            && validBudget() && data().spent == 0;
+            && data().keys().hasOnly(['budget', 'budgetByCategory', 'spent', 'updatedAt', 'updatedBy'])
+            && validBudget() && data().spent == 0 && data().get('updatedBy', request.auth.uid) == request.auth.uid;
           allow update: if siteManager(cid) && docId == 'summary'
-            && onlyChanges(['budget', 'budgetByCategory', 'updatedAt']) && validBudget();
+            && onlyChanges(['budget', 'budgetByCategory', 'updatedAt', 'updatedBy']) && validBudget()
+            && data().get('updatedBy', '') == request.auth.uid;
           allow delete: if false;
         }
 
@@ -210,18 +212,44 @@ service cloud.firestore {
           allow update, delete: if false;
         }
 
-        // Expenses: finance roles record, correct and delete them; totals follow on the server
+        // Expenses: finance roles record and correct them; totals follow on the server. They are never
+        // deleted: a wrong one is voided with a reason (amount 0, the original kept in voidedAmount),
+        // and a void is final. Every change names who made it; the server keeps the history
+        // (history/{id}, onExpenseChanged). Wage payments come only from the recordWages function and
+        // can be voided (which reopens their attendance) but not edited.
         match /expenses/{id} {
+          function voidKeys() { return ['voided', 'voidReason', 'voidedAmount', 'voidedBy', 'voidedByName', 'voidedAt']; }
           function validExpense() {
-            return data().keys().hasOnly(['date', 'category', 'note', 'amount', 'payee', 'method', 'ref', 'createdBy', 'createdByName', 'createdAt', 'updatedAt'])
-              && isAmount(data().amount) && data().amount > 0 && data().amount <= 100000000
+            return data().keys().hasOnly(['date', 'category', 'note', 'amount', 'payee', 'method', 'ref', 'createdBy', 'createdByName', 'createdAt',
+                                          'updatedAt', 'updatedBy', 'updatedByName', 'voided', 'voidReason', 'voidedAmount', 'voidedBy',
+                                          'voidedByName', 'voidedAt', 'period'])
+              && isAmount(data().amount) && data().amount <= 100000000
               && isText(data().category, 1, 60) && optText('note', 500) && optText('payee', 120) && optText('method', 40) && optText('ref', 60)
               && isDateKey(data().date);
           }
+          function signed() { return data().updatedBy == request.auth.uid && data().updatedByName == meIn(cid).name; }
+          function keeps(keys) { return !data().diff(resource.data).affectedKeys().hasAny(keys); }
+          function isVoid() {
+            return data().diff(resource.data).affectedKeys().hasOnly(voidKeys().concat(['amount', 'updatedBy', 'updatedByName', 'updatedAt']))
+              && data().voided == true && data().amount == 0 && data().voidedAmount == resource.data.amount
+              && isText(data().voidReason, 3, 300) && data().voidedBy == request.auth.uid && data().voidedByName == meIn(cid).name;
+          }
+          function isEdit() {
+            return data().get('voided', false) != true && data().amount > 0 && keeps(voidKeys()) && !('period' in resource.data);
+          }
           allow read: if financeView(cid);
-          allow create: if financeEdit(cid) && byMe() && validExpense() && data().createdByName == meIn(cid).name;
-          allow update: if financeEdit(cid) && validExpense() && !data().diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdByName', 'createdAt']);
-          allow delete: if financeEdit(cid);
+          allow create: if financeEdit(cid) && byMe() && validExpense() && data().amount > 0 && data().createdByName == meIn(cid).name
+            && !('voided' in data()) && !('period' in data()) && (!('updatedBy' in data()) || signed());
+          allow update: if financeEdit(cid) && validExpense() && signed()
+            && resource.data.get('voided', false) != true
+            && keeps(['createdBy', 'createdByName', 'createdAt', 'period'])
+            && (isEdit() || isVoid());
+          allow delete: if false;
+          // Who changed what and when: written by the server only
+          match /history/{entry} {
+            allow read: if financeView(cid);
+            allow write: if false;
+          }
         }
 
         // Worker names and trades are visible to the site team; pay is not.
@@ -250,13 +278,26 @@ service cloud.firestore {
         // Apps merge one worker at a time, so two phones marking different workers never clash.
         match /attendance/{date} {
           allow read: if onSite(cid, sid);
+          // The date as a time (midnight UTC), for the window below
+          function dayOf(d) { return timestamp.date(int(d[0:4]), int(d[5:7]), int(d[8:10])); }
+          // The site team marks today or yesterday (with room for time zones); managers any day
+          function recentDay() { return dayOf(date) > request.time - duration.value(2, 'd') && dayOf(date) < request.time + duration.value(14, 'h'); }
+          // Days in a period whose wages were recorded are locked (paidBy, set by recordWages) until
+          // that wage payment is voided
+          function unpaid() { return resource == null || resource.data.get('paidBy', null) == null; }
           allow create, update: if siteWork(cid, sid)
+            && isDateKey(date) && (siteManager(cid) || recentDay()) && unpaid()
             && data().keys().hasOnly(['date', 'marks', 'markedBy', 'updatedAt'])
-            && data().date == date && isDateKey(date)
+            && data().date == date
             && data().marks is map && data().marks.size() <= 500
             && data().marks.values().hasOnly(['present', 'late', 'absent', 'leave'])
             && data().markedBy == request.auth.uid;
-          allow delete: if siteManager(cid);
+          allow delete: if siteManager(cid) && unpaid();
+          // Every change of a mark, with who and when: written by the server only
+          match /changes/{entry} {
+            allow read: if siteManager(cid) || financeView(cid);
+            allow write: if false;
+          }
         }
 
         // Someone asked for a report: written by the requestReport function only; everyone on the project sees them
