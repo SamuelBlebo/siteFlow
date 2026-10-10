@@ -80,13 +80,13 @@ function DayStrip({ cid, site, reports }) {
           const tip = st === 'due' && manage ? `${label}. Click to skip (no report needed).` : st === 'skipped' && manage ? `${label}. Click to undo.` : label;
           return (
             <li key={d} className={`${cls}${d === today ? ' today' : ''}`}>
-              {act ? <button type="button" onClick={act} title={tip} aria-label={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}{st === 'skipped' && <small>skipped{manage ? ' ↺' : ''}</small>}</button>
+              {act ? <button type="button" onClick={act} title={tip} aria-label={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}{st === 'skipped' && <small>skipped{manage && <> · <u>undo</u></>}</small>}</button>
                 : <span title={tip}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}{st === 'skipped' && <small>skipped</small>}</span>}
             </li>
           );
         })}
       </ol>
-      <p className="hint">{missed ? `${missed} working day${missed === 1 ? '' : 's'} without a report.` : 'A report every working day.'}{manage ? ' Click a red day to skip it (no work that day); click a skipped day (↺) to undo.' : ''} Green days open the report.</p>
+      <p className="hint">{missed ? `${missed} working day${missed === 1 ? '' : 's'} without a report.` : 'A report every working day.'}{manage ? ' Click a red day to skip it (no work that day); click a skipped day to undo the skip.' : ''} Green days open the report.</p>
     </>
   );
 }

@@ -872,3 +872,4 @@ main:focus { outline: none; }
 .days li.skipped-day { background: var(--okbg); color: var(--ok); border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); text-decoration: none; }
 .days li small { display: block; font-size: 10px; line-height: 1.1; text-transform: lowercase; opacity: .85; }
 .pill.ok.skipped { border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); }
+.days li.skipped-day > button:hover { background: color-mix(in srgb, var(--ok) 14%, transparent); text-decoration: none; }
