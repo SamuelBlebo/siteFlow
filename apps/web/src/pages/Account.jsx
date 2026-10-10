@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate, getLocale } from '@siteflow/shared';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useTitle } from '../lib/hooks';
-import { companyDoc, updateMyProfile } from '../lib/db';
+import { companyDoc, saveEmailPrefs, updateMyProfile } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { logOut } from '../lib/account';
 import PasswordForm from '../components/PasswordForm';
+import EmailPrefsForm from '../components/EmailPrefs';
 import PageHead from '../components/PageHead';
 import ThemeSwitch from '../components/ThemeSwitch';
 
@@ -54,6 +55,10 @@ export default function Account() {
         </div>
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
       </form>
+
+      <h2 className="sub">Emails</h2>
+      <p className="muted mb">Daily reports and issues by email, to {user.email}. Every email has a link back to these settings.</p>
+      <EmailPrefsForm initial={emailPrefsFor(profile.emailPrefs, role)} onSave={(prefs) => save(saveEmailPrefs(user.uid, prefs), 'Email settings')} />
 
       <h2 className="sub">Appearance</h2>
       <div className="card">

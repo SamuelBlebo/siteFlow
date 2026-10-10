@@ -59,7 +59,10 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, delete: if false;
       allow update: if signedIn() && request.auth.uid == uid
-        && onlyChanges(['name', 'phone', 'mustChangePassword', 'companyId', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'mustChangePassword', 'companyId', 'emailPrefs', 'updatedAt'])
+        // Report and issue emails (logic/mail in shared)
+        && (!('emailPrefs' in data()) || (data().emailPrefs is map && data().emailPrefs.keys().hasOnly(['reports', 'issues'])
+            && data().emailPrefs.get('reports', 'each') in ['each', 'daily', 'off'] && data().emailPrefs.get('issues', 'all') in ['all', 'mine', 'off']))
         && isText(data().name, 2, 100) && optText('phone', 20)
         && data().get('mustChangePassword', false) == false
         && (data().get('companyId', '') == resource.data.get('companyId', '')
@@ -115,7 +118,7 @@ service cloud.firestore {
       match /sites/{sid} {
         function siteKeys() {
           return ['name', 'location', 'foremanName', 'foremanPhone', 'foremanEmail', 'stage', 'progress', 'status',
-                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'createdAt', 'updatedAt'];
+                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'clientReports', 'createdAt', 'updatedAt'];
         }
         function validSite() {
           return data().keys().hasOnly(siteKeys())
@@ -124,6 +127,7 @@ service cloud.firestore {
             && data().status in ['active', 'on_hold', 'closed']
             && optText('foremanName', 100) && optText('foremanPhone', 20) && optText('foremanEmail', 200)
             && optDate('planStart') && optDate('planEnd')
+            && (!('clientReports' in data()) || data().clientReports is bool)
             && (!('overviewDrawingId' in data()) || data().overviewDrawingId == null || isText(data().overviewDrawingId, 1, 100))
             && (!('client' in data()) || data().client == null
                 || (data().client is map && data().client.keys().hasOnly(['name', 'phone', 'email']) && isText(data().client.name, 1, 120)));
@@ -313,7 +317,8 @@ service cloud.firestore {
           function issueKeys() {
             return ['companyId', 'siteId', 'siteName', 'title', 'description', 'priority', 'category', 'location', 'date', 'dueDate',
                     'status', 'assignedTo', 'assignedToName', 'photos', 'thumbs', 'photoCount', 'resolution', 'resolvedBy', 'resolvedByName',
-                    'resolvedAt', 'commentCount', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'lastActivityAt', 'pin'];
+                    'resolvedAt', 'commentCount', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'lastActivityAt', 'pin',
+                    'updatedBy', 'updatedByName'];
           }
           // Where it is on a project drawing (fractions of the sheet)
           function validPin() {
@@ -346,13 +351,13 @@ service cloud.firestore {
           }
           function assigneeStep() {
             return resource.data.assignedTo == request.auth.uid
-              && only(['status', 'resolution', 'resolvedBy', 'resolvedByName', 'resolvedAt', 'updatedAt', 'lastActivityAt'])
+              && only(['status', 'resolution', 'resolvedBy', 'resolvedByName', 'resolvedAt', 'updatedAt', 'lastActivityAt', 'updatedBy', 'updatedByName'])
               && ((resource.data.status == 'open' && data().status == 'in_progress')
                   || (resource.data.status in ['open', 'in_progress'] && data().status == 'resolved'));
           }
           function reporterEdit() {
             return resource.data.createdBy == request.auth.uid && resource.data.status == 'open'
-              && only(['title', 'description', 'location', 'category', 'photos', 'thumbs', 'photoCount', 'pin', 'updatedAt', 'lastActivityAt']);
+              && only(['title', 'description', 'location', 'category', 'photos', 'thumbs', 'photoCount', 'pin', 'updatedAt', 'lastActivityAt', 'updatedBy', 'updatedByName']);
           }
           function commentBump() {
             return only(['commentCount', 'lastActivityAt']) && data().commentCount == resource.data.commentCount + 1;
@@ -366,6 +371,8 @@ service cloud.firestore {
           allow update: if siteWork(cid, sid) && validIssue()
             && !changed(['companyId', 'siteId', 'siteName', 'date', 'createdBy', 'createdByName', 'createdAt'])
             && (!changed(['assignedTo']) || validAssignee())
+            // Who made the change (named in the issue's emails): only ever yourself
+            && (!changed(['updatedBy', 'updatedByName']) || (data().updatedBy == request.auth.uid && data().updatedByName == meIn(cid).name))
             && resolverIsMe()
             && (siteManager(cid) || assigneeStep() || reporterEdit() || commentBump());
           allow delete: if false;

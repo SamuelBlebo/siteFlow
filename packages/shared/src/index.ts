@@ -26,4 +26,5 @@ export * from './logic/sites';
 export * from './logic/reports';
 export * from './logic/issues';
 export * from './logic/drawings';
+export * from './logic/mail';
 export * from './demo';

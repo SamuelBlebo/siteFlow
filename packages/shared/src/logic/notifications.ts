@@ -12,17 +12,20 @@ export interface NotificationDef {
   label: string; description: string; who: string;
   defaults: NotificationRule;
   chosenEachTime?: boolean; // the sender picks WhatsApp and/or email each time (not a company setting)
+  emailByThread?: boolean;  // email goes as a report or issue thread, by each person's email settings (logic/mail)
   template: { name: string; body: string; params: string[] }; // {{1}}, {{2}} ... in body, named in params
 }
 
 export const NOTIFICATIONS: Record<NotificationKind, NotificationDef> = {
   critical_issue: {
+    emailByThread: true,
     label: 'Critical issue reported', description: 'When an issue is reported as critical, or raised to critical.',
     who: 'Owner, admins, project managers and the site’s supervisors',
     defaults: { whatsapp: true, email: true },
     template: { name: 'siteflow_critical_issue', body: 'SiteFlow: critical issue at {{1}}: {{2}}. Reported by {{3}}. Open SiteFlow to assign it.', params: ['site', 'title', 'who'] },
   },
   issue_assigned: {
+    emailByThread: true,
     label: 'Issue given to someone', description: 'Tells the person an issue has been given to.',
     who: 'The person it is given to',
     defaults: { whatsapp: true, email: false },
@@ -41,6 +44,7 @@ export const NOTIFICATIONS: Record<NotificationKind, NotificationDef> = {
     template: { name: 'siteflow_low_stock', body: 'SiteFlow: {{1}} is running low at {{2}}: {{3}} left (reorder below {{4}}).', params: ['material', 'site', 'stock', 'reorder'] },
   },
   report_submitted: {
+    emailByThread: true,
     label: 'Daily report sent', description: 'Each time a daily report comes in. Can be a lot of messages with many sites.',
     who: 'Owner, admins and project managers',
     defaults: { whatsapp: false, email: false },

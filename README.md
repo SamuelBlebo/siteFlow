@@ -126,6 +126,27 @@ Reports record the sender's **role and email** with their name (the rules check 
 - **Sample projects:** each has a drawing made by `scripts/demo-drawings.mjs`, which also writes the areas and pins into `packages/shared/src/demoDrawings.ts`.
   - PNG copies come from `scripts/demo-drawings-png.mjs` (needs Chrome).
 
+## Report and issue emails
+- **Threads:** daily reports and issues go out as email conversations (`mail.ts` in functions, `logic/mail` in shared).
+  - Each project's reports for one week are one thread, e.g. "Adenta residence: daily reports, week of Mon 5 Oct".
+  - Each issue is one thread: raised, comments, given to someone, status changes.
+  - Threading uses the same subject plus `Message-ID` / `In-Reply-To` / `References` headers; `companies/{cid}/mailThreads` records each thread's first message.
+- **Content:** the email carries the report itself (progress, work, workers, weather, issues, materials, photo thumbnails) and a button into the app.
+- **Each person chooses** (`users/{uid}.emailPrefs`, on the Account page on web and phone):
+  - reports: each one, one summary at 7pm local time (`reportDigest`), or none;
+  - issues: all on my projects, only mine (raised, given, commented), or none.
+  - Defaults: owners, admins and project managers get everything; supervisors and viewers only their own issues; finance nothing.
+  - Nobody is emailed about their own action.
+- **Client:** project settings, *Email each daily report to the client* (`site.clientReports`), sends to `client.email`. Clients get no app button.
+- **Unsubscribe:** every email has an *Email settings* link and an unsubscribe link (`/email-settings?t=…`, a signed token; no sign-in needed).
+  - It includes one-click `List-Unsubscribe` / `List-Unsubscribe-Post` headers, handled by the `unsubscribe` function at `/api/unsubscribe`.
+  - Clients who unsubscribe are kept in `mailOptOut`. The signing key is in `system/mail` (server only).
+- **No double emails:** the alerts *Critical issue*, *Issue given to someone* and *Daily report sent* no longer send their own email (`emailByThread`); their WhatsApp messages are unchanged.
+- **Log and retries:** emails are logged with the other messages (Reminders page) and failed sends are retried.
+  - Nothing is sent until `EMAIL_API_KEY` (Resend) and `EMAIL_FROM` are set; until then each email shows as *Not sent*.
+  - `MAIL_DOMAIN` (functions env, default `siteflow.app`) is used in the thread ids.
+- **Later:** replying to an email to add a comment needs an inbound address on your domain (Resend inbound or similar).
+
 ## Deleting a project
 - **Closing** a project (project settings, Status) keeps everything; the site team can no longer add to it.
 - **Deleting** is for the owner only (project settings, *Delete project*). They type the project's name to confirm.

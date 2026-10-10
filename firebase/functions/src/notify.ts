@@ -49,7 +49,7 @@ export async function sendWhatsAppTemplate(to: string, template: string, params:
 }
 
 // Email through Resend (swap for SendGrid or Mailgun here if you prefer)
-export async function sendEmail(to: string, subject: string, text: string): Promise<SendResult> {
+export async function sendEmail(to: string, subject: string, text: string, extra: { html?: string; headers?: Record<string, string> } = {}): Promise<SendResult> {
   if (testMode()) return { status: 'skipped', error: 'Test mode (emulator): not sent.' };
   const key = secret(EMAIL_KEY);
   if (!key) return { status: 'skipped', error: 'Email is not set up yet.' };
@@ -57,7 +57,7 @@ export async function sendEmail(to: string, subject: string, text: string): Prom
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: EMAIL_FROM, to, subject, text }),
+      body: JSON.stringify({ from: EMAIL_FROM, to, subject, text, ...(extra.html ? { html: extra.html } : {}), ...(extra.headers ? { headers: extra.headers } : {}) }),
     });
     if (res.ok) return { status: 'sent' };
     const body = await res.text();

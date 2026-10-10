@@ -33,13 +33,13 @@ async function attempt(ref: DocumentReference, send: () => Promise<SendResult>, 
     ...(r.status === 'sent' ? { sentAt: FieldValue.serverTimestamp() } : {}),
     // The full phone number or email is only kept while a retry may still need it;
     // the log keeps the masked version (to) for owners and admins
-    ...(retry ? {} : { address: FieldValue.delete() }),
+    ...(retry ? {} : { address: FieldValue.delete(), html: FieldValue.delete(), headers: FieldValue.delete() }),
   });
   return r;
 }
 
-const sender = (channel: 'whatsapp' | 'email', address: string, kind: NotificationKind, params: string[], subject: string, text: string) =>
-  () => (channel === 'whatsapp' ? sendWhatsAppTemplate(address, NOTIFICATIONS[kind].template.name, params) : sendEmail(address, subject, text));
+const sender = (channel: 'whatsapp' | 'email', address: string, kind: NotificationKind, params: string[], subject: string, text: string, extra?: { html?: string; headers?: Record<string, string> }) =>
+  () => (channel === 'whatsapp' ? sendWhatsAppTemplate(address, NOTIFICATIONS[kind].template.name, params) : sendEmail(address, subject, text, extra));
 
 // The one way SiteFlow sends a message. For each recipient and each channel the company has
 // switched on: a log entry with a fixed id (so the same event never messages someone twice),
@@ -59,6 +59,7 @@ export async function deliver(d: {
   for (const r of d.recipients) {
     for (const channel of ['whatsapp', 'email'] as const) {
       if (!rule[channel]) continue;
+      if (channel === 'email' && NOTIFICATIONS[d.kind].emailByThread) continue; // emailed as a report or issue thread instead (mail.ts)
       const address = channel === 'whatsapp' ? (r.phone ? `+${waPhone(r.phone, dial)}` : '') : r.email;
       if (!address) continue;
       const ref = db.collection(paths.notifications(d.cid)).doc(docId(`${d.key}_${r.id || address}_${channel}`));
@@ -90,7 +91,8 @@ export async function retryFailedNotifications() {
   for (const doc of snap.docs) {
     const n = doc.data();
     if ((n.attempts || 0) >= MAX_ATTEMPTS || !n.address) { await doc.ref.update({ retry: false, address: FieldValue.delete() }); continue; }
-    await attempt(doc.ref, sender(n.channel, n.address, n.kind, n.params || [], n.subject || 'SiteFlow', n.text), n.attempts || 0);
+    // Report and issue emails keep their HTML and thread headers for the retry
+    await attempt(doc.ref, sender(n.channel, n.address, n.kind, n.params || [], n.subject || 'SiteFlow', n.text, n.html ? { html: n.html, headers: n.headers } : undefined), n.attempts || 0);
     retried++;
   }
   logger.info('Notification retries', { found: snap.size, retried });

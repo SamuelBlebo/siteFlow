@@ -40,6 +40,10 @@ export const activityQuery = (cid, n = 20) => query(collection(db, paths.activit
 // ---------- account and company ----------
 // Name and phone live on the person; a Cloud Function copies them to each company they belong to
 export const updateMyProfile = (uid, { name, phone }) => updateDoc(userDoc(uid), { name, phone, updatedAt: serverTimestamp() });
+// Report and issue emails (logic/mail in shared)
+export const saveEmailPrefs = (uid, prefs) => updateDoc(userDoc(uid), { emailPrefs: prefs, updatedAt: serverTimestamp() });
+// Owner or manager: copy the client on each daily report by email
+export const setClientReports = (cid, sid, on) => updateDoc(doc(db, paths.site(cid, sid)), { clientReports: on, updatedAt: serverTimestamp() });
 // Look at another company this person belongs to (the rules check they are a member)
 export const switchCompany = (uid, cid) => updateDoc(userDoc(uid), { companyId: cid, updatedAt: serverTimestamp() });
 export const clearMustChangePassword = (uid) => updateDoc(userDoc(uid), { mustChangePassword: false, updatedAt: serverTimestamp() });
@@ -213,7 +217,8 @@ export function createIssue(cid, site, input, { id, uid, name, photos = [], thum
 export function updateIssue(cid, sid, id, patch, { note = '', uid, name } = {}) {
   const b = writeBatch(db);
   const resolved = patch.status === 'resolved' ? { resolvedAt: serverTimestamp() } : {};
-  b.update(issueRef(cid, sid, id), { ...patch, ...resolved, updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp() });
+  const who = uid ? { updatedBy: uid, updatedByName: name } : {}; // named in the issue's emails
+  b.update(issueRef(cid, sid, id), { ...patch, ...resolved, ...who, updatedAt: serverTimestamp(), lastActivityAt: serverTimestamp() });
   if (note) b.set(doc(collection(db, paths.issueComments(cid, sid, id))), { text: note, kind: 'update', createdBy: uid, createdByName: name, createdAt: serverTimestamp() });
   return b.commit();
 }

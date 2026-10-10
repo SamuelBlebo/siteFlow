@@ -46,3 +46,7 @@ export const migrateAccount = call('migrateAccount');
 
 // Owner deletes a project and everything on it (the server checks the role and the typed name)
 export const deleteProject = call('deleteProject');
+
+// Email settings from the link in an email (no sign-in: the link is signed)
+export const emailSettings = call('emailSettings');
+export const saveEmailSettings = call('saveEmailSettings');

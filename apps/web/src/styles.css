@@ -728,3 +728,10 @@ main:focus { outline: none; }
 .danger-zone p { max-width: 70ch; }
 .btn.danger-solid { background: var(--bad); border-color: var(--bad); color: #fff; }
 .btn.danger-solid:disabled { opacity: .5; }
+
+/* Email settings (opened from an email) and the email choices */
+.auth.wide { max-width: 560px; }
+.field.radios { border: 0; padding: 0; margin: 0 0 16px; }
+.field.radios legend { font-weight: 600; margin-bottom: 6px; }
+.radio { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14.5px; cursor: pointer; }
+.radio input { width: 18px; height: 18px; accent-color: var(--brass); }

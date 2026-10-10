@@ -7,6 +7,7 @@ import {
 } from '@siteflow/shared';
 import { companyMembers, deliver, type Recipient } from './deliver';
 import { SECRETS } from './notify';
+import { sendReportDigests } from './mail';
 
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 
@@ -103,5 +104,14 @@ export const weeklyDigest = onSchedule({ timeoutSeconds: 540, retryCount: 1, sch
   await eachCompany(getFirestore(), 'weeklyDigest', async (c) => {
     const { hour, weekday } = localClock(now, companyLocale(c).timeZone);
     if (hour === 17 && weekday === 5) await sendWeeklySummary(c, now);
+  });
+});
+
+// Runs every hour; each company's evening summary of daily reports goes out at 7pm in its own time
+// zone, to the people who chose one summary instead of each report
+export const reportDigest = onSchedule({ timeoutSeconds: 540, retryCount: 1, schedule: '0 * * * *', timeZone: 'UTC', secrets: SECRETS }, async () => {
+  const now = new Date();
+  await eachCompany(getFirestore(), 'reportDigest', async (c) => {
+    if (localClock(now, companyLocale(c).timeZone).hour === 19) await sendReportDigests(c, now);
   });
 });

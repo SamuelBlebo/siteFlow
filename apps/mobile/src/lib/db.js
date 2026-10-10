@@ -105,7 +105,8 @@ export function updateIssue(cid, sid, input) {
   return journaled({ label: 'Issue update', op: 'updateIssue', args: [cid, sid, args], refused }, () => {
     const b = firestore().batch();
     const resolved = patch.status === 'resolved' ? { resolvedAt: now() } : {};
-    b.update(issueRef(cid, sid, id), { ...patch, ...resolved, updatedAt: now(), lastActivityAt: now() });
+    const who = uid ? { updatedBy: uid, updatedByName: name } : {}; // named in the issue's emails
+    b.update(issueRef(cid, sid, id), { ...patch, ...resolved, ...who, updatedAt: now(), lastActivityAt: now() });
     if (note) b.set(firestore().doc(`${paths.issueComments(cid, sid, id)}/${noteId}`), { text: note, kind: 'update', createdBy: uid, createdByName: name, createdAt: now() });
     return b.commit();
   });

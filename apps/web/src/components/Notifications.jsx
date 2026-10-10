@@ -28,7 +28,9 @@ export function NotificationSettings({ cid, company }) {
               <td><b>{NOTIFICATIONS[k].label}</b><div className="muted small">{NOTIFICATIONS[k].description}</div></td>
               <td className="small">{NOTIFICATIONS[k].who}</td>
               <td><label className="switch"><input type="checkbox" aria-label={`${NOTIFICATIONS[k].label} by WhatsApp`} checked={rules[k].whatsapp} onChange={() => toggle(k, 'whatsapp')} /><span /></label></td>
-              <td><label className="switch"><input type="checkbox" aria-label={`${NOTIFICATIONS[k].label} by email`} checked={rules[k].email} onChange={() => toggle(k, 'email')} /><span /></label></td>
+              <td>{NOTIFICATIONS[k].emailByThread
+                ? <span className="small muted" title="Sent as an email conversation per report week or per issue">Email thread, by each person's settings</span>
+                : <label className="switch"><input type="checkbox" aria-label={`${NOTIFICATIONS[k].label} by email`} checked={rules[k].email} onChange={() => toggle(k, 'email')} /><span /></label>}</td>
             </tr>
           ))}
         </tbody>
@@ -38,6 +40,8 @@ export function NotificationSettings({ cid, company }) {
   );
 }
 
+// Report and issue emails (mail.ts in functions)
+const THREAD_LABELS = { report_email: 'Daily report email', issue_email: 'Issue email', digest_email: 'Evening report summary' };
 const STATUS = { sent: ['ok', 'Sent'], failed: ['bad', 'Failed'], skipped: ['warn', 'Not sent'], sending: ['', 'Sending'] };
 
 // Owner and admins: the last messages SiteFlow sent and what happened to them
@@ -55,7 +59,7 @@ export function NotificationLog({ cid }) {
           return (
             <tr key={n.id}>
               <td className="small">{n.createdAt?.toDate ? n.createdAt.toDate().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '–'}</td>
-              <td><b>{NOTIFICATIONS[n.kind]?.label || n.kind}</b><div className="muted small">{(n.text || '').slice(0, 140)}</div></td>
+              <td><b>{NOTIFICATIONS[n.kind]?.label || THREAD_LABELS[n.kind] || n.kind}</b><div className="muted small">{(n.text || '').slice(0, 140)}</div></td>
               <td className="small">{n.toName}<div className="muted">{n.to}</div></td>
               <td className="small">{n.channel === 'whatsapp' ? 'WhatsApp' : 'Email'}</td>
               <td><span className={`pill ${kind}`}>{label}</span>{n.error ? <div className="muted small">{n.error}</div> : null}{n.attempts > 1 ? <div className="muted small">{n.attempts} tries</div> : null}</td>

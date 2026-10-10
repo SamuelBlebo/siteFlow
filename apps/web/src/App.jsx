@@ -21,6 +21,7 @@ const Welcome = lazy(() => import('./pages/Welcome'));
 const PhotoCredits = lazy(() => import('./pages/PhotoCredits'));
 const Landing = lazy(() => import('./pages/Landing'));
 const AcceptInvite = lazy(() => import('./pages/AcceptInvite'));
+const EmailSettings = lazy(() => import('./pages/EmailSettings'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NewSite = lazy(() => import('./pages/NewSite'));
 const Sites = lazy(() => import('./pages/Sites'));
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
+        <Route path="/email-settings" element={<EmailSettings />} />
         <Route element={<Guard><Layout /></Guard>}>
           <Route index element={<Home />} />
           <Route path="sites" element={<Guard perm="sites.all"><Sites /></Guard>} />

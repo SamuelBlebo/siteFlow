@@ -39,6 +39,7 @@ export interface UserProfile {
   id: string;
   companyId: string;             // the company this membership is in (users/{uid}.companyId: the one being looked at)
   companyIds?: string[];         // users/{uid}: every company the person belongs to
+  emailPrefs?: { reports: 'each' | 'daily' | 'off'; issues: 'all' | 'mine' | 'off' } | null; // users/{uid}: report and issue emails
   role: Role;
   name: string;
   email: string;
@@ -74,6 +75,7 @@ export interface Site {
   planEnd?: string | null;       // YYYY-MM-DD
   client?: { name: string; email?: string; phone?: string } | null;
   overviewDrawingId?: string | null; // the drawing shown on the project overview
+  clientReports?: boolean;       // email each daily report to the client (client.email)
   sample?: boolean;              // a sample project (Explore with sample data); never sends messages
 }
 

@@ -21,6 +21,9 @@ export function updateMyProfile(uid, input) {
     () => firestore().doc(paths.user(uid)).update({ name, phone, updatedAt: firestore.FieldValue.serverTimestamp() }));
 }
 
+// Report and issue emails (logic/mail in shared). Saved straight away; offline it waits in Firestore's queue.
+export const saveEmailPrefs = (uid, prefs) => firestore().doc(paths.user(uid)).update({ emailPrefs: prefs, updatedAt: firestore.FieldValue.serverTimestamp() });
+
 registerOps({ updateMyProfile });
 registerChecks({
   updateMyProfile: async (uid, { name, phone }) => {

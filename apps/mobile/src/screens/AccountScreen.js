@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, profileInput, validate, getLocale } from '@siteflow/shared';
+import { ISSUE_MAIL_LABELS, REPORT_MAIL_LABELS, ROLE_DESCRIPTIONS, ROLE_LABELS, emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { companyRef, exists } from '../lib/db';
-import { updateMyProfile } from '../lib/account';
+import { saveEmailPrefs, updateMyProfile } from '../lib/account';
 import { getJournal } from '../lib/sync';
 import { getOutbox } from '../lib/reportOutbox';
-import { Button, Card, ErrorText, Field, H2, Muted, Notice, Screen, s } from '../components/ui';
+import { Button, Card, Choice, ErrorText, Field, H2, Muted, Notice, Screen, s } from '../components/ui';
 import PasswordForm from '../components/PasswordForm';
 import { colors } from '../theme';
 
@@ -16,6 +16,8 @@ export default function AccountScreen({ navigation }) {
   const [name, setName] = useState(profile?.name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
   const [msg, setMsg] = useState({ kind: '', text: '' });
+  const prefs = emailPrefsFor(profile?.emailPrefs, role);
+  const setPref = (k, v) => saveEmailPrefs(user.uid, { ...prefs, [k]: v }).catch((e) => Alert.alert('Could not save', e?.message || 'Try again when you have signal.'));
 
   useEffect(() => {
     if (!cid) return;
@@ -63,6 +65,11 @@ export default function AccountScreen({ navigation }) {
       <Field label="Name" value={name} onChangeText={setName} />
       <Field label="WhatsApp number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder={getLocale().phoneExample} hint="Used for SiteFlow alerts on WhatsApp." />
       <Button title="Save details" onPress={save} />
+
+      <H2>Emails</H2>
+      <Muted style={{ marginBottom: 8 }}>Daily reports and issues by email, to {user?.email}. Each project's reports for a week, and each issue, arrive as one email conversation.</Muted>
+      <Choice label="Daily reports" options={Object.entries(REPORT_MAIL_LABELS).map(([value, label]) => ({ value, label }))} value={prefs.reports} onChange={(v) => setPref('reports', v)} />
+      <Choice label="Issues" options={Object.entries(ISSUE_MAIL_LABELS).map(([value, label]) => ({ value, label: value === 'mine' ? 'Only mine' : label }))} value={prefs.issues} onChange={(v) => setPref('issues', v)} />
 
       <H2>Password</H2>
       <PasswordForm />

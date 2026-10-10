@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useSiteData, useTitle } from '../lib/hooks';
 import {
-  companyDoc, financeDoc, setBudget, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
+  companyDoc, financeDoc, setBudget, setClientReports, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
 import { deleteProject, team } from '../lib/account';
@@ -255,6 +255,12 @@ function SettingsTab({ cid, sid, site }) {
         ))}
       </div>
       <p className="hint">Active: daily reports expected. On hold: work paused, no report reminders. Closed: finished, read-only for the site team.</p>
+
+      <h3 className="sub">Client emails</h3>
+      <label className="dwg-check"><input type="checkbox" checked={!!site.clientReports} disabled={!site.client?.email}
+        onChange={(e) => save(setClientReports(cid, sid, e.target.checked), 'Client emails').then(() => toast(e.target.checked ? `Each daily report will be emailed to ${site.client.name}.` : 'The client no longer gets daily reports.')).catch((e2) => toast(e2.message, 'err'))} />
+        Email each daily report to the client{site.client?.email ? ` (${site.client.email})` : ''}</label>
+      <p className="hint">{site.client?.email ? 'Reports carry no money figures. The client can unsubscribe from any email.' : 'Add the client’s email in the details below first.'}</p>
 
       <h3 className="sub">Details</h3>
       <SiteForm initial={siteFormValues(site)} submitLabel="Save details" busyLabel="Saving…" onSubmit={saveDetails} />

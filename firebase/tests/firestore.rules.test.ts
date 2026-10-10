@@ -744,3 +744,27 @@ describe('project drawings', () => {
     await assertFails(issue('p3', { drawingId: 'd1', x: 0.4, y: 0.2, note: 'extra' }));
   });
 });
+
+describe('emails', () => {
+  it('people choose their own report and issue emails, only with known values', async () => {
+    const me = doc(asRole('supervisor'), paths.user(USERS.supervisor));
+    await assertSucceeds(updateDoc(me, { emailPrefs: { reports: 'daily', issues: 'mine' }, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(me, { emailPrefs: { reports: 'hourly', issues: 'mine' } }));
+    await assertFails(updateDoc(me, { emailPrefs: { reports: 'off', issues: 'off', cc: 'x@y.com' } }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.user(USERS.supervisor)), { emailPrefs: { reports: 'off', issues: 'off' } }));
+  });
+  it('managers copy the client on daily reports; the site team cannot', async () => {
+    await assertSucceeds(updateDoc(doc(asRole('manager'), paths.site(C1, S1)), { clientReports: true }));
+    await assertFails(updateDoc(doc(asRole('manager'), paths.site(C1, S1)), { clientReports: 'yes' }));
+    await assertFails(updateDoc(doc(asRole('supervisor'), paths.site(C1, S1)), { clientReports: false }));
+  });
+  it('an issue change names who made it, and only ever yourself', async () => {
+    const ref = doc(asRole('manager'), paths.subDoc(C1, S1, 'issues', 'em1'));
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore() as unknown as Firestore, paths.subDoc(C1, S1, 'issues', 'em1')), {
+      ...issueDoc({ title: 'Loose rail', priority: 'medium', category: 'Safety' }, { companyId: C1, siteId: S1, siteName: `Site ${S1}`, uid: USERS.supervisor, name: 'supervisor user', date: today }),
+    }));
+    await assertSucceeds(updateDoc(ref, { priority: 'high', updatedBy: USERS.manager, updatedByName: 'manager user' }));
+    await assertFails(updateDoc(ref, { priority: 'low', updatedBy: USERS.owner, updatedByName: 'owner user' }));
+    await assertFails(updateDoc(ref, { priority: 'low', updatedBy: USERS.manager, updatedByName: 'The boss' }));
+  });
+});

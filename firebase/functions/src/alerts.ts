@@ -6,12 +6,14 @@ import {
 import { companyMembers, deliver } from './deliver';
 import { SECRETS } from './notify';
 import { fulfilRequests } from './requests';
+import { mailIssue, mailReport } from './mail';
 
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 // Sample projects (Explore with sample data) never send messages
 const sample = (sid: string) => sid.startsWith(SAMPLE_PREFIX);
 
-// A daily report came in (off by default: can be many messages)
+// A daily report came in: emailed to the people who want each report (a thread per project and
+// week), and on WhatsApp if the company switched that on (off by default: can be many messages)
 export const onReportSent = onDocumentCreated({ document: 'companies/{cid}/sites/{sid}/reports/{rid}', secrets: SECRETS }, async (event) => {
   const { cid, sid, rid } = event.params;
   const r = event.data?.data() as Report | undefined;
@@ -25,6 +27,7 @@ export const onReportSent = onDocumentCreated({ document: 'companies/{cid}/sites
     subject: `Daily report: ${r.siteName}`,
     recipients: recipientsFor('report_submitted', members, { siteId: sid, actorId: r.createdBy }),
   });
+  await mailReport(cid, sid, rid, r);
 });
 
 // An issue became critical, or was given to someone
@@ -44,6 +47,19 @@ export const onIssueChanged = onDocumentWritten({ document: 'companies/{cid}/sit
       emailText: `${after.title}\n\n${after.description || ''}\n\nSite: ${after.siteName}\nReported by: ${after.createdByName}\n\nOpen it: ${APP_URL}/issues/${sid}/${iid}`,
       recipients: recipientsFor('critical_issue', members, { siteId: sid, actorId: created ? after.createdBy : undefined }),
     });
+  }
+  // The issue's email thread: raised, given to someone, and status changes (comments: mail.ts)
+  const actor = created ? after.createdBy : (after as Issue & { updatedBy?: string }).updatedBy;
+  const actorName = (after as Issue & { updatedByName?: string }).updatedByName || 'Someone';
+  // Same change, same key: a retried trigger never emails twice
+  const at = (after as Issue & { updatedAt?: { toMillis?: () => number } }).updatedAt?.toMillis?.() ?? 0;
+  if (created) await mailIssue(cid, sid, iid, after, { kind: 'created' }, `imail_${iid}_new`, actor);
+  else {
+    if (after.assignedTo && after.assignedTo !== before?.assignedTo) await mailIssue(cid, sid, iid, after, { kind: 'assigned', by: actorName, to: after.assignedToName || 'someone' }, `imail_${iid}_a_${after.assignedTo}_${at}`, actor);
+    if (after.status !== before?.status) {
+      const by = after.status === 'resolved' ? after.resolvedByName || actorName : actorName;
+      await mailIssue(cid, sid, iid, after, { kind: 'status', by, to: after.status }, `imail_${iid}_s_${after.status}_${at}`, after.status === 'resolved' ? after.resolvedBy || actor : actor);
+    }
   }
   if (after.assignedTo && after.assignedTo !== before?.assignedTo) {
     await deliver({
