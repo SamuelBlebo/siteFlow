@@ -26,6 +26,7 @@ import ProjectDrawing from '../components/ProjectDrawing';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
 import ContactLinks from '../components/ContactLinks';
+import AiOverview from '../components/AiOverview';
 import { ReportDayPill, ReportDaysSetting } from '../components/ReportDays';
 import { removeCover, uploadCover } from '../lib/cover';
 import StatusPill from '../components/StatusPill';
@@ -105,7 +106,8 @@ export default function SiteDetail() {
       )}
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'overview' && <><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
+      {tab === 'overview' && <><AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} /><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
+      {tab === 'today' && <AiOverview site={site} kind="today" stamp={`${site.lastReportDate}|${site.lastReportTime}|${data.presentCount}`} />}
       {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
       {tab === 'reports' && (
         <>

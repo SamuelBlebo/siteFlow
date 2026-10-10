@@ -50,3 +50,6 @@ export const deleteProject = call('deleteProject');
 // Email settings from the link in an email (no sign-in: the link is signed)
 export const emailSettings = call('emailSettings');
 export const saveEmailSettings = call('saveEmailSettings');
+
+// AI overview of a project or its day (SiteFlow AI module)
+export const aiOverview = call('aiOverview');

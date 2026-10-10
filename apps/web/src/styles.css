@@ -838,3 +838,17 @@ main:focus { outline: none; }
 .days li.skip { background: var(--sunk); color: var(--muted); border: 1px dashed var(--line); text-decoration: line-through; }
 .days li.off { background: transparent; color: var(--muted); opacity: .65; border: 1px solid var(--line); }
 .days li.today { box-shadow: inset 0 0 0 2px var(--brass); }
+
+/* AI overviews (SiteFlow AI): a written summary on Overview and Today */
+.ai-card { position: relative; background: linear-gradient(135deg, color-mix(in srgb, var(--brass) 9%, var(--surface)), var(--surface) 60%); border: 1px solid color-mix(in srgb, var(--brass) 40%, var(--line)); border-radius: 14px; padding: 16px 18px 12px; margin-bottom: 18px; box-shadow: var(--shadow); }
+.ai-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ai-head h3 { margin: 0; font-size: 15px; flex: 1; }
+.ai-badge { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--navy); color: var(--tape); font-size: 14px; }
+.ai-text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink); max-width: 80ch; }
+.ai-foot { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+.ai-off { margin: 0 0 14px; color: var(--muted); }
+.ai-skeleton { display: grid; gap: 8px; padding: 4px 0; }
+.ai-skeleton span { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--sunk), var(--line), var(--sunk)); background-size: 200% 100%; animation: aishine 1.2s linear infinite; }
+.ai-skeleton span:nth-child(2) { width: 92%; } .ai-skeleton span:nth-child(3) { width: 70%; }
+@keyframes aishine { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .ai-skeleton span { animation: none; } }

@@ -13,6 +13,7 @@ export const LIMITS = {
   demo: { max: 10, windowMs: 60 * 60 * 1000 },             // adding or removing the sample projects per hour
   requests: { max: 60, windowMs: 60 * 60 * 1000 },         // report requests per hour
   deleteProject: { max: 20, windowMs: 60 * 60 * 1000 },    // projects deleted per hour
+  ai: { max: 120, windowMs: 60 * 60 * 1000 },              // AI overviews written (not cached) per hour
   migrate: { max: 20, windowMs: 60 * 60 * 1000 },          // moving an account to company memberships
 } as const;
 export type LimitKey = keyof typeof LIMITS;

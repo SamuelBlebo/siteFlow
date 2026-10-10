@@ -5,7 +5,7 @@ export interface ModuleDef { key: ModuleKey; name: string; description: string; 
 
 export const MODULES: ModuleDef[] = [
   { key: 'reports', name: 'Daily reports and photos', description: 'Daily site reports with photos, issues and headcount.', tier: 'core', ready: true },
-  { key: 'ai', name: 'SiteFlow AI', description: 'Voice-note reports in English or Twi, a daily summary and answers about your projects.', tier: 'professional' },
+  { key: 'ai', name: 'SiteFlow AI', description: 'AI overviews: a written summary of each project and of its day, from your reports, issues and progress. Voice-note reports and questions coming soon.', tier: 'professional', ready: true },
   { key: 'materials', name: 'Materials and stock', description: 'Material reporting: deliveries, daily usage (added to daily reports), stock levels, reorder and unusual-use alerts.', tier: 'starter', ready: true },
   { key: 'labour', name: 'Labour and wage sheets', description: 'Attendance, daily wages and bank-ready wage sheets.', tier: 'starter', ready: true },
   { key: 'safety', name: 'Health and safety', description: 'Incident reports, toolbox talks and days without injury.', tier: 'starter' },
