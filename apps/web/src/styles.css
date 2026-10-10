@@ -828,3 +828,13 @@ main:focus { outline: none; }
 .skip-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .skip-list li { display: inline-flex; gap: 8px; align-items: center; background: var(--sunk); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; font-size: 13px; }
 .pill.calm { background: var(--sunk); color: var(--muted); border: 1px solid var(--line); }
+
+/* Last two weeks: each day is a button (open the report, skip or undo a skip) */
+.days li { padding: 0; }
+.days li > button, .days li > span { display: block; width: 100%; padding: 4px 6px; border: 0; background: none; color: inherit; font: inherit; border-radius: 6px; }
+.days li > button { cursor: pointer; }
+.days li > button:hover { filter: brightness(.95); text-decoration: underline; }
+.days li > button:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+.days li.skip { background: var(--sunk); color: var(--muted); border: 1px dashed var(--line); text-decoration: line-through; }
+.days li.off { background: transparent; color: var(--muted); opacity: .65; border: 1px solid var(--line); }
+.days li.today { box-shadow: inset 0 0 0 2px var(--brass); }
