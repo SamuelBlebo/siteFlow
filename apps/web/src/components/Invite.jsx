@@ -48,7 +48,8 @@ function AddedExisting({ issued, onDone }) {
   );
 }
 
-export function InviteForm({ roles, sites, onInvited }) {
+// onCancel: shows a Cancel button (the Team page opens this form from its Add team member button)
+export function InviteForm({ roles, sites, onInvited, onCancel }) {
   const blank = { name: '', email: '', phone: '', role: 'supervisor', siteIds: [] };
   const [f, setF] = useState(blank);
   const [err, setErr] = useState('');
@@ -92,7 +93,10 @@ export function InviteForm({ roles, sites, onInvited }) {
           {!sites.length ? <p className="hint">Add a site first.</p> : <div className="chips">{sites.map((s) => <label key={s.id} className="chip"><input type="checkbox" checked={f.siteIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}</div>}
         </fieldset>
       )}
-      <button type="submit" className="btn" disabled={busy}>{busy ? 'Adding…' : 'Add member'}</button>
+      <div className="actions">
+        <button type="submit" className="btn gold" disabled={busy}>{busy ? 'Adding…' : 'Add member'}</button>
+        {onCancel && <button type="button" className="btn ghost" onClick={onCancel} disabled={busy}>Cancel</button>}
+      </div>
     </form>
   );
 }

@@ -20,7 +20,7 @@ export function GettingStarted({ company, sites, budgetSet }) {
   const steps = [
     { done: !!(company?.phone || company?.location), title: 'Company details', why: 'Shown on reports and messages', to: can('company.settings') ? '/welcome' : null, go: 'Add details' },
     { done: real.length > 0, title: 'First project', why: 'Name, place, foreman and budget', to: '/sites/new', go: 'Add project' },
-    { done: members.length > 1, title: 'Your team', why: 'Managers, accounts and foremen', to: '/team', go: 'Invite' },
+    { done: members.length > 1, title: 'Your team', why: 'Managers, accounts and foremen', to: '/team?add=1', go: 'Invite' },
     { done: real.some((s) => s.lastReportDate), title: 'First daily report', why: 'Sent from site on the phone', to: '/sites', go: 'Open site work' },
     { done: budgetSet, title: 'Project budget', why: 'So spending can be tracked', to: can('finance.view') && budgetSet !== null ? (real[0] ? `/sites/${real[0].id}?tab=budget` : '/sites/new') : null, go: 'Set budget' },
   ].filter((s) => s.to);

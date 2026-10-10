@@ -809,3 +809,7 @@ main:focus { outline: none; }
 .tile:has(.tile-link) dt::after { content: ' \2192'; color: var(--muted); opacity: 0; transition: opacity .15s ease; }
 .tile:has(.tile-link):hover dt::after { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .tile, .tile:has(.tile-link):hover { transform: none; transition: none; } }
+
+/* Team: the Add team member form, opened from its button */
+.add-member { scroll-margin-top: 90px; }
+.add-member .form.inline { margin-top: 0; border-color: color-mix(in srgb, var(--brass) 45%, var(--line)); box-shadow: var(--shadow); }

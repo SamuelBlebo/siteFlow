@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery, useTitle } from '../lib/hooks';
 import { activityQuery, sitesCol, teamQuery } from '../lib/db';
@@ -22,6 +23,12 @@ export default function Team() {
   const [editing, setEditing] = useState(null);   // member id
   const [issued, setIssued] = useState(null);     // { name, to, phone, link, email: 'sent' | 'skipped' | 'failed', expiresAt, kind }
   const [busy, setBusy] = useState('');
+  // Add team member: a button at the top opens the form (also from ?add=1, e.g. the getting-started steps)
+  const [params, setParams] = useSearchParams();
+  const [adding, setAdding] = useState(params.get('add') === '1');
+  const formRef = useRef(null);
+  useEffect(() => { if (adding) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [adding]);
+  const closeAdd = () => { setAdding(false); if (params.has('add')) setParams({}, { replace: true }); };
 
   async function run(key, fn, ok) {
     setBusy(key);
@@ -41,8 +48,15 @@ export default function Team() {
 
   return (
     <>
-    <PageHead title="Team" sub="Add people, choose what they can do and which projects they work on. Changes take effect straight away." />
+    <PageHead title="Team" sub="Add people, choose what they can do and which projects they work on. Changes take effect straight away.">
+      {!adding && <button type="button" className="btn gold" onClick={() => { setIssued(null); setAdding(true); }}>+ Add team member</button>}
+    </PageHead>
     <section className="wrap">
+      {adding && (
+        <div ref={formRef} className="add-member">
+          <InviteForm roles={roles} sites={sites} onCancel={closeAdd} onInvited={(i) => { setIssued(i); closeAdd(); }} />
+        </div>
+      )}
 
       {issued && <IssuedLogin issued={issued} onDone={() => setIssued(null)} />}
 
@@ -91,7 +105,7 @@ export default function Team() {
         ) : null;
       })()}
 
-      <InviteForm roles={roles} sites={sites} onInvited={setIssued} />
+      {!adding && <button type="button" className="btn ghost mt" onClick={() => { setIssued(null); setAdding(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>+ Add team member</button>}
 
       <h2 className="sub">Messages sent</h2>
       <p className="hint">WhatsApp and email alerts from the last while. Numbers and addresses are partly hidden. {can('company.settings') ? 'Choose which alerts go out on the Company page.' : ''}</p>
