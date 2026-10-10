@@ -19,7 +19,7 @@ export default function TodayPanel({ cid, site, data, mod, work, onGo }) {
       <ol className="steps">
         {steps.map((s) => (
           <li key={s.tab} className={s.done ? 'done' : ''}>
-            <button type="button" onClick={() => onGo(s.tab)}><span><b>{s.title}</b><small>{s.note}</small></span></button>
+            <button type="button" onClick={() => onGo(s.tab, s.tab === 'reports' && !s.done)}><span><b>{s.title}</b><small>{s.note}</small></span></button>
           </li>
         ))}
       </ol>

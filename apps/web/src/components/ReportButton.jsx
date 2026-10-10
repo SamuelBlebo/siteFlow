@@ -13,6 +13,6 @@ export default function ReportButton({ cid, site, size = '' }) {
   if (!allowed) return null;
   const stop = (e) => e.stopPropagation(); // inside clickable table rows
   return mine
-    ? <Link to={`/sites/${site.id}?tab=reports`} className={`btn ghost ${size} report-btn sent`} onClick={stop} title="You have sent today's report">✓ Today&rsquo;s report sent</Link>
-    : <Link to={`/sites/${site.id}?tab=reports`} className={`btn gold ${size} report-btn`} onClick={stop}>Make a report</Link>;
+    ? <Link to={`/sites/${site.id}?tab=reports&write=1`} className={`btn ghost ${size} report-btn sent`} onClick={stop} title="You have sent today's report">✓ Today&rsquo;s report sent</Link>
+    : <Link to={`/sites/${site.id}?tab=reports&write=1`} className={`btn gold ${size} report-btn`} onClick={stop}>Make a report</Link>;
 }

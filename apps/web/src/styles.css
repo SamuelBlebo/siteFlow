@@ -788,3 +788,15 @@ main:focus { outline: none; }
 .cover-setting .cover { border-radius: 10px; }
 .cover-setting label.btn { cursor: pointer; }
 @media (max-width: 640px) { .cover-setting { grid-template-columns: 1fr; } }
+
+/* Today's report: folded on the Daily reports tab, open when you came to write it */
+.today-report { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+.today-toggle { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 18px; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; font: inherit; }
+.today-toggle:hover { background: var(--sunk); }
+.today-toggle:focus-visible { outline: 3px solid var(--brass); outline-offset: -3px; }
+.today-toggle b { display: block; font-size: 15.5px; }
+.today-toggle small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.today-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--brass); color: #fff; font-weight: 700; font-size: 18px; }
+.today-report.sent .today-icon { background: var(--ok); font-size: 15px; }
+.today-report .chev { color: var(--muted); font-size: 14px; }
+.today-body { padding: 4px 18px 18px; border-top: 1px solid var(--line); }

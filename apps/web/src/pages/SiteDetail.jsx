@@ -13,7 +13,7 @@ import {
   validate, waPhone, currencySymbol } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import TodayPanel from '../components/TodayPanel';
-import ReportForm from '../components/ReportForm';
+import TodayReport from '../components/TodayReport';
 import ReportHistory from '../components/ReportHistory';
 import ReportRequests from '../components/ReportRequests';
 import MaterialsPanel from '../components/MaterialsPanel';
@@ -34,7 +34,8 @@ export default function SiteDetail() {
   const { sid } = useParams();
   const { cid, can, role } = useAuth();
   const [params, setParams] = useSearchParams();
-  const setTab = (t) => setParams({ tab: t }, { replace: true });
+  // write: open today's report form straight away (Make a report, the Today checklist)
+  const setTab = (t, write = false) => setParams(write ? { tab: t, write: '1' } : { tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const data = useSiteData(cid, sid, { withPay: can('finance.view') });
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
@@ -107,7 +108,7 @@ export default function SiteDetail() {
       {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
       {tab === 'reports' && (
         <>
-          {work && <><h3 className="sub">Today’s report</h3><ReportForm cid={cid} site={site} presentCount={data.presentCount} logs={data.logs} /></>}
+          {work && <TodayReport cid={cid} site={site} data={data} startOpen={params.get('write') === '1' || asked === 'report'} />}
           <ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} />
           <h3 className="sub">Report history</h3>
           <ReportHistory cid={cid} site={site} />
