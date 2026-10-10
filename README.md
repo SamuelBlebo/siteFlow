@@ -214,6 +214,23 @@ out from attendance can be recorded as a Labour expense. All calculations (varia
 overspend risk, monthly spend) are in `packages/shared/src/logic/finance.ts`.
 - Web: Budget tab per site, Finance page across sites. Mobile shows no money.
 
+Money records can be trusted (code in `firebase/functions/src/ledger.ts`, enforced by `firestore.rules`):
+- **Nothing is deleted.** A wrong expense is voided with a reason; it keeps its original amount and is
+  no longer counted. A void is final.
+- **Every change is signed and kept.** Edits and voids carry who made them (checked against the
+  signed-in member) and the server's time (the app can't pick or backdate `createdAt`, `updatedAt` or
+  `voidedAt`; the date paid is the person's to choose). Each expense has a history, and edits and voids
+  go to the activity log. Budget changes and deleted daily reports are logged too.
+- **Wages from attendance are paid once.** `recordWages` works the amount out on the server, in one
+  transaction with the project's wage register (`finance/wages`), so two people recording at the same
+  moment can't pay overlapping periods. The period's attendance is locked until that payment is voided.
+- **Labour paid by hand is allowed but visible.** Piece work, a gang paid by the job or an advance is a
+  Labour expense with a reason (`labourReason`, required). It is labelled "by hand" in the list and the
+  CSV, goes to the activity log, and the wages panel lists it next to any wages for the same days, so it
+  can't quietly stand in for, or double, a wage payment. It can't carry a wage period or lock attendance.
+- **Site staff mark today or yesterday**; managers mark any day. Every change of a mark is kept.
+- **The history triggers retry** when they fail and are keyed by the event, so a retry never writes twice.
+
 ## Dashboard
 For roles that see every site. Answers three questions with shared logic (`logic/dashboard.ts`, `siteAlerts`):
 - **What needs attention**: alerts ranked urgent first (critical issues, missing reports, stock, budget, delays),

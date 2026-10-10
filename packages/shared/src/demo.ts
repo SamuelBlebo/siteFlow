@@ -213,7 +213,7 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
       const sat = key(addDays(new Date(`${monday}T00:00`), 5));
       if (sat > today) continue;
       const add = (category: string, amount: number, note: string, payee: string) =>
-        expenses.push({ id: `${sid}-e${String(expenses.length + 1).padStart(3, '0')}`, doc: { date: sat, category, amount: Math.round(amount), payee, method: 'Bank transfer', ref: '', note, createdBy: fid, createdByName: p.foremanName } });
+        expenses.push({ id: `${sid}-e${String(expenses.length + 1).padStart(3, '0')}`, doc: { date: sat, category, amount: Math.round(amount), payee, method: 'Bank transfer', ref: '', note, createdBy: fid, createdByName: p.foremanName, ...(category === 'Labour' ? { labourReason: 'Sample data: weekly wages' } : {}) } });
       add('Labour', wages, `Wages, week of ${monday}`, 'Site workers');
       add('Equipment', p.weekly.Equipment * (0.8 + r() * 0.4), p.key === 'road' ? 'Excavator and roller hire' : 'Mixer and scaffold hire', 'Plant hire');
       add('Transport', p.weekly.Transport * (0.7 + r() * 0.6), 'Haulage and deliveries', 'Transport');

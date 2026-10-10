@@ -98,7 +98,12 @@ export const expenseInput = z.object({
   payee: z.string().trim().max(120).default(''),
   method: z.string().max(40).default(''),
   ref: z.string().trim().max(60).default(''),
-});
+  // Labour paid by hand (piece work, a gang paid by the job, an advance) rather than from attendance
+  // says why; only wage payments from recordWages come from attendance
+  labourReason: z.string().trim().max(300).default(''),
+}).refine((v) => v.category !== 'Labour' || v.labourReason.length >= 3, {
+  message: 'Say what this labour payment is for. Wages for days marked in attendance are recorded under "Labour cost from attendance".', path: ['labourReason'],
+}).transform(({ labourReason, ...v }) => (v.category === 'Labour' ? { ...v, labourReason } : v));
 // Expenses are never deleted: they are voided with a reason (and keep their history)
 export const voidExpenseInput = z.object({ reason: z.string().trim().min(3, 'Say why this expense is void.').max(300) });
 // Wages for a period, worked out on the server from attendance and daily rates (recordWages function)

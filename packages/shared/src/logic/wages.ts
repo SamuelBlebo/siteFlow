@@ -36,3 +36,6 @@ export function datesIn(from: string, to: string): string[] {
   while (d <= end && out.length < 400) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
   return out;
 }
+// Labour entered by hand (has a reason, no period) rather than a wage payment worked out from
+// attendance (recordWages, has a period). Voided ones don't count.
+export const isManualLabour = (e: { category: string; period?: unknown; voided?: boolean }) => e.category === 'Labour' && !e.period && !e.voided;

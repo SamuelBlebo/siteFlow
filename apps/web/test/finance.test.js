@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { deleteDoc, getDoc, getDocs, increment, terminate, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { budgetVariance, siteFinanceSummary, siteInput, todayKey, validate, wageSheet } from '@siteflow/shared';
+import { budgetVariance, expenseInput, siteFinanceSummary, siteInput, todayKey, validate, wageSheet } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
   addExpense, addWorker, attendanceDoc, attendanceRangeQuery, createSite, expenseHistoryQuery, expensesQuery, financeDoc, markAttendance, setBudget,
@@ -90,6 +90,15 @@ describe('expenses and server totals', () => {
     await save(addExpense(cid, sid, expense({ category: 'Other', amount: 5 }), me, id));
     await expect(save(addExpense(cid, sid, expense({ category: 'Other', amount: 5 }), me, id))).rejects.toBeInstanceOf(SaveError);
     await save(voidExpense(cid, sid, { id, amount: 5 }, 'Test entry', me));
+    await until((x) => x.spent === 45000.5);
+  });
+  it('labour paid by hand needs a reason, is marked as such, and is logged', async () => {
+    const me = await as('finance');
+    await expect(save(addExpense(cid, sid, expense({ category: 'Labour', amount: 7 }), me, 'hand-1'))).rejects.toBeInstanceOf(SaveError);
+    const v = validate(expenseInput, expense({ category: 'Labour', amount: 7, labourReason: 'Casual labourers, paid by the day' }));
+    await save(addExpense(cid, sid, v.data, me, 'hand-2'));
+    expect((await getDoc(subDoc(cid, sid, 'expenses', 'hand-2'))).data()).toMatchObject({ category: 'Labour', labourReason: 'Casual labourers, paid by the day' });
+    await save(voidExpense(cid, sid, { id: 'hand-2', amount: 7 }, 'Test entry', me));
     await until((x) => x.spent === 45000.5);
   });
   it('nobody can write the totals from the app, not even the owner', async () => {

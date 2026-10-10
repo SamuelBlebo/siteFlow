@@ -32,6 +32,7 @@
 | Issues | shared `issues.test.ts`, web `issues.test.js`, mobile `outbox.test.js` and `checks.test.js` |
 | Progress | shared `progress.test.ts`, web `progress.test.js` |
 | Budgets and spending totals | shared `finance.test.ts`, web `finance.test.js` (including expenses saved at the same moment) |
+| Wages paid once, retried history triggers | functions `ledger.test.ts` (competing wage recordings, repeated and failed trigger runs) |
 | Notifications | shared `notifications.test.ts`, web `notifications.test.js`, `firebase/functions/test/scheduled.test.ts` |
 | Offline and sync (phone) | mobile `sync.test.js` (journal, restart, retry, shared phone), `checks.test.js` (server checks, changed-since), `outbox.test.js` (photos, retries, app start) |
 | Offline (web) | web `save.test.js` |

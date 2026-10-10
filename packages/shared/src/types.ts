@@ -158,6 +158,7 @@ export interface Expense {
   updatedBy?: string; updatedByName?: string;   // who last changed it (checked by the rules)
   voided?: boolean; voidReason?: string; voidedAmount?: number; voidedBy?: string; voidedByName?: string; // a void keeps the original amount here; amount becomes 0
   period?: { from: string; to: string };        // wage sheets: the days paid (recordWages function)
+  labourReason?: string;                        // a Labour payment entered by hand (not from attendance) says why
 }
 
 export interface ChangeOrder {

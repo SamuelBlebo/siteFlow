@@ -7,7 +7,7 @@ import {
 import { recordWages } from '../lib/account';
 import { save, toast } from '../lib/save';
 import {
-  EXPENSE_CATEGORIES, PAYMENT_METHODS, budgetLinesInput, budgetVariance, cedi, expenseCsv, expenseInput, friendlyError, periodsOverlap, prettyDate, siteFinanceSummary,
+  EXPENSE_CATEGORIES, PAYMENT_METHODS, budgetLinesInput, budgetVariance, cedi, expenseCsv, expenseInput, friendlyError, isManualLabour, periodsOverlap, prettyDate, siteFinanceSummary,
   spendByMonth, todayKey, validate, voidExpenseInput, wageSheet, weekStart, currencySymbol } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from './States';
 
@@ -138,12 +138,17 @@ function Wages({ cid, site, data, expenses }) {
   const recorded = expenses.find((e) => !e.voided && e.period && periodsOverlap(e.period, { from, to }))
     || expenses.find((e) => !e.voided && e.category === 'Labour' && e.note === `Wages ${from} to ${to}`);
   const [busy, setBusy] = useState(false);
+  // Labour entered by hand in these days (not from attendance): shown so it isn't paid twice by mistake
+  const manual = expenses.filter((e) => isManualLabour(e) && e.date >= from && e.date <= to);
   const noRate = data.allWorkers.filter((w) => !pay[w.id] && att.some((a) => a.marks?.[w.id] === 'present' || a.marks?.[w.id] === 'late')).length;
 
   async function record() {
     if (!window.confirm(`Record ${cedi(sheet.total)} wages for ${prettyDate(from)} to ${prettyDate(to)} as a Labour expense? Attendance for these days is then locked, so it matches what was paid.`)) return;
     setBusy(true);
-    try { const r = await recordWages({ siteId: site.id, from, to }); toast(`Wages of ${cedi(r.amount)} recorded for ${r.workers} workers. Attendance for the period is locked.`); }
+    try {
+      const r = await recordWages({ siteId: site.id, from, to });
+      toast(`Wages of ${cedi(r.amount)} recorded for ${r.workers} workers. Attendance for the period is locked.${r.manual?.count ? ` Note: ${cedi(r.manual.total)} of labour entered by hand in the same days is a separate payment.` : ''}`);
+    }
     catch (e) { toast(friendlyError(e), 'err'); } finally { setBusy(false); }
   }
   return (
@@ -153,6 +158,7 @@ function Wages({ cid, site, data, expenses }) {
           <option value="last">Last week</option><option value="this">This week</option><option value="30">Last 30 days</option>
         </select></div>
       <p className="mt-sm">{prettyDate(from)} to {prettyDate(to)}: <b>{cedi(sheet.total)}</b> for {sheet.rows.length} worker{sheet.rows.length === 1 ? '' : 's'} ({sheet.rows.reduce((s, r) => s + r.days, 0)} days worked).</p>
+      {manual.length > 0 && <p className="hint">Also in these days: {cedi(manual.reduce((t, e) => t + (Number(e.amount) || 0), 0))} of labour entered by hand ({manual.map((e) => e.labourReason || e.note || 'no reason').join('; ')}). It is not from attendance, so check it isn't the same work.</p>}
       {noRate > 0 && <p className="hint">{noRate} worker{noRate === 1 ? ' has' : 's have'} no daily rate, so {noRate === 1 ? 'is' : 'are'} not counted. Set rates under Labour, Workers.</p>}
       {recorded ? <p className="notice ok">Paid: {cedi(recorded.amount)} recorded {recorded.period ? `for ${prettyDate(recorded.period.from)} to ${prettyDate(recorded.period.to)}` : `on ${prettyDate(recorded.date)}`}. {recorded.period ? 'Attendance for those days is locked. To correct it, void that wage payment in the expenses below, then record again.' : ''}</p>
         : can('finance.edit') && sheet.total > 0 && <button type="button" className="btn ghost" onClick={record} disabled={busy}>{busy ? 'Recording…' : 'Record these wages as an expense'}</button>}
@@ -160,7 +166,7 @@ function Wages({ cid, site, data, expenses }) {
   );
 }
 
-const blankExpense = () => ({ date: todayKey(), category: EXPENSE_CATEGORIES[0], amount: '', note: '', payee: '', method: 'Cash', ref: '' });
+const blankExpense = () => ({ date: todayKey(), category: EXPENSE_CATEGORIES[0], amount: '', note: '', payee: '', method: 'Cash', ref: '', labourReason: '' });
 function expenseFields(f, set, prefix) {
   return (
     <div className="grid3">
@@ -171,6 +177,11 @@ function expenseFields(f, set, prefix) {
       <div className="field"><label htmlFor={`${prefix}-p`}>Paid to</label><input id={`${prefix}-p`} value={f.payee} onChange={set('payee')} /></div>
       <div className="field"><label htmlFor={`${prefix}-m`}>Paid by</label><select id={`${prefix}-m`} value={f.method} onChange={set('method')}><option value="">–</option>{PAYMENT_METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>
       <div className="field"><label htmlFor={`${prefix}-r`}>Receipt or ref</label><input id={`${prefix}-r`} value={f.ref} onChange={set('ref')} /></div>
+      {f.category === 'Labour' && (
+        <div className="field span-all"><label htmlFor={`${prefix}-lr`}>Labour paid by hand: what for?</label>
+          <input id={`${prefix}-lr`} value={f.labourReason || ''} onChange={set('labourReason')} maxLength={300} placeholder="e.g. Tiling gang, paid by the job" />
+          <p className="hint">Wages for days marked in attendance are recorded under Labour cost from attendance, which locks those days. Use this for labour paid another way.</p></div>
+      )}
     </div>
   );
 }
@@ -224,7 +235,8 @@ function ExpenseList({ cid, site, expenses }) {
         <span className="actions">
           <select aria-label="Period" value={days} onChange={(e) => setDays(e.target.value)}><option value="30">Last 30 days</option><option value="90">Last 3 months</option><option value="all">All</option></select>
           <select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)}><option value="">All categories</option>{EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
-          <button type="button" className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown.map((x) => (x.voided ? { ...x, note: `VOID (${cedi(x.voidedAmount)}): ${x.voidReason}. ${x.note || ''}` } : x))))}>Download (CSV)</button>
+          <button type="button" className="btn sm ghost" onClick={() => download(`expenses-${site.name.replace(/[^\w]+/g, '-')}.csv`, expenseCsv(shown.map((x) => (x.voided ? { ...x, note: `VOID (${cedi(x.voidedAmount)}): ${x.voidReason}. ${x.note || ''}` } : x))
+  .map((x) => (x.category === 'Labour' ? { ...x, note: `${x.period ? 'FROM ATTENDANCE' : `BY HAND (${x.labourReason || 'no reason'})`}. ${x.note || ''}` } : x))))}>Download (CSV)</button>
         </span>
       </div>
       {days === 'all' && older.loading ? <Loading what="all expenses" /> : !shown.length ? <Empty title="No expenses in this period." /> : (
@@ -235,9 +247,10 @@ function ExpenseList({ cid, site, expenses }) {
               ? <tr key={x.id}><td colSpan={7}><EditExpense cid={cid} sid={site.id} x={x} onDone={() => setEditing(null)} /></td></tr>
               : (
                 [<tr key={x.id} className={x.voided ? 'voided' : ''}>
-                  <td>{prettyDate(x.date)}</td><td>{x.category}</td>
+                  <td>{prettyDate(x.date)}</td><td>{x.category}{x.period ? <div className="small muted">from attendance</div> : x.category === 'Labour' ? <div className="small tag-manual">by hand</div> : null}</td>
                   <td>{x.note}{x.ref ? <div className="muted small">Ref {x.ref}</div> : null}
                     <div className="muted small">{x.createdByName}{x.updatedByName && x.updatedByName !== x.createdByName ? `, changed by ${x.updatedByName}` : ''}</div>
+                    {x.category === 'Labour' && !x.period && <div className="small muted">Why by hand: {x.labourReason || 'no reason recorded'}</div>}
                     {x.voided && <div className="small void-note">Void: {x.voidReason} ({x.voidedByName})</div>}</td>
                   <td>{x.payee || '–'}</td><td>{x.method || '–'}</td>
                   <td>{x.voided ? <><s>{cedi(x.voidedAmount)}</s><div className="small muted">not counted</div></> : <b>{cedi(x.amount)}</b>}</td>
@@ -261,7 +274,7 @@ function EditExpense({ cid, sid, x, onDone }) {
   const me = { uid: user.uid, name: profile.name };
   const [voiding, setVoiding] = useState(false);
   const [reason, setReason] = useState('');
-  const [f, setF] = useState({ date: x.date, category: x.category, amount: x.amount, note: x.note || '', payee: x.payee || '', method: x.method || '', ref: x.ref || '' });
+  const [f, setF] = useState({ date: x.date, category: x.category, amount: x.amount, note: x.note || '', payee: x.payee || '', method: x.method || '', ref: x.ref || '', labourReason: x.labourReason || '' });
   const [err, setErr] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   async function submit(e) {

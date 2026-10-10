@@ -164,10 +164,11 @@ service cloud.firestore {
           // Every budget change names who made it (the onBudgetChanged function logs it)
           allow create: if siteManager(cid) && docId == 'summary'
             && data().keys().hasOnly(['budget', 'budgetByCategory', 'spent', 'updatedAt', 'updatedBy'])
-            && validBudget() && data().spent == 0 && data().get('updatedBy', request.auth.uid) == request.auth.uid;
+            && validBudget() && data().spent == 0 && data().get('updatedBy', request.auth.uid) == request.auth.uid
+            && data().get('updatedAt', request.time) == request.time;
           allow update: if siteManager(cid) && docId == 'summary'
             && onlyChanges(['budget', 'budgetByCategory', 'updatedAt', 'updatedBy']) && validBudget()
-            && data().get('updatedBy', '') == request.auth.uid;
+            && data().get('updatedBy', '') == request.auth.uid && data().updatedAt == request.time;
           allow delete: if false;
         }
 
@@ -216,31 +217,37 @@ service cloud.firestore {
         // deleted: a wrong one is voided with a reason (amount 0, the original kept in voidedAmount),
         // and a void is final. Every change names who made it; the server keeps the history
         // (history/{id}, onExpenseChanged). Wage payments come only from the recordWages function and
-        // can be voided (which reopens their attendance) but not edited.
+        // can be voided (which reopens their attendance) but not edited. Labour entered by hand says why
+        // (labourReason). Record times (createdAt, updatedAt, voidedAt) are the server's, never the app's;
+        // the date paid (date) is the business date the person chooses.
         match /expenses/{id} {
           function voidKeys() { return ['voided', 'voidReason', 'voidedAmount', 'voidedBy', 'voidedByName', 'voidedAt']; }
           function validExpense() {
             return data().keys().hasOnly(['date', 'category', 'note', 'amount', 'payee', 'method', 'ref', 'createdBy', 'createdByName', 'createdAt',
                                           'updatedAt', 'updatedBy', 'updatedByName', 'voided', 'voidReason', 'voidedAmount', 'voidedBy',
-                                          'voidedByName', 'voidedAt', 'period'])
+                                          'voidedByName', 'voidedAt', 'period', 'labourReason'])
               && isAmount(data().amount) && data().amount <= 100000000
               && isText(data().category, 1, 60) && optText('note', 500) && optText('payee', 120) && optText('method', 40) && optText('ref', 60)
-              && isDateKey(data().date);
+              && isDateKey(data().date) && optText('labourReason', 300);
           }
+          // Labour that is not a wage payment from attendance needs a reason
+          function labourOk() { return data().category != 'Labour' || 'period' in data() || isText(data().get('labourReason', ''), 3, 300); }
           function signed() { return data().updatedBy == request.auth.uid && data().updatedByName == meIn(cid).name; }
           function keeps(keys) { return !data().diff(resource.data).affectedKeys().hasAny(keys); }
           function isVoid() {
             return data().diff(resource.data).affectedKeys().hasOnly(voidKeys().concat(['amount', 'updatedBy', 'updatedByName', 'updatedAt']))
               && data().voided == true && data().amount == 0 && data().voidedAmount == resource.data.amount
-              && isText(data().voidReason, 3, 300) && data().voidedBy == request.auth.uid && data().voidedByName == meIn(cid).name;
+              && isText(data().voidReason, 3, 300) && data().voidedBy == request.auth.uid && data().voidedByName == meIn(cid).name
+              && data().voidedAt == request.time;
           }
           function isEdit() {
-            return data().get('voided', false) != true && data().amount > 0 && keeps(voidKeys()) && !('period' in resource.data);
+            return data().get('voided', false) != true && data().amount > 0 && keeps(voidKeys()) && !('period' in resource.data) && labourOk();
           }
           allow read: if financeView(cid);
           allow create: if financeEdit(cid) && byMe() && validExpense() && data().amount > 0 && data().createdByName == meIn(cid).name
-            && !('voided' in data()) && !('period' in data()) && (!('updatedBy' in data()) || signed());
-          allow update: if financeEdit(cid) && validExpense() && signed()
+            && !('voided' in data()) && !('period' in data()) && (!('updatedBy' in data()) || signed()) && labourOk()
+            && data().createdAt == request.time && data().get('updatedAt', request.time) == request.time;
+          allow update: if financeEdit(cid) && validExpense() && signed() && data().updatedAt == request.time
             && resource.data.get('voided', false) != true
             && keeps(['createdBy', 'createdByName', 'createdAt', 'period'])
             && (isEdit() || isVoid());
@@ -291,7 +298,7 @@ service cloud.firestore {
             && data().date == date
             && data().marks is map && data().marks.size() <= 500
             && data().marks.values().hasOnly(['present', 'late', 'absent', 'leave'])
-            && data().markedBy == request.auth.uid;
+            && data().markedBy == request.auth.uid && data().updatedAt == request.time;
           allow delete: if siteManager(cid) && unpaid();
           // Every change of a mark, with who and when: written by the server only
           match /changes/{entry} {

@@ -910,3 +910,7 @@ tr.voided td { color: var(--muted); }
 .void-form input { min-width: 240px; }
 ol.history { margin: 6px 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
 ol.history ul { margin: 2px 0 0; padding-left: 18px; }
+
+/* Labour entered by hand, not from attendance */
+.tag-manual { color: var(--warn, #b45309); font-weight: 600; }
+.grid3 > .span-all { grid-column: 1 / -1; }

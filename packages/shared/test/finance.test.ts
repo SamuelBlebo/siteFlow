@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  budgetLinesInput, budgetVariance, expenseCsv, expenseInput, expenseTotals, forecastAtCompletion, portfolioTotals, siteFinanceSummary,
+  budgetLinesInput, budgetVariance, expenseCsv, expenseInput, expenseTotals, forecastAtCompletion, isManualLabour, portfolioTotals, siteFinanceSummary,
   spendByMonth, validate, weekStart,
 } from '../src';
 
@@ -59,6 +59,20 @@ describe('forms and CSV', () => {
     expect(validate(expenseInput, { date: '2026-06-10', category: 'Transport', amount: '800', method: 'Mobile money' })).toMatchObject({ ok: true, data: { amount: 800, payee: '' } });
     expect(validate(expenseInput, { date: '', category: 'Transport', amount: 1 }).ok).toBe(false);
     expect(validate(expenseInput, { date: '2026-06-10', category: 'Transport', amount: 0 }).ok).toBe(false);
+  });
+  it('labour entered by hand says why; other categories carry no labour reason', () => {
+    const base = { date: '2026-06-10', amount: 500 };
+    expect(validate(expenseInput, { ...base, category: 'Labour' })).toMatchObject({ ok: false, error: expect.stringMatching(/what this labour payment is for/) });
+    expect(validate(expenseInput, { ...base, category: 'Labour', labourReason: ' x ' }).ok).toBe(false);
+    expect(validate(expenseInput, { ...base, category: 'Labour', labourReason: ' Tiling gang ' })).toMatchObject({ ok: true, data: { labourReason: 'Tiling gang' } });
+    const other = validate(expenseInput, { ...base, category: 'Transport', labourReason: 'left over from the form' });
+    expect(other.ok && 'labourReason' in other.data).toBe(false);
+  });
+  it('tells labour entered by hand from wage payments worked out from attendance', () => {
+    expect(isManualLabour({ category: 'Labour' })).toBe(true);
+    expect(isManualLabour({ category: 'Labour', period: { from: '2026-06-01', to: '2026-06-07' } })).toBe(false);
+    expect(isManualLabour({ category: 'Labour', voided: true })).toBe(false);
+    expect(isManualLabour({ category: 'Materials' })).toBe(false);
   });
   it('category budgets cannot be negative', () => {
     expect(validate(budgetLinesInput, { Materials: '10000', Labour: '' }).ok).toBe(true);
