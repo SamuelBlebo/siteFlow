@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useOutbox } from '../lib/useOutbox';
 import { outboxKey } from '../lib/reportOutbox';
 import { exists, openIssuesQuery, siteRef, sitesCol, toList } from '../lib/db';
-import { ALERT_LABELS, SITE_STATUS_LABELS, isSiteScoped, rankAlerts, siteAlerts, todayKey } from '@siteflow/shared';
+import { ALERT_LABELS, SITE_STATUS_LABELS, isSiteScoped, reportDay, rankAlerts, siteAlerts, todayKey } from '@siteflow/shared';
 import { Card, Choice, Empty, ErrorView, Loading, Muted, Pill, Screen, s } from '../components/ui';
 import WelcomeIntro from '../components/WelcomeIntro';
 import { colors } from '../theme';
@@ -72,7 +72,9 @@ export default function SitesScreen({ navigation }) {
         <Card>
           {list.map((site, i) => {
             const onPhone = outbox.find((x) => x.id === outboxKey(site.id, user.uid) && x.status !== 'sent');
-            const sent = site.lastReportDate === today;
+            const day = reportDay(site, today);
+            const sent = day === 'sent';
+            const notNeeded = day === 'skipped' || day === 'day_off';
             return (
               <Pressable key={site.id} onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name })} accessibilityRole="button"
                 android_ripple={{ color: colors.sunk }} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
@@ -91,6 +93,8 @@ export default function SitesScreen({ navigation }) {
                   ? <Pill kind={onPhone.status === 'failed' ? 'bad' : 'warn'}>{onPhone.status === 'failed' ? 'Report not sent' : 'Report on phone'}</Pill>
                   : site.status === 'on_hold'
                     ? <Pill kind="warn">{SITE_STATUS_LABELS.on_hold}</Pill>
+                    : notNeeded
+                      ? <Pill kind="warn">{day === 'skipped' ? 'No report today' : 'Day off'}</Pill>
                     : !sent && can('site.work') && site.status !== 'closed'
                       // Straight to today's report form for this site
                       ? <Pressable onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name, screen: 'Report' })} accessibilityRole="button" accessibilityLabel={`Make a report for ${site.name}`} hitSlop={8}

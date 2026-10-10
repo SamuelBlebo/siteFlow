@@ -118,7 +118,7 @@ service cloud.firestore {
       match /sites/{sid} {
         function siteKeys() {
           return ['name', 'location', 'foremanName', 'foremanPhone', 'foremanEmail', 'stage', 'progress', 'status',
-                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'clientReports', 'cover', 'createdAt', 'updatedAt'];
+                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'clientReports', 'cover', 'workDays', 'skipDates', 'createdAt', 'updatedAt'];
         }
         function validSite() {
           return data().keys().hasOnly(siteKeys())
@@ -128,6 +128,9 @@ service cloud.firestore {
             && optText('foremanName', 100) && optText('foremanPhone', 20) && optText('foremanEmail', 200)
             && optDate('planStart') && optDate('planEnd')
             && (!('clientReports' in data()) || data().clientReports is bool)
+            // Days that need a daily report (logic/sites in shared): weekdays 0-6, and skipped dates
+            && (!('workDays' in data()) || data().workDays == null || (data().workDays is list && data().workDays.size() <= 7))
+            && (!('skipDates' in data()) || data().skipDates == null || (data().skipDates is list && data().skipDates.size() <= 200))
             && (!('cover' in data()) || data().cover == null || (isText(data().cover, 9, 2000) && data().cover.matches('^(https://|/).*')))
             && (!('overviewDrawingId' in data()) || data().overviewDrawingId == null || isText(data().overviewDrawingId, 1, 100))
             && (!('client' in data()) || data().client == null

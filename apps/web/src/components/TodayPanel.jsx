@@ -1,4 +1,4 @@
-import { todayKey } from '@siteflow/shared';
+import { REPORT_DAY_LABELS, reportDay, todayKey } from '@siteflow/shared';
 import { MyRequests } from './ReportRequests';
 import MaterialsTable from './MaterialsTable';
 
@@ -6,11 +6,13 @@ import MaterialsTable from './MaterialsTable';
 // with what is already done ticked off, and any report someone has asked them for.
 export default function TodayPanel({ cid, site, data, mod, work, onGo }) {
   const usedToday = Object.keys(data.usage).length > 0;
-  const sent = site.lastReportDate === todayKey();
+  const day = reportDay(site, todayKey());
+  const sent = day === 'sent';
+  const notNeeded = day === 'skipped' || day === 'day_off';
   const steps = [
     mod('labour') && { tab: 'labour', done: data.presentCount > 0, title: 'Mark attendance', note: data.presentCount ? `${data.presentCount} workers present` : 'Tick who came to site today' },
     mod('materials') && { tab: 'materials', done: usedToday, title: 'Log materials used', note: usedToday ? 'Usage logged today' : 'Record what was used today' },
-    { tab: 'reports', done: sent, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : 'Progress, photos and issues' },
+    { tab: 'reports', done: sent || notNeeded, title: 'Send daily report', note: sent ? `Sent at ${site.lastReportTime}` : notNeeded ? REPORT_DAY_LABELS[day] : 'Progress, photos and issues' },
   ].filter(Boolean);
   return (
     <>

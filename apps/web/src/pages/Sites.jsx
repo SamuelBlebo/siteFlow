@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
-import { prettyDate, todayKey } from '@siteflow/shared';
+import { prettyDate, reportDay, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDocsByIds, useQuery, useTitle } from '../lib/hooks';
 import { siteDoc, sitesCol } from '../lib/db';
@@ -82,7 +82,7 @@ export default function Sites() {
                     <td>{s.stage || '–'}</td>
                     <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small></td>
                     <td>{s.planEnd ? prettyDate(s.planEnd) : '–'}</td>
-                    <td>{s.lastReportDate === today ? <span className="pill ok">Today {s.lastReportTime}</span> : s.lastReportDate ? prettyDate(s.lastReportDate) : <span className="muted">None yet</span>}</td>
+                    <td><LastReport s={s} today={today} /></td>
                     {can('site.work') && <td className="nowrap"><ReportButton cid={cid} site={s} size="sm" /></td>}
                   </tr>
                 ))}
@@ -98,7 +98,6 @@ export default function Sites() {
 
 // One project in the grid: its image, name, place, progress, finish date and today's report
 function ProjectCard({ cid, site: s, today }) {
-  const sent = s.lastReportDate === today;
   const pct = Math.round(s.progress || 0);
   return (
     <li className="pcard">
@@ -116,11 +115,21 @@ function ProjectCard({ cid, site: s, today }) {
           </div>
           <dl className="pcard-facts">
             <div><dt>Planned finish</dt><dd>{s.planEnd ? prettyDate(s.planEnd) : '–'}</dd></div>
-            <div><dt>Last report</dt><dd>{sent ? <span className="pill ok">Today {s.lastReportTime}</span> : s.lastReportDate ? prettyDate(s.lastReportDate) : <span className="muted">None yet</span>}</dd></div>
+            <div><dt>Last report</dt><dd><LastReport s={s} today={today} /></dd></div>
           </dl>
         </div>
       </Link>
       <div className="pcard-foot"><ReportButton cid={cid} site={s} size="sm" /></div>
     </li>
   );
+}
+
+// Today's report: sent, missing, or not needed today (day off, skipped); otherwise the last date
+function LastReport({ s, today }) {
+  const d = reportDay(s, today);
+  if (d === 'sent') return <span className="pill ok">Today {s.lastReportTime}</span>;
+  const last = s.lastReportDate ? prettyDate(s.lastReportDate) : 'None yet';
+  if (d === 'due') return <><span className="pill bad">Due today</span><div className="muted small">Last: {last}</div></>;
+  if (d === 'skipped' || d === 'day_off') return <><span className="pill">{d === 'skipped' ? 'Skipped today' : 'Day off'}</span><div className="muted small">Last: {last}</div></>;
+  return <span className="muted">{last}</span>;
 }

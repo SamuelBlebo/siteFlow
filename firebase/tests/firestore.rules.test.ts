@@ -778,3 +778,12 @@ describe('project image', () => {
     await assertFails(updateDoc(ref('supervisor'), { cover: 'https://example.com/a.jpg' }));
   });
 });
+
+describe('report days', () => {
+  it('managers set working days and skip days; the site team cannot', async () => {
+    const ref = (r: Role) => doc(asRole(r), paths.site(C1, S1));
+    await assertSucceeds(updateDoc(ref('manager'), { workDays: [1, 2, 3, 4, 5], skipDates: ['2026-12-25'] }));
+    await assertFails(updateDoc(ref('manager'), { workDays: [0, 1, 2, 3, 4, 5, 6, 7] }));
+    await assertFails(updateDoc(ref('supervisor'), { skipDates: ['2026-12-26'] }));
+  });
+});

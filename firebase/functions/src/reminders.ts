@@ -3,7 +3,7 @@ import { logger } from 'firebase-functions';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
   big, companyLocale, expenseTotals, localClock, isBehind, paths, rankAlerts, recipientsFor, siteAlerts, todayKey, weekStart, weeklyDigestText,
-  isSample, type Company, type Expense, type Site, type SiteFinance,
+  isSample, reportDay, type Company, type Expense, type Site, type SiteFinance,
 } from '@siteflow/shared';
 import { companyMembers, deliver, type Recipient } from './deliver';
 import { SECRETS } from './notify';
@@ -33,7 +33,8 @@ export async function remindMissingReports(company: Company, today = todayKey(ne
   const members = await companyMembers(company.id);
   for (const sDoc of sites.docs) {
     const site = { id: sDoc.id, ...sDoc.data() } as Site;
-    if (site.lastReportDate === today || isSample(site)) continue; // sample projects are never chased
+    // Not chased: report in, a day off or a skipped day, sample projects
+    if (reportDay(site, today) !== 'due' || isSample(site)) continue;
     // The site's supervisors, plus the foreman on the site record (who may not have a login)
     const recipients: Recipient[] = recipientsFor('report_missing', members, { siteId: site.id });
     if (site.foremanPhone || site.foremanEmail) {

@@ -3,7 +3,7 @@ import {
 } from 'firebase/firestore';
 import { db, getStorage } from '../firebase';
 import {
-  countDifference, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, thumbName, todayKey, timeHM,
+  countDifference, withSkip, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, thumbName, todayKey, timeHM,
 } from '@siteflow/shared';
 import { resizePhoto, thumbnail } from './photos';
 
@@ -42,6 +42,9 @@ export const activityQuery = (cid, n = 20) => query(collection(db, paths.activit
 export const updateMyProfile = (uid, { name, phone, callPhone = '' }) => updateDoc(userDoc(uid), { name, phone, callPhone, updatedAt: serverTimestamp() });
 // Report and issue emails (logic/mail in shared)
 export const saveEmailPrefs = (uid, prefs) => updateDoc(userDoc(uid), { emailPrefs: prefs, updatedAt: serverTimestamp() });
+// Days that need a daily report: working days, and single days skipped (logic/sites in shared)
+export const setWorkDays = (cid, sid, days) => updateDoc(doc(db, paths.site(cid, sid)), { workDays: days, updatedAt: serverTimestamp() });
+export const setSkipDay = (cid, site, date, skip) => updateDoc(doc(db, paths.site(cid, site.id)), { skipDates: withSkip(site.skipDates, date, skip, todayKey()), updatedAt: serverTimestamp() });
 // Owner or manager: copy the client on each daily report by email
 export const setClientReports = (cid, sid, on) => updateDoc(doc(db, paths.site(cid, sid)), { clientReports: on, updatedAt: serverTimestamp() });
 // Look at another company this person belongs to (the rules check they are a member)

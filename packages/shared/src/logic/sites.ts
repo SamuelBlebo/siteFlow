@@ -46,3 +46,42 @@ export function siteTeam<T extends Pick<UserProfile, 'role' | 'siteIds' | 'activ
 export const stagesFor = (type: WorkType | string): readonly string[] => WORK_TYPES.find((w) => w.key === type)?.stages ?? [];
 export const workTypeOf = (stage: string | null | undefined): WorkType =>
   WORK_TYPES.find((w) => (w.stages as readonly string[]).includes(stage || ''))?.key ?? (stage ? 'other' : 'building');
+
+// ---------- which days need a daily report ----------
+// Each project has working days (Monday to Saturday unless changed) and can skip single days
+// (a public holiday, heavy rain, no work on site). Only active projects on a working day that
+// was not skipped need a report; everything that chases or counts reports uses this.
+export const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5, 6]; // 0 = Sunday
+export const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const SKIP_KEEP_DAYS = 120; // skipped days older than this are dropped from the list
+export const SKIP_MAX = 200;
+export type ReportDay = 'sent' | 'due' | 'skipped' | 'day_off' | 'not_active';
+
+type DaySite = { status?: string; lastReportDate?: string | null; workDays?: number[] | null; skipDates?: string[] | null };
+export const workDaysOf = (s: DaySite) => (Array.isArray(s.workDays) && s.workDays.length ? s.workDays : DEFAULT_WORK_DAYS);
+const weekdayOf = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay();
+
+// Whether the project should send a report on a date (YYYY-MM-DD)
+export function reportDue(s: DaySite, date: string) {
+  return s.status === 'active' && workDaysOf(s).includes(weekdayOf(date)) && !(s.skipDates || []).includes(date);
+}
+// What a date looks like for the project: sent, still due, skipped, a day off, or not expected at all
+export function reportDay(s: DaySite, date: string): ReportDay {
+  if (s.lastReportDate === date) return 'sent';
+  if (s.status !== 'active') return 'not_active';
+  if ((s.skipDates || []).includes(date)) return 'skipped';
+  if (!workDaysOf(s).includes(weekdayOf(date))) return 'day_off';
+  return 'due';
+}
+export const REPORT_DAY_LABELS: Record<ReportDay, string> = {
+  sent: 'Report sent', due: 'Report missing', skipped: 'No report needed today', day_off: 'Day off: no report needed', not_active: 'No report expected',
+};
+// The list after skipping (or un-skipping) a date: sorted, without old dates, never too long
+export function withSkip(list: string[] | null | undefined, date: string, skip: boolean, today: string) {
+  const oldest = new Date(`${today}T00:00:00Z`);
+  oldest.setUTCDate(oldest.getUTCDate() - SKIP_KEEP_DAYS);
+  const cut = oldest.toISOString().slice(0, 10);
+  const set = new Set((list || []).filter((d) => d >= cut));
+  if (skip) set.add(date); else set.delete(date);
+  return [...set].sort().slice(-SKIP_MAX);
+}

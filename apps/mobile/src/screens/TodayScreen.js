@@ -5,7 +5,7 @@ import { outboxKey } from '../lib/reportOutbox';
 import { useAuth } from '../auth/AuthProvider';
 import {
   MILESTONE_STATUS_LABELS, PROGRESS_STEPS, SCHEDULE_LABELS, SITE_STATUS_LABELS, longToday, materialStatus, overdueMilestones, plannedPct, prettyDate,
-  scheduleStatus, todayKey, waPhone,
+  reportDay, scheduleStatus, todayKey, waPhone,
 } from '@siteflow/shared';
 import { useState } from 'react';
 import { setMilestoneProgress } from '../lib/db';
@@ -23,7 +23,9 @@ export default function TodayScreen({ navigation }) {
   const work = canWork;
 
   const queued = outbox.find((x) => x.id === outboxKey(sid, user.uid));
-  const sent = site.lastReportDate === todayKey() || !!queued;
+  const day = reportDay(site, todayKey());
+  const notNeeded = day === 'skipped' || day === 'day_off';
+  const sent = day === 'sent' || !!queued;
   const used = Object.keys(usage).length > 0;
   const steps = [
     { tab: 'Workers', done: presentCount > 0, title: 'Mark attendance', note: presentCount ? `${presentCount} workers present` : 'Tick who came to site today' },
@@ -39,7 +41,8 @@ export default function TodayScreen({ navigation }) {
       {site.status === 'on_hold' ? <Muted style={{ marginBottom: 12 }}>This site is on hold. Daily reports are not expected, but you can still send one.</Muted> : null}
       {error ? <ErrorView error={error} what="some site data" /> : null}
       <MyRequests cid={cid} sid={sid} uid={user?.uid} />
-      {work && !sent ? <Button title="Make today's report" onPress={() => navigation.navigate('Report')} style={{ marginBottom: 12 }} /> : null}
+      {notNeeded && !sent ? <Muted style={{ marginBottom: 12 }}>{day === 'skipped' ? 'No report needed today: your manager skipped today.' : 'Today is a day off on this project: no report needed.'} You can still send one.</Muted> : null}
+      {work && !sent && !notNeeded ? <Button title="Make today's report" onPress={() => navigation.navigate('Report')} style={{ marginBottom: 12 }} /> : null}
       {steps.map((st, i) => (
         <Pressable key={st.tab} onPress={() => navigation.navigate(st.tab)} accessibilityRole="button"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 14, marginBottom: 8 }}>

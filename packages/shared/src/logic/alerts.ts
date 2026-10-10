@@ -1,3 +1,4 @@
+import { reportDay } from './sites';
 import { BUDGET_WARN_PCT } from '../constants';
 import { isOn } from '../modules';
 import { todayKey } from '../dates';
@@ -26,7 +27,8 @@ export function siteAlerts(site: Site, materials: Material[] = [], usageToday: R
   const a: Alert[] = [];
 
   // Only active sites are expected to report daily (on-hold and closed sites are not chased)
-  if (site.status === 'active' && site.lastReportDate !== todayKey(now, ctx.timeZone)) {
+  // Only days that need a report (working days not skipped, on active projects) are chased
+  if (reportDay(site, todayKey(now, ctx.timeZone)) === 'due') {
     a.push({ kind: 'report', severity: 'bad', title: 'No daily report yet', detail: `${site.foremanName || 'The site team'} hasn't sent today's report.` });
   }
   if (on('materials')) {

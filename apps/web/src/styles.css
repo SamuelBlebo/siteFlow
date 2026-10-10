@@ -819,3 +819,11 @@ main:focus { outline: none; }
 .contact-links .btn { display: inline-flex; align-items: center; gap: 5px; }
 .contact-links.compact .btn { padding: 4px 10px; font-size: 12.5px; }
 .mt-xs { margin-top: 6px; }
+
+/* Report days: today's state on the project, working days and skipped days in settings */
+.report-day { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--brass); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+.row-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row-inline input[type="date"] { max-width: 200px; }
+.skip-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.skip-list li { display: inline-flex; gap: 8px; align-items: center; background: var(--sunk); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; font-size: 13px; }

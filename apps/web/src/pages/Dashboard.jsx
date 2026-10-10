@@ -5,7 +5,7 @@ import { useDoc, useExpenses, useQuery, useSiteSignals, useTitle } from '../lib/
 import { companyDoc, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
   big, budgetUsedPct, cedi, getLocale, reportAuthor, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
-  scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
+  reportDay, reportDue, scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
 import { GettingStarted, SampleBanner } from '../components/GettingStarted';
@@ -68,8 +68,10 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   }).map((a) => ({ ...a, site: s })));
 
   // Headline numbers
-  const reportsIn = reporting.filter((s) => s.lastReportDate === today).length;
-  const expected = reporting.length * periodDays.length;
+  // Only days that need a report count (working days not skipped)
+  const dueToday = reporting.filter((s) => ['sent', 'due'].includes(reportDay(s, today)));
+  const reportsIn = dueToday.filter((s) => s.lastReportDate === today).length;
+  const expected = reporting.reduce((n, s) => n + periodDays.filter((d) => reportDue(s, d) || reports.some((r) => r.siteId === s.id && r.date === d)).length, 0);
   const inPeriod = new Set(periodDays);
   const sentInPeriod = new Set(reports.filter((r) => inPeriod.has(r.date)).map((r) => `${r.siteId}|${r.date}`)).size;
   const last8 = [...recentWorkDays(8)].reverse();
@@ -134,10 +136,10 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             </>
           )}
           <div className="tile"><TileLink to="/reports" label="Open daily reports" /><dt>Daily reports</dt>
-            <dd>{period === 'today' ? reportsIn : sentInPeriod}<small> of {period === 'today' ? reporting.length : expected}</small></dd>
+            <dd>{period === 'today' ? reportsIn : sentInPeriod}<small> of {period === 'today' ? dueToday.length : expected}</small></dd>
             <div className="foot">
               {period === 'today'
-                ? <span className={`delta ${reportsIn < reporting.length ? 'dn' : 'up'}`}>{reportsIn < reporting.length ? `${reporting.length - reportsIn} outstanding` : 'All in'}</span>
+                ? <span className={`delta ${reportsIn < dueToday.length ? 'dn' : 'up'}`}>{reportsIn < dueToday.length ? `${dueToday.length - reportsIn} outstanding` : dueToday.length ? 'All in' : 'None needed today'}</span>
                 : <span className={`delta ${expected && sentInPeriod / expected < 0.7 ? 'dn' : 'up'}`}>{expected ? `${Math.round((sentInPeriod / expected) * 100)}% sent` : 'None expected'}</span>}
               <Spark data={perDay.map((d) => d.reports)} color="var(--ok)" />
             </div></div>
@@ -233,7 +235,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                           <td>{f ? <>{big(f.spent || 0)} {f.budget ? <span className="muted small">of {big(f.budget)}</span> : null}</> : '–'}</td>
                         </>
                       )}
-                      <td>{s.lastReportDate === today ? <span className="pill ok">Sent {s.lastReportTime}</span> : s.status !== 'active' ? <span className="muted">–</span> : <span className="pill bad">Missing</span>}</td>
+                      <td>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill">Skipped</span>, day_off: <span className="pill">Day off</span>, not_active: <span className="muted">–</span> }[reportDay(s, today)]}</td>
                       {mod('labour') && <td>{present[s.id] || 0} / {crew[s.id] || 0}</td>}
                       <td>{iss.length ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
                     </tr>

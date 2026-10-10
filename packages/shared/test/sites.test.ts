@@ -88,3 +88,24 @@ describe('stages for any kind of construction work', () => {
     expect(standardMilestones(null, null, stagesFor('roads')).map((m) => m.name)).toEqual(stagesFor('roads'));
   });
 });
+
+import { reportDay, reportDue, withSkip } from '../src';
+describe('which days need a daily report', () => {
+  const site = { status: 'active', lastReportDate: '2026-10-06' };
+  it('working days are Monday to Saturday unless changed; Sunday is a day off', () => {
+    expect(reportDay(site, '2026-10-07')).toBe('due');      // Wednesday
+    expect(reportDay(site, '2026-10-11')).toBe('day_off');  // Sunday
+    expect(reportDay({ ...site, workDays: [1, 2, 3, 4, 5] }, '2026-10-10')).toBe('day_off'); // Saturday off
+    expect(reportDay(site, '2026-10-06')).toBe('sent');
+  });
+  it('a skipped day needs no report; on-hold and closed projects never do', () => {
+    expect(reportDay({ ...site, skipDates: ['2026-10-07'] }, '2026-10-07')).toBe('skipped');
+    expect(reportDue({ ...site, skipDates: ['2026-10-07'] }, '2026-10-07')).toBe(false);
+    expect(reportDay({ ...site, status: 'on_hold' }, '2026-10-07')).toBe('not_active');
+  });
+  it('the skip list stays sorted, drops old days and can be undone', () => {
+    const l = withSkip(['2026-01-01', '2026-10-09'], '2026-10-07', true, '2026-10-08');
+    expect(l).toEqual(['2026-10-07', '2026-10-09']);
+    expect(withSkip(l, '2026-10-07', false, '2026-10-08')).toEqual(['2026-10-09']);
+  });
+});

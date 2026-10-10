@@ -9,7 +9,7 @@ import { save, savedText, toast } from '../lib/save';
 import { deleteProject, team } from '../lib/account';
 import {
   ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, big, budgetInput, budgetUsedPct, cedi, isOn,
-  friendlyError, isSiteOpen, isSiteScoped, materialStatus, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
+  friendlyError, isSiteOpen, isSiteScoped, materialStatus, reportDay, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
   validate, waPhone, currencySymbol } from '@siteflow/shared';
 import Tabs from '../components/Tabs';
 import TodayPanel from '../components/TodayPanel';
@@ -26,6 +26,7 @@ import ProjectDrawing from '../components/ProjectDrawing';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
 import ContactLinks from '../components/ContactLinks';
+import { ReportDayPill, ReportDaysSetting } from '../components/ReportDays';
 import { removeCover, uploadCover } from '../lib/cover';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -78,8 +79,7 @@ export default function SiteDetail() {
             <h1>{site.name} {site.sample && <span className="pill sample">Sample</span>} {site.status !== 'active' && <StatusPill status={site.status} />}</h1>
             <div className="meta"><span>{site.location}</span><span>Foreman: {site.foremanName || '–'}</span><span>Stage: {site.stage}</span></div>
           </div>
-          {site.lastReportDate === todayKey() ? <span className="pill ok">Report sent {site.lastReportTime}</span>
-            : site.status === 'active' ? <span className="pill bad">Report missing</span> : null}
+          <ReportDayPill cid={cid} site={site} />
         </div>
         <dl className="statrow">
           {money && fin ? (
@@ -145,7 +145,7 @@ function OverviewTab({ site, data }) {
   return (
     <>
       <dl className="cols">
-        <div><dt>Today's report</dt><dd>{site.lastReportDate === today ? `Sent ${site.lastReportTime}` : site.status === 'active' ? 'Not yet' : '–'}</dd></div>
+        <div><dt>Today's report</dt><dd>{{ sent: `Sent ${site.lastReportTime}`, due: 'Not yet', skipped: 'Not needed (skipped)', day_off: 'Day off', not_active: '–' }[reportDay(site, today)]}</dd></div>
         <div><dt>Workers on site today</dt><dd>{data.presentCount}</dd></div>
         <div><dt>Materials to reorder</dt><dd>{low.length}</dd></div>
         <div><dt>Progress / planned</dt><dd>{site.progress || 0}%{planned != null ? ` / ${planned}%` : ''}</dd></div>
@@ -275,6 +275,9 @@ function SettingsTab({ cid, sid, site }) {
         ))}
       </div>
       <p className="hint">Active: daily reports expected. On hold: work paused, no report reminders. Closed: finished, read-only for the site team.</p>
+
+      <h3 className="sub">Report days</h3>
+      <ReportDaysSetting cid={cid} site={site} />
 
       <h3 className="sub">Project image</h3>
       <CoverSetting cid={cid} site={site} />

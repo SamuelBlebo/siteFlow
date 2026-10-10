@@ -5,14 +5,14 @@ import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
 import { companyDoc, siteDoc, sitesCol } from '../lib/db';
-import { PLAN_LABELS, ROLE_LABELS, isOn, planFor, todayKey } from '@siteflow/shared';
+import { PLAN_LABELS, ROLE_LABELS, isOn, planFor, reportDay, todayKey } from '@siteflow/shared';
 import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
 import ThemeSwitch from './ThemeSwitch';
 
 const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 // Red dot: an active site whose daily report hasn't come in today
-const late = (s) => s.status === 'active' && s.lastReportDate !== todayKey();
+const late = (s) => reportDay(s, todayKey()) === 'due';
 
 // The app shell: navy sidebar (company, menu, projects, you) and the page beside it.
 // On phones the sidebar folds into a top bar with a sideways-scrolling menu.
