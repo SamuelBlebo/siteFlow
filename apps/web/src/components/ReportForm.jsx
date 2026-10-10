@@ -4,7 +4,7 @@ import { useDoc, useQuery } from '../lib/hooks';
 import { milestonesQuery, myReportId, reportRef, sendReport, uploadPhotos } from '../lib/db';
 import { save } from '../lib/save';
 import {
-  REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, friendlyError, materialsUsed, reportInput, todayKey, validate,
+  REPORT_PHOTO_LIMIT, STAGES, WEATHER, WORK_PHRASES, friendlyError, isOn, materialsUsed, reportInput, todayKey, validate,
 } from '@siteflow/shared';
 import ReportCard from './ReportCard';
 import StageField from './StageField';
@@ -17,7 +17,9 @@ const writeDraft = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v));
 const clearDraft = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
 export default function ReportForm({ cid, site, presentCount, logs }) {
-  const { user, profile } = useAuth();
+  const { user, profile, company } = useAuth();
+  // Materials module off: no material lines in the report
+  const withMaterials = isOn(company, 'materials');
   const key = draftKey(cid, site.id, user.uid);
   const { data: mine, loading } = useDoc(() => reportRef(cid, site.id, myReportId(user.uid)), [cid, site.id, user.uid]);
   const { data: milestones } = useQuery(() => milestonesQuery(cid, site.id), [cid, site.id]);
@@ -45,7 +47,7 @@ export default function ReportForm({ cid, site, presentCount, logs }) {
   }
 
   const workers = f.workersPresent === '' ? presentCount : f.workersPresent;
-  const materials = materialsUsed(logs);
+  const materials = withMaterials ? materialsUsed(logs) : [];
   const addPhrase = (p) => setF({ ...f, text: f.text.trim() ? `${f.text.trim()}. ${p}` : p });
 
   async function submit(e) {

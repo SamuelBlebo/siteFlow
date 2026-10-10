@@ -22,7 +22,7 @@ const STATUS = {
 
 export default function ReportScreen() {
   const { user, profile } = useAuth();
-  const { cid, sid, site, loading, error, presentCount, canWork, milestones } = useSite();
+  const { cid, sid, site, loading, error, presentCount, canWork, milestones, mod } = useSite();
   const outbox = useOutbox();
   const [onServer, setOnServer] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -43,7 +43,7 @@ export default function ReportScreen() {
   else if (!canWork) {
     top = <><H1>Daily report</H1><Muted>{site.status === 'closed' ? 'This site is closed, so no new reports can be sent.' : 'Your role can view this site but not send reports.'}</Muted></>;
   } else {
-    top = <ReportForm cid={cid} site={site} uid={user.uid} name={profile.name} presentCount={presentCount} logs={logs} draftKey={draftKey} fromMilestones={milestones.length > 0} />;
+    top = <ReportForm cid={cid} site={site} uid={user.uid} name={profile.name} presentCount={presentCount} logs={logs} draftKey={draftKey} fromMilestones={milestones.length > 0} withMaterials={mod('materials')} />;
   }
 
   return (
@@ -54,7 +54,7 @@ export default function ReportScreen() {
   );
 }
 
-function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMilestones }) {
+function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMilestones, withMaterials = true }) {
   const blank = { text: '', notes: '', issues: '', weather: '', stage: site.stage || STAGES[0], progress: String(site.progress || 0), workersPresent: '', photos: [] };
   const [f, setF] = useState(blank);
   const [err, setErr] = useState('');
@@ -68,7 +68,7 @@ function ReportForm({ cid, site, uid, name, presentCount, logs, draftKey, fromMi
   useEffect(() => { if (ready.current) writeDraft(draftKey, f); }, [draftKey, f]);
 
   const workers = f.workersPresent === '' ? String(presentCount) : f.workersPresent;
-  const materials = materialsUsed(logs);
+  const materials = withMaterials ? materialsUsed(logs) : []; // Materials module off: no material lines
   const addPhrase = (p) => set('text')(f.text.trim() ? `${f.text.trim()}. ${p}` : p);
   const nudge = (k, by, max) => set(k)(String(Math.max(0, Math.min(max, (Number(k === 'workersPresent' ? workers : f[k]) || 0) + by))));
 

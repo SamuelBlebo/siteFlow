@@ -105,7 +105,7 @@ export default function SiteDetail() {
       )}
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'overview' && <><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} /></>}
+      {tab === 'overview' && <><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
       {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
       {tab === 'reports' && (
         <>
@@ -128,10 +128,10 @@ export default function SiteDetail() {
   );
 }
 
-function OverviewTab({ site, data }) {
+function OverviewTab({ site, data, materialsOn }) {
   const today = todayKey();
   const planned = plannedPct(site);
-  const low = data.materials.filter((m) => materialStatus(m, data.usage[m.id]).low);
+  const low = materialsOn ? data.materials.filter((m) => materialStatus(m, data.usage[m.id]).low) : [];
   const contact = (name, phone, email) => (
     <>
       <b>{name || '–'}</b>
@@ -147,7 +147,7 @@ function OverviewTab({ site, data }) {
       <dl className="cols">
         <div><dt>Today's report</dt><dd>{{ sent: `Sent ${site.lastReportTime}`, due: 'Not yet', skipped: 'Not needed (skipped)', day_off: 'Day off', not_active: '–' }[reportDay(site, today)]}</dd></div>
         <div><dt>Workers on site today</dt><dd>{data.presentCount}</dd></div>
-        <div><dt>Materials to reorder</dt><dd>{low.length}</dd></div>
+        {materialsOn && <div><dt>Materials to reorder</dt><dd>{low.length}</dd></div>}
         <div><dt>Progress / planned</dt><dd>{site.progress || 0}%{planned != null ? ` / ${planned}%` : ''}</dd></div>
       </dl>
       <div className="grid2">
