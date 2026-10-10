@@ -80,6 +80,14 @@ Use the dev key only in `development` and the prod key only in `production`, so 
 4. **Approve it.** An approver approves the waiting deployment on the run page.
 5. **It deploys and is tagged.** To roll back, run the workflow again with the previous `prod-…` tag's commit. To roll back the web app alone, use Firebase console > Hosting > Rollback.
 
+## Keep the lock file on npm 10
+
+CI installs with the npm that comes with Node 22 (npm 10, see `.nvmrc`), using `npm ci`, which refuses a lock file that doesn't match exactly. Newer npm versions write the lock file differently: on 9 Oct 2026 an install with npm 12 dropped some nested optional entries, and every CI run failed at **Install** for 22 commits.
+
+- `package.json` names the npm version (`packageManager: npm@10.9.9`).
+- If your npm is newer, install or update packages with it explicitly: `npx npm@10.9.9 install …`, or fix the lock afterwards with `npx npm@10.9.9 install --package-lock-only`.
+- Before pushing a lock file change, `npx npm@10.9.9 ci --dry-run` should pass.
+
 ## Known reports
 
 - **Mobile toolchain (report-only audit).** Expo SDK 53 and React Native 0.79 bring build tools (Metro, the Expo CLI) with published advisories.
