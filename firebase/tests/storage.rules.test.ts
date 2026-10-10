@@ -105,3 +105,13 @@ describe('project drawings', () => {
     await assertFails(getBytes(ref(storageAs(OTHER_OWNER), file())));
   });
 });
+
+describe('project image', () => {
+  it('managers upload images (not other files); the site team only looks', async () => {
+    await assertSucceeds(upload(asRole('manager'), paths.coverFile(C1, S1, 'c1.jpg'), 'image/jpeg'));
+    await assertFails(upload(asRole('manager'), paths.coverFile(C1, S1, 'c2.pdf'), 'application/pdf'));
+    await assertFails(upload(asRole('supervisor'), paths.coverFile(C1, S1, 'c3.jpg'), 'image/jpeg'));
+    await assertSucceeds(getBytes(ref(asRole('supervisor'), paths.coverFile(C1, S1, 'c1.jpg'))));
+    await assertFails(getBytes(ref(storageAs(OTHER_OWNER), paths.coverFile(C1, S1, 'c1.jpg'))));
+  });
+});

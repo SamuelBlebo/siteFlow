@@ -11,7 +11,7 @@ export default function PhotoCredits() {
   useEffect(() => { fetch('/demo/credits.json').then((r) => r.json()).then(setList, setError); }, []);
   return (
     <>
-      <PageHead title="Photo credits" sub="Photos in the sample projects come from Wikimedia Commons. They were resized; nothing else was changed." />
+      <PageHead title="Photo credits" sub="Photos in the sample projects come from Wikimedia Commons. They were resized; the project images were also cropped. Nothing else was changed." />
       <section className="wrap">
         {error ? <ErrorState error={error} what="the photo credits" /> : !list ? <Loading /> : (
           <div className="scroll"><table>

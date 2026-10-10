@@ -76,6 +76,7 @@ export interface Site {
   client?: { name: string; email?: string; phone?: string } | null;
   overviewDrawingId?: string | null; // the drawing shown on the project overview
   clientReports?: boolean;       // email each daily report to the client (client.email)
+  cover?: string | null;         // project image: a visualization (render) or photo, shown on project cards
   sample?: boolean;              // a sample project (Explore with sample data); never sends messages
 }
 

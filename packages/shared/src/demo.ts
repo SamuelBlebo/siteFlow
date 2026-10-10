@@ -273,7 +273,7 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
     const site = {
       ...siteFields({ name: p.name, location: p.location, stage, foremanName: p.foremanName, foremanPhone: p.foremanPhone, planStart, planEnd,
         clientName: p.client.name, clientPhone: p.client.phone, clientEmail: p.client.email }),
-      progress, status: 'active', sample: true, overviewDrawingId: spec ? drawingId : null,
+      progress, status: 'active', sample: true, overviewDrawingId: spec ? drawingId : null, cover: `${photoBase}/${p.key}-cover.jpg`,
       lastReportDate: last?.doc.date ?? null, lastReportTime: last?.doc.time ?? null,
     };
     const totals = { Materials: 0.55, Labour: 0.25, Equipment: 0.12, Transport: 0.08 };

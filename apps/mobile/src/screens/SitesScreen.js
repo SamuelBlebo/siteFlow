@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useOutbox } from '../lib/useOutbox';
 import { outboxKey } from '../lib/reportOutbox';
@@ -76,6 +76,12 @@ export default function SitesScreen({ navigation }) {
             return (
               <Pressable key={site.id} onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name })} accessibilityRole="button"
                 android_ripple={{ color: colors.sunk }} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
+                {/* The project image (visualization or photo), or its initials on navy */}
+                {site.cover
+                  ? <Image source={{ uri: site.cover }} style={{ width: 64, height: 40, borderRadius: 6, marginRight: 12, backgroundColor: colors.navy }} accessibilityIgnoresInvertColors />
+                  : <View style={{ width: 64, height: 40, borderRadius: 6, marginRight: 12, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 1 }}>{site.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')}</Text>
+                    </View>}
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{site.name}</Text>
                   <Muted>{site.location}</Muted>

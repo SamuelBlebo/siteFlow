@@ -124,5 +124,35 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "source": "https://commons.wikimedia.org/wiki/File:A_construction_site_with_concrete_structures.jpg"
+  },
+  {
+    "file": "adenta-cover.jpg",
+    "site": "adenta",
+    "title": "Luxury Villa House (South Ghana).jpg",
+    "author": "Remy Mboku",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Luxury_Villa_House_(South_Ghana).jpg",
+    "note": "Project image; cropped"
+  },
+  {
+    "file": "legon-cover.jpg",
+    "site": "legon",
+    "title": "The Signature Apartments, Ayawaso West (P1100124).jpg",
+    "author": "Matti Blume",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:The_Signature_Apartments,_Ayawaso_West_(P1100124).jpg",
+    "note": "Project image; cropped"
+  },
+  {
+    "file": "road-cover.jpg",
+    "site": "road",
+    "title": "N1 road.jpg",
+    "author": "Kwaku Berko",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:N1_road.jpg",
+    "note": "Project image; cropped"
   }
 ]

@@ -39,6 +39,16 @@ service firebase.storage {
       allow delete: if siteManager(cid);
     }
 
+    // Project image (visualization or photo): paths.coverFile. Managers upload; images under 10 MB.
+    match /companies/{cid}/sites/{sid}/cover/{file} {
+      allow read: if onSite(cid, sid);
+      allow create: if resource == null && siteManager(cid)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|jpeg|webp)');
+      allow update: if false;
+      allow delete: if siteManager(cid);
+    }
+
     // Project drawings: paths.drawingFile(cid, sid, drawingId, file). The original PDF or image and
     // the picture shown (page 1 of a PDF). Uploaded by owners, admins and project managers.
     match /companies/{cid}/sites/{sid}/drawings/{drawingId}/{file} {

@@ -4,6 +4,7 @@ import { DRAWING_MAX_MB, DRAWING_TYPES, friendlyError } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { createSite } from '../lib/db';
 import { addDrawing, prepareDrawing, setOverviewDrawing } from '../lib/drawings';
+import { uploadCover } from '../lib/cover';
 import { save, toast } from '../lib/save';
 import SiteForm from '../components/SiteForm';
 import { useTitle } from '../lib/hooks';
@@ -13,12 +14,17 @@ export default function NewSite() {
   const { cid, user, profile, can } = useAuth();
   const nav = useNavigate();
   const [plan, setPlan] = useState(null);
+  const [cover, setCover] = useState(null);
 
   async function create(data) {
     if (plan && plan.size > DRAWING_MAX_MB * 1024 * 1024) throw new Error(`The site plan is over ${DRAWING_MAX_MB} MB. Export a smaller PDF or image.`);
     const { id, done } = createSite(cid, data);
     const res = await save(done, `Site ${data.name}`); // throws a friendly message on failure
     if (res.queued) toast(`${data.name} is saved on this device and will sync when you're back online.`, 'warn');
+    // The project image (visualization or photo); a failure doesn't stop the project being created
+    if (cover && !res.queued) {
+      await uploadCover(cid, id, cover).catch((e) => toast(`The project was created, but the image could not be uploaded: ${friendlyError(e)} Add it in the project's settings.`, 'warn'));
+    }
     // The site plan or drawing becomes the project's overview drawing
     if (plan && !res.queued) {
       try {
@@ -36,11 +42,14 @@ export default function NewSite() {
     nav(`/sites/${id}?tab=team`);
   }
 
-  const planField = can('sites.manage') && (
+  const planField = can('sites.manage') && (<>
+    <div className="field"><label htmlFor="ns-cover">Project image (optional)</label>
+      <input id="ns-cover" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCover(e.target.files?.[0] || null)} />
+      <p className="hint">An architect's visualization (3D render) of the finished project, or a photo. It shows on the project's card.</p></div>
     <div className="field"><label htmlFor="ns-plan">Site plan or drawing (optional)</label>
       <input id="ns-plan" type="file" accept={DRAWING_TYPES.join(',')} onChange={(e) => setPlan(e.target.files?.[0] || null)} />
       <p className="hint">PDF (page 1 is shown), PNG or JPG, up to {DRAWING_MAX_MB} MB. It shows on the project overview, where you can mark areas and pin issues. You can add more sheets later.</p></div>
-  );
+  </>);
 
   return (
     <>

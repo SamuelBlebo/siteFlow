@@ -768,3 +768,13 @@ describe('emails', () => {
     await assertFails(updateDoc(ref, { priority: 'low', updatedBy: USERS.manager, updatedByName: 'The boss' }));
   });
 });
+
+describe('project image', () => {
+  it('managers set or clear the project image (a web address); the site team cannot', async () => {
+    const ref = (r: Role) => doc(asRole(r), paths.site(C1, S1));
+    await assertSucceeds(updateDoc(ref('manager'), { cover: 'https://firebasestorage.googleapis.com/v0/b/x/o/cover.jpg' }));
+    await assertSucceeds(updateDoc(ref('owner'), { cover: null }));
+    await assertFails(updateDoc(ref('manager'), { cover: 'javascript:alert(1)' }));
+    await assertFails(updateDoc(ref('supervisor'), { cover: 'https://example.com/a.jpg' }));
+  });
+});

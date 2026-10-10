@@ -22,6 +22,8 @@ import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import ProjectDrawing from '../components/ProjectDrawing';
 import ReportButton from '../components/ReportButton';
+import ProjectCover from '../components/ProjectCover';
+import { removeCover, uploadCover } from '../lib/cover';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
 import { Ring } from '../components/Charts';
@@ -63,6 +65,7 @@ export default function SiteDetail() {
     <section className="wrap">
       <div className="panel">
         <div className="sitehead">
+          {site.cover && <ProjectCover site={site} className="head" />}
           <Ring pct={site.progress || 0} size={84} />
           <div>
             <h1>{site.name} {site.sample && <span className="pill sample">Sample</span>} {site.status !== 'active' && <StatusPill status={site.status} />}</h1>
@@ -258,6 +261,9 @@ function SettingsTab({ cid, sid, site }) {
       </div>
       <p className="hint">Active: daily reports expected. On hold: work paused, no report reminders. Closed: finished, read-only for the site team.</p>
 
+      <h3 className="sub">Project image</h3>
+      <CoverSetting cid={cid} site={site} />
+
       <h3 className="sub">Client emails</h3>
       <label className="dwg-check"><input type="checkbox" checked={!!site.clientReports} disabled={!site.client?.email}
         onChange={(e) => save(setClientReports(cid, sid, e.target.checked), 'Client emails').then(() => toast(e.target.checked ? `Each daily report will be emailed to ${site.client.name}.` : 'The client no longer gets daily reports.')).catch((e2) => toast(e2.message, 'err'))} />
@@ -279,6 +285,32 @@ function SettingsTab({ cid, sid, site }) {
       )}
       {can('company.settings') && <DeleteProject cid={cid} site={site} />}
     </>
+  );
+}
+
+// The picture on the project's card and page: an architect's visualization (render) or a photo
+function CoverSetting({ cid, site }) {
+  const [busy, setBusy] = useState(false);
+  async function pick(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!navigator.onLine) return toast('Uploading an image needs an internet connection.', 'err');
+    setBusy(true);
+    try { await uploadCover(cid, site.id, file, site.cover); toast('Project image saved.'); } catch (e2) { toast(friendlyError(e2, 'Could not upload the image.'), 'err'); } finally { setBusy(false); }
+  }
+  return (
+    <div className="cover-setting">
+      <ProjectCover site={site} />
+      <div>
+        <p className="small muted">An architect's visualization (3D render) of the finished project works best, or a good photo. It shows on the project's card and at the top of this page.</p>
+        <div className="actions">
+          <label className={`btn sm ${busy ? 'ghost' : 'gold'}`}>{busy ? 'Uploading…' : site.cover ? 'Replace image' : 'Upload image'}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="visually-hidden" onChange={pick} disabled={busy} /></label>
+          {site.cover && !busy && <button type="button" className="btn sm ghost" onClick={() => removeCover(cid, site.id, site.cover).then(() => toast('Image removed.')).catch((e) => toast(friendlyError(e), 'err'))}>Remove</button>}
+        </div>
+      </div>
+    </div>
   );
 }
 

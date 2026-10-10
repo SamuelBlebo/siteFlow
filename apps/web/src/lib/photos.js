@@ -19,6 +19,9 @@ async function shrink(file, maxPx, quality) {
   }
 }
 
+// The project image: sharp on a wide card (long edge 1600 px), usually 150-400 KB
+export const coverImage = async (file) => (await shrink(file, 1600, 0.85)) || file;
+
 // Phone cameras produce 3-8 MB files; this gives ~200-500 KB. Falls back to the original file.
 export async function resizePhoto(file) {
   const small = await shrink(file, REPORT_PHOTO_MAX_PX, REPORT_PHOTO_QUALITY);

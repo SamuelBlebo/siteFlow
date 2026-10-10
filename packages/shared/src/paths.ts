@@ -28,6 +28,8 @@ export const paths = {
   issueComments: (cid: string, sid: string, issueId: string) => `companies/${cid}/sites/${sid}/issues/${issueId}/comments`,
   // Storage
   issuePhoto: (cid: string, sid: string, issueId: string, file: string) => `companies/${cid}/sites/${sid}/issues/${issueId}/${file}`,
+  // The project image (paths.coverFile): a visualization or photo shown on project cards
+  coverFile: (cid: string, sid: string, file: string) => `companies/${cid}/sites/${sid}/cover/${file}`,
   drawingFile: (cid: string, sid: string, drawingId: string, file: string) => `companies/${cid}/sites/${sid}/drawings/${drawingId}/${file}`,
   photo: (cid: string, sid: string, reportId: string, file: string) => `companies/${cid}/sites/${sid}/reports/${reportId}/${file}`,
 };

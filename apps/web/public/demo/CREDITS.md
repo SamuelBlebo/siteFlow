@@ -1,7 +1,7 @@
 # Sample project photos
 
 The demo projects ("Explore with sample data") use these photos from Wikimedia Commons. They were resized
-(960 px and 330 px wide); nothing else was changed. Each is used under its own licence, shown below.
+(960 px and 330 px wide); nothing else was changed, except the three project images, which were also cropped to 16:9. Each is used under its own licence, shown below.
 
 | File | Photo | Author | Licence |
 |---|---|---|---|
@@ -19,3 +19,6 @@ The demo projects ("Explore with sample data") use these photos from Wikimedia C
 | road-haul-road.jpg | [Construction ground or site.jpg](https://commons.wikimedia.org/wiki/File:Construction_ground_or_site.jpg) | Alikorea | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
 | road-culvert.jpg | [A construction site near a body of water.jpg](https://commons.wikimedia.org/wiki/File:A_construction_site_near_a_body_of_water.jpg) | Ibrahim Achiri | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
 | road-culvert-2.jpg | [A construction site with concrete structures.jpg](https://commons.wikimedia.org/wiki/File:A_construction_site_with_concrete_structures.jpg) | Ibrahim Achiri | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+| adenta-cover.jpg (project image, cropped) | [Luxury Villa House (South Ghana).jpg](https://commons.wikimedia.org/wiki/File:Luxury_Villa_House_(South_Ghana).jpg) | Remy Mboku | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
+| legon-cover.jpg (project image, cropped) | [The Signature Apartments, Ayawaso West (P1100124).jpg](https://commons.wikimedia.org/wiki/File:The_Signature_Apartments,_Ayawaso_West_(P1100124).jpg) | Matti Blume | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+| road-cover.jpg (project image, cropped) | [N1 road.jpg](https://commons.wikimedia.org/wiki/File:N1_road.jpg) | Kwaku Berko | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
