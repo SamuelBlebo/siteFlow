@@ -85,7 +85,13 @@ export default function SitesScreen({ navigation }) {
                   ? <Pill kind={onPhone.status === 'failed' ? 'bad' : 'warn'}>{onPhone.status === 'failed' ? 'Report not sent' : 'Report on phone'}</Pill>
                   : site.status === 'on_hold'
                     ? <Pill kind="warn">{SITE_STATUS_LABELS.on_hold}</Pill>
-                    : <Pill kind={sent ? 'ok' : 'bad'}>{sent ? 'Report sent' : 'Report due'}</Pill>}
+                    : !sent && can('site.work') && site.status !== 'closed'
+                      // Straight to today's report form for this site
+                      ? <Pressable onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name, screen: 'Report' })} accessibilityRole="button" accessibilityLabel={`Make a report for ${site.name}`} hitSlop={8}
+                          style={{ backgroundColor: colors.brass, borderRadius: 8, paddingHorizontal: 14, minHeight: 40, justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontWeight: '700' }}>Report</Text>
+                        </Pressable>
+                      : <Pill kind={sent ? 'ok' : 'bad'}>{sent ? 'Report sent' : 'Report due'}</Pill>}
               </Pressable>
             );
           })}

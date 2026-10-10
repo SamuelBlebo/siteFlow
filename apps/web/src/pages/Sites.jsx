@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ReportButton from '../components/ReportButton';
 import { prettyDate, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery, useTitle } from '../lib/hooks';
@@ -52,7 +53,7 @@ export default function Sites() {
           </div>
           {!shown.length ? <Empty title="No sites match." action={<button type="button" className="btn sm ghost" onClick={() => { setQ(''); setFilter('all'); }}>Clear search and filter</button>}>Try another filter or search.</Empty> : (
             <div className="scroll"><table>
-              <thead><tr><th>Site</th><th>Status</th><th>Stage</th><th>Progress</th><th>Planned finish</th><th>Last report</th></tr></thead>
+              <thead><tr><th>Site</th><th>Status</th><th>Stage</th><th>Progress</th><th>Planned finish</th><th>Last report</th>{can('site.work') && <th><span className="visually-hidden">Report</span></th>}</tr></thead>
               <tbody>
                 {shown.map((s) => (
                   <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
@@ -62,6 +63,7 @@ export default function Sites() {
                     <td><div className="meter"><span style={{ width: `${s.progress || 0}%` }} /></div><small className="muted">{s.progress || 0}%</small></td>
                     <td>{s.planEnd ? prettyDate(s.planEnd) : '–'}</td>
                     <td>{s.lastReportDate === today ? <span className="pill ok">Today {s.lastReportTime}</span> : s.lastReportDate ? prettyDate(s.lastReportDate) : <span className="muted">None yet</span>}</td>
+                    {can('site.work') && <td className="nowrap"><ReportButton cid={cid} site={s} size="sm" /></td>}
                   </tr>
                 ))}
               </tbody>

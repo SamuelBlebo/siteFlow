@@ -39,6 +39,7 @@ export default function TodayScreen({ navigation }) {
       {site.status === 'on_hold' ? <Muted style={{ marginBottom: 12 }}>This site is on hold. Daily reports are not expected, but you can still send one.</Muted> : null}
       {error ? <ErrorView error={error} what="some site data" /> : null}
       <MyRequests cid={cid} sid={sid} uid={user?.uid} />
+      {work && !sent ? <Button title="Make today's report" onPress={() => navigation.navigate('Report')} style={{ marginBottom: 12 }} /> : null}
       {steps.map((st, i) => (
         <Pressable key={st.tab} onPress={() => navigation.navigate(st.tab)} accessibilityRole="button"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 14, marginBottom: 8 }}>

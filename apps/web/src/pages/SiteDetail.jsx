@@ -21,6 +21,7 @@ import BudgetPanel from '../components/BudgetPanel';
 import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import ProjectDrawing from '../components/ProjectDrawing';
+import ReportButton from '../components/ReportButton';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
 import { Ring } from '../components/Charts';
@@ -57,6 +58,7 @@ export default function SiteDetail() {
     <div className="dtop">
       <p className="crumb" style={{ marginRight: 'auto' }}><Link to="/">Dashboard</Link> / <Link to="/sites">Projects</Link> / {site.name}</p>
       {work && <Link to={`/work/${sid}`} className="btn ghost">Open site workspace</Link>}
+      <ReportButton cid={cid} site={site} />
     </div>
     <section className="wrap">
       <div className="panel">

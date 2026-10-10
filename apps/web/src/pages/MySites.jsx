@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ReportButton from '../components/ReportButton';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery, useTitle } from '../lib/hooks';
 import { siteDoc, sitesCol } from '../lib/db';
@@ -37,9 +38,10 @@ function SiteLink({ cid, sid }) {
   if (!s || s.status === 'closed') return null;
   const sent = s.lastReportDate === todayKey();
   return (
-    <li><Link className="it" to={`/work/${sid}`}>
-      <span className="grow"><b>{s.name}{s.sample && <> <span className="pill sample">Sample</span></>}</b><small>{s.location}</small></span>
-      {s.status === 'on_hold' ? <StatusPill status="on_hold" /> : <span className={`pill ${sent ? 'ok' : 'bad'}`}>{sent ? 'Report sent' : 'Report due'}</span>}
-    </Link></li>
+    <li><div className="it">
+      <Link className="grow plain" to={`/work/${sid}`}><b>{s.name}{s.sample && <> <span className="pill sample">Sample</span></>}</b><small>{s.location}</small></Link>
+      {s.status === 'on_hold' ? <StatusPill status="on_hold" /> : <span className={`pill ${sent ? 'ok' : 'bad'}`}>{sent ? 'Report in' : 'Report due'}</span>}
+      <ReportButton cid={cid} site={{ ...s, id: sid }} size="sm" />
+    </div></li>
   );
 }
