@@ -20,24 +20,25 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
-        with: { node-version-file: .nvmrc, cache: npm }
+        with: { node-version-file: .nvmrc, cache: pnpm }
       - name: Install
         run: |
-          npm ci
+          pnpm install --frozen-lockfile
           npm --prefix firebase/functions ci
       - name: Typecheck (shared, functions, rule tests)
-        run: npm run typecheck
+        run: pnpm run typecheck
       - name: Shared logic tests (and production config checks)
-        run: npm run test:shared
+        run: pnpm run test:shared
       - name: Mobile logic tests
-        run: npm test -w @siteflow/mobile
+        run: pnpm --filter @siteflow/mobile test
       - name: Build web app
-        run: npm run build:web
+        run: pnpm run build:web
         env:
           VITE_FB_PROJECT_ID: ci-placeholder
       - name: Build functions
-        run: npm run build:functions
+        run: pnpm run build:functions
       - name: Bundle mobile app (Android JS bundle)
         working-directory: apps/mobile
         run: npx expo export --platform android --output-dir .ci-export
@@ -48,24 +49,25 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
-        with: { node-version-file: .nvmrc, cache: npm }
+        with: { node-version-file: .nvmrc, cache: pnpm }
       - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: '21' }
       - uses: actions/cache@v6
         with:
           path: ~/.cache/firebase/emulators
-          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+          key: firebase-emulators-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install
         run: |
-          npm ci
+          pnpm install --frozen-lockfile
           npm --prefix firebase/functions ci
       - name: Firestore and Storage rules tests
-        run: npm run test:rules
+        run: pnpm run test:rules
       - name: Scheduled jobs (reminders, weekly summary, retries)
-        run: npm run test:functions
+        run: pnpm run test:functions
       - name: Web data layer against emulators
-        run: npm run test:web
+        run: pnpm run test:web
 
   security:
     name: Dependency audit
@@ -73,17 +75,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
-        with: { node-version-file: .nvmrc, cache: npm }
+        with: { node-version-file: .nvmrc, cache: pnpm }
       # The server side has its own lockfile: any known high-severity issue fails CI
       - name: Cloud Functions (runs on Google's servers, blocking)
         run: npm --prefix firebase/functions audit --omit=dev --audit-level=high
-      # The apps share one workspace install, so npm also counts tooling that never ships (Metro,
+      # The apps share one workspace install, so the audit also counts tooling that never ships (Metro,
       # Vite, React Native pulled in through a peer dependency) and Firestore's server-only gRPC.
       # Reported, not blocking; Dependabot raises real upgrades as pull requests (docs/CI_CD.md).
       - name: Web and mobile (report only)
         continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high
+        run: pnpm audit --prod --audit-level high
 
   passed:
     name: CI passed

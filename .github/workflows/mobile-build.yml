@@ -38,13 +38,14 @@ jobs:
           echo "::error::Store submission is only for production builds."
           exit 1
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
-        with: { node-version-file: .nvmrc, cache: npm }
+        with: { node-version-file: .nvmrc, cache: pnpm }
       - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       - name: Build
         working-directory: apps/mobile
         run: eas build --profile ${{ inputs.profile }} --platform ${{ inputs.platform }} --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}

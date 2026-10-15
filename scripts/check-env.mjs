@@ -1,5 +1,5 @@
 // Checks that each environment's configuration is complete and points at the right project.
-//   npm run check:env            (both)      node scripts/check-env.mjs dev
+//   pnpm run check:env            (both)      node scripts/check-env.mjs dev
 // Offline: it reads local files only. Exit code 1 if anything is wrong.
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -23,7 +23,7 @@ for (const name of which) {
   if (rc[name] === e.project) ok(`.firebaserc alias "${name}"`); else bad(name, `.firebaserc alias "${name}" should be ${e.project}`);
 
   // Web
-  if (!existsSync(e.web)) bad(name, `${e.web} missing (npm run config:${name})`);
+  if (!existsSync(e.web)) bad(name, `${e.web} missing (pnpm run config:${name})`);
   else {
     const v = parseEnv(readFileSync(e.web, 'utf8'));
     const missing = WEB_KEYS.filter((k) => !v[k]);
@@ -37,7 +37,7 @@ for (const name of which) {
   // Mobile
   const json = `apps/mobile/google-services.${e.mobile}.json`;
   const plist = `apps/mobile/GoogleService-Info.${e.mobile}.plist`;
-  if (!existsSync(json)) bad(name, `${json} missing (npm run config:${name})`);
+  if (!existsSync(json)) bad(name, `${json} missing (pnpm run config:${name})`);
   else {
     const g = JSON.parse(readFileSync(json, 'utf8'));
     const pkgs = g.client?.map((c) => c.client_info?.android_client_info?.package_name) || [];
@@ -45,7 +45,7 @@ for (const name of which) {
     else if (!pkgs.includes(e.pkg)) bad(name, `${json} has no app ${e.pkg}`);
     else ok(`${json} (${e.pkg})`);
   }
-  if (!existsSync(plist)) bad(name, `${plist} missing (npm run config:${name})`);
+  if (!existsSync(plist)) bad(name, `${plist} missing (pnpm run config:${name})`);
   else {
     const p = readFileSync(plist, 'utf8');
     if (!p.includes(`<string>${e.project}</string>`)) bad(name, `${plist} is not for ${e.project}`);

@@ -4,13 +4,13 @@
 
 | Command | What it tests | Needs |
 | --- | --- | --- |
-| `npm run test:shared` | Shared logic: permissions, money, dates, alerts, reports, issues, progress, notifications, design tokens | Nothing |
-| `npm test -w @siteflow/mobile` | Phone logic: write journal, outbox, server checks, drafts | Nothing (native modules are mocked) |
-| `npm run test:rules` | Firestore and Storage security rules | Java 21 (emulators) |
-| `npm run test:functions` | Scheduled jobs: 6pm reminders, weekly summary, message retries | Java 21 (emulators) |
-| `npm run test:web` | Web data layer and Cloud Functions, end to end against the emulators | Java 21 (emulators) |
-| `npm test` | All of the above except mobile | Java 21 |
-| `npm run coverage` | Coverage for shared and mobile logic | Nothing |
+| `pnpm run test:shared` | Shared logic: permissions, money, dates, alerts, reports, issues, progress, notifications, design tokens | Nothing |
+| `pnpm --filter @siteflow/mobile test` | Phone logic: write journal, outbox, server checks, drafts | Nothing (native modules are mocked) |
+| `pnpm run test:rules` | Firestore and Storage security rules | Java 21 (emulators) |
+| `pnpm run test:functions` | Scheduled jobs: 6pm reminders, weekly summary, message retries | Java 21 (emulators) |
+| `pnpm run test:web` | Web data layer and Cloud Functions, end to end against the emulators | Java 21 (emulators) |
+| `pnpm test` | All of the above except mobile | Java 21 |
+| `pnpm run coverage` | Coverage for shared and mobile logic | Nothing |
 
 - The emulator suites use the ports in `firebase.test.json`, so they don't clash with emulators you already have running.
 - They never touch a real Firebase project, and nothing is sent: messages are logged as "skipped".

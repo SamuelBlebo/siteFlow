@@ -5,7 +5,8 @@
   },
   "build": {
     "base": {
-      "node": "22.23.3"
+      "node": "22.23.3",
+      "pnpm": "11.22.0"
     },
     "development": {
       "extends": "base",

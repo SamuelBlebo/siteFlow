@@ -31,10 +31,12 @@ jobs:
           if [ -z "$KEY" ]; then echo "::notice::Skipped: no FIREBASE_SERVICE_ACCOUNT in 'development'."; echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/checkout@v7
         if: steps.ready.outputs.ok == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.ready.outputs.ok == 'true'
       - uses: actions/setup-node@v7
         if: steps.ready.outputs.ok == 'true'
-        with: { node-version-file: .nvmrc, cache: npm }
-      - run: npm ci
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
         if: steps.ready.outputs.ok == 'true'
       - uses: google-github-actions/auth@v3
         if: steps.ready.outputs.ok == 'true'

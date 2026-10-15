@@ -20,11 +20,11 @@ Region: **europe-west1 (Belgium)**, for both Firestore and Functions, and for bo
 - Both projects are created, with the web, Android and iOS apps registered.
 - `.firebaserc` has the aliases `dev` and `prod`.
 - The config files for both projects are downloaded:
-  - `npm run config:dev` / `config:prod` writes them
-  - `npm run check:env` verifies them
+  - `pnpm run config:dev` / `config:prod` writes them
+  - `pnpm run check:env` verifies them
 - Function settings per project live in `firebase/functions/.env.<project>`. They are not secret, so they are committed.
 - Deploys build the web app for the target project and stop on any mismatch.
-- `npm run emulators` and every test use the offline `demo-siteflow` project.
+- `pnpm run emulators` and every test use the offline `demo-siteflow` project.
 
 ## To do in the console (once per project)
 
@@ -47,7 +47,7 @@ Do these for **siteflow-dp-dev** now. Do them for **siteflow-dp-prod** when you 
 Then tell me, and I'll deploy everything to dev and check it end to end. Or deploy it yourself:
 
 ```
-npm run deploy:dev
+pnpm run deploy:dev
 ```
 
 ## Secrets
@@ -80,6 +80,6 @@ The manual "Deploy web and backend" workflow needs a GitHub secret named `FIREBA
 
 ## Production rules
 
-- **Production is only deployed when asked** (`npm run deploy:prod`, or the workflow with target `prod`).
+- **Production is only deployed when asked** (`pnpm run deploy:prod`, or the workflow with target `prod`).
 - **No experiments on production.** New features are tried on dev with test companies.
 - **Changes reach production in this order:** tests pass in CI, then they are deployed to dev and checked, then to production.

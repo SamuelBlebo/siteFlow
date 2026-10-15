@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Expo / React Native need a flat node_modules. pnpm 11 reads this setting
+# here, not from .npmrc (the .npmrc line is kept for older pnpm versions).
+nodeLinker: hoisted
+
+# Dependencies allowed to run install scripts (pnpm blocks all others).
+allowBuilds:
+  '@firebase/util': true
+  esbuild: true
+  protobufjs: true
+  re2: true

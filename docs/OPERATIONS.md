@@ -68,7 +68,7 @@ In the Firebase console, under Authentication > Settings:
 App Check blocks scripts that use a stolen login to call the team functions.
 
 1. Firebase console > App Check > the web app > reCAPTCHA Enterprise. Create a site key for the production domain.
-2. Put the key in `apps/web/.env.production` as `VITE_APPCHECK_SITE_KEY` (`npm run config:prod` keeps it), and in CI as a `VITE_APPCHECK_SITE_KEY` variable. It's public, not a secret. Build and deploy the web app.
+2. Put the key in `apps/web/.env.production` as `VITE_APPCHECK_SITE_KEY` (`pnpm run config:prod` keeps it), and in CI as a `VITE_APPCHECK_SITE_KEY` variable. It's public, not a secret. Build and deploy the web app.
 3. Watch App Check > APIs > Cloud Functions for a few days. When the verified share is close to 100%, set `ENFORCE_APP_CHECK=true` in `firebase/functions/.env.siteflow-dp-prod` and deploy the functions.
 4. Leave Firestore and Storage enforcement **off** until the mobile app has App Check too (it needs the `@react-native-firebase/app-check` module and Play Integrity / App Attest).
 

@@ -40,7 +40,8 @@ siteflow/
 │   └── storage.rules
 ├── .github/workflows/        CI, web + backend deploy, mobile builds
 ├── firebase.json             Hosting, Functions, rules and emulator config
-└── package.json              npm workspaces
+├── pnpm-workspace.yaml       pnpm workspaces (apps/*, packages/*)
+└── package.json
 ```
 
 ## Rules of the repo
@@ -302,33 +303,33 @@ identifiers, kept out of git). Console setup for each project: `docs/ENVIRONMENT
 ## First-time setup
 ```bash
 nvm use                      # Node 22
-npm run setup                # installs everything, including functions
+pnpm run setup                # installs everything, including functions
 npx firebase login           # an account with access to both projects
-npm run config:dev           # writes the web and mobile config for siteflow-dp-dev
-npm run config:prod          # same for siteflow-dp-prod (only if you release)
-npm run check:env            # checks every config file points at the right project
+pnpm run config:dev           # writes the web and mobile config for siteflow-dp-dev
+pnpm run config:prod          # same for siteflow-dp-prod (only if you release)
+pnpm run check:env            # checks every config file points at the right project
 ```
 
 ## Everyday commands
 | Task | Command |
 |---|---|
-| Web app on the dev project | `npm run dev:web` |
-| Web app on the local emulators | `npm run emulators`, then `npm run dev:web` with `VITE_USE_EMULATORS=true` in `apps/web/.env.development.local` |
-| Mobile app (dev build on a phone, dev project) | `npm run dev:mobile` |
-| Type-check shared, functions and rule tests | `npm run typecheck` |
-| Shared logic tests | `npm run test:shared` |
-| Mobile logic tests | `npm test -w @siteflow/mobile` |
-| Security-rule tests (needs Java 21) | `npm run test:rules` |
-| Scheduled jobs (needs Java 21) | `npm run test:functions` |
-| Web data layer against the emulators (needs Java 21) | `npm run test:web` |
-| Everything | `npm test` |
-| Check environment config | `npm run check:env` |
-| Deploy everything to dev | `npm run deploy:dev` |
-| Deploy rules and indexes to dev | `npm run deploy:rules` |
-| Deploy everything to production (only when asked) | `npm run deploy:prod` |
+| Web app on the dev project | `pnpm run dev:web` |
+| Web app on the local emulators | `pnpm run emulators`, then `pnpm run dev:web` with `VITE_USE_EMULATORS=true` in `apps/web/.env.development.local` |
+| Mobile app (dev build on a phone, dev project) | `pnpm run dev:mobile` |
+| Type-check shared, functions and rule tests | `pnpm run typecheck` |
+| Shared logic tests | `pnpm run test:shared` |
+| Mobile logic tests | `pnpm --filter @siteflow/mobile test` |
+| Security-rule tests (needs Java 21) | `pnpm run test:rules` |
+| Scheduled jobs (needs Java 21) | `pnpm run test:functions` |
+| Web data layer against the emulators (needs Java 21) | `pnpm run test:web` |
+| Everything | `pnpm test` |
+| Check environment config | `pnpm run check:env` |
+| Deploy everything to dev | `pnpm run deploy:dev` |
+| Deploy rules and indexes to dev | `pnpm run deploy:rules` |
+| Deploy everything to production (only when asked) | `pnpm run deploy:prod` |
 
 The emulator tests use their own ports (`firebase.test.json`) and temp folder (`scripts/test-emulators.mjs`),
-so they can run while `npm run emulators`, or another project's emulators, are open. `npm run emulators`
+so they can run while `pnpm run emulators`, or another project's emulators, are open. `pnpm run emulators`
 uses the offline demo project, so it never touches dev or production.
 
 A deploy builds the web app for the project it deploys to (`scripts/build-web.mjs`) and stops if the
@@ -357,9 +358,9 @@ cd apps/mobile
 eas init                                  # once, links the Expo project
 eas env:create --name GOOGLE_SERVICES_JSON  --type file --value ./google-services.json      --environment production
 eas env:create --name GOOGLE_SERVICES_PLIST --type file --value ./GoogleService-Info.plist --environment production
-npm run build:preview                     # APK for testers
-npm run build:prod                        # store builds (Android .aab, iOS .ipa)
-npm run submit:prod                       # uploads to Play Console and App Store Connect
+pnpm run build:preview                     # APK for testers
+pnpm run build:prod                        # store builds (Android .aab, iOS .ipa)
+pnpm run submit:prod                       # uploads to Play Console and App Store Connect
 ```
 Before the first store release you need: a Google Play developer account, an Apple Developer account,
 real icon and splash images, a privacy policy URL, store screenshots, and test logins for the reviewers.

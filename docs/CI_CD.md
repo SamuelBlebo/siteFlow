@@ -15,7 +15,7 @@ GitHub Actions in `.github/workflows`. The rule: everything is checked automatic
 
 What CI checks:
 
-- install (`npm ci` for the apps and the functions)
+- install (`pnpm install --frozen-lockfile` for the apps, `npm ci` for the functions)
 - typecheck
 - shared logic and production config
 - mobile logic
@@ -80,13 +80,14 @@ Use the dev key only in `development` and the prod key only in `production`, so 
 4. **Approve it.** An approver approves the waiting deployment on the run page.
 5. **It deploys and is tagged.** To roll back, run the workflow again with the previous `prod-…` tag's commit. To roll back the web app alone, use Firebase console > Hosting > Rollback.
 
-## Keep the lock file on npm 10
+## Package manager: pnpm
 
-CI installs with the npm that comes with Node 22 (npm 10, see `.nvmrc`), using `npm ci`, which refuses a lock file that doesn't match exactly. Newer npm versions write the lock file differently: on 9 Oct 2026 an install with npm 12 dropped some nested optional entries, and every CI run failed at **Install** for 22 commits.
+The apps and the shared package install with pnpm (`pnpm-lock.yaml`, workspaces in `pnpm-workspace.yaml`). CI uses `pnpm install --frozen-lockfile`, which refuses a lock file that doesn't match `package.json`.
 
-- `package.json` names the npm version (`packageManager: npm@10.9.9`).
-- If your npm is newer, install or update packages with it explicitly: `npx npm@10.9.9 install …`, or fix the lock afterwards with `npx npm@10.9.9 install --package-lock-only`.
-- Before pushing a lock file change, `npx npm@10.9.9 ci --dry-run` should pass.
+- `package.json` names the pnpm version (`packageManager`); `corepack enable` and `pnpm/action-setup` in CI both use it. EAS Build pins the same version in `apps/mobile/eas.json`.
+- `nodeLinker: hoisted` in `pnpm-workspace.yaml` keeps a flat `node_modules`, which Expo and React Native need.
+- pnpm only runs install scripts for packages listed under `allowBuilds` in `pnpm-workspace.yaml`. A new dependency that needs one fails the install until it is added there.
+- Cloud Functions (`firebase/functions`) is not a workspace and stays on npm with its own `package-lock.json`: Firebase builds it with npm when deploying.
 
 ## Known reports
 
@@ -94,4 +95,4 @@ CI installs with the npm that comes with Node 22 (npm 10, see `.nvmrc`), using `
   - These tools run on build machines, not in the app.
   - The fix is the Expo SDK upgrade, planned with the mobile release (Stage 19) so it can be tested on devices.
   - Dependabot leaves Expo, React, React Native and every native module alone, at any version step. The Expo SDK fixes their exact versions, and web and mobile share one install, so they move together in the SDK upgrade (`npx expo install --fix`).
-- **Web (report-only audit).** npm counts Firestore's server-only gRPC library and tooling from the shared install. Neither is in what browsers download.
+- **Web (report-only audit).** The audit counts Firestore's server-only gRPC library and tooling from the shared install. Neither is in what browsers download.

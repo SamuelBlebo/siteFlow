@@ -96,7 +96,7 @@ Record each step's time, the command's output and any surprise in a copy of this
 7. Set up Auth (email and password, plus Google) and Storage (europe-west1) in the console.
 8. Turn on Storage object versioning, with a rule to delete old versions after 30 days:
    `gcloud storage buckets update gs://<staging bucket> --versioning`
-9. Deploy: `npm run config:staging`, then
+9. Deploy: `pnpm run config:staging`, then
    `npx firebase deploy --only firestore,storage,functions,hosting --project staging`.
    Wait until the indexes show Enabled.
 

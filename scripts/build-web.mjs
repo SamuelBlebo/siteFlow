@@ -16,7 +16,7 @@ const prod = target === 'siteflow-dp-prod';
 const mode = prod ? 'production' : 'development';
 const file = `apps/web/.env.${mode}`;
 if (!existsSync(file)) {
-  console.error(`${file} is missing. Run: npm run config:${prod ? 'prod' : 'dev'}`);
+  console.error(`${file} is missing. Run: pnpm run config:${prod ? 'prod' : 'dev'}`);
   process.exit(1);
 }
 const projectId = readFileSync(file, 'utf8').match(/^VITE_FB_PROJECT_ID=(.*)$/m)?.[1]?.trim();
@@ -29,4 +29,4 @@ if (/^VITE_USE_EMULATORS=true/m.test(readFileSync(file, 'utf8'))) {
   process.exit(1);
 }
 console.log(`Building the web app for ${target} (${mode})`);
-execSync(`npm run build -w @siteflow/web -- --mode ${mode}`, { stdio: 'inherit' });
+execSync(`pnpm --filter @siteflow/web build --mode ${mode}`, { stdio: 'inherit' });
