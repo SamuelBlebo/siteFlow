@@ -15,16 +15,16 @@ The two apps use them as follows:
 - **Mobile:** imports them through `apps/mobile/src/theme.js`.
 - **Web:** uses CSS custom properties in `apps/web/src/styles.css`. `packages/shared/test/design.test.ts` fails if they drift apart.
 
-The look follows the product prototype (claude.ai artifact "SiteFlow", Owner / Site team / Site app views).
+The look (since 2026-10-20, `docs/superpowers/specs/2026-10-20-light-look-and-skins-design.md`): light and calm. White cards on a soft warm-grey ground, rounded corners (`--radius`, 16px), hairline borders, a white sidebar that stays put, and a slim top bar with the time, the date and you.
 
-Colour meaning:
+Colour is minimal:
 
-- **Navy:** the sidebar, header bars and the plan banner.
-- **Hazard tape (yellow and black):** the logo mark only (`--tape`, `--tape-dark`, the same in dark mode).
-- **Brass gold:** the main call to action on a page (`.btn.gold`, e.g. New project) and "you are here" (current nav item, current tab).
-- **Ink:** ordinary buttons (`.btn`); `.btn.ghost` for secondary ones. Navy-steel for links.
-- **Green / amber / red:** only for status: done or on track, needs attention, problem or overdue.
-- **Charts:** `--c-done` (navy, pale steel in dark mode) for quantities, brass for money and plan lines, status colours only for status.
+- **Greys:** everything normal, including "sent", "on track" and "resolved" labels.
+- **The accent (the person's skin):** the main call to action (`.btn.gold`), "you are here" (current menu item, current tab), money in charts, and a project card that needs you. Its token is still called `brass` (`--brass`, `--brass-ink`, `--brass-soft`).
+- **Hazard tape (yellow and black):** the logo mark only.
+- **Red:** only for problems (missing, overdue, over budget, critical, not assigned). Amber `warn` for "needs attention soon".
+
+Skins: each person picks **Brass** (default), **Amber** or **Navy** from the menu at the top right, on Your account, or on the phone's Account screen. `SKINS` in `design.ts` holds each skin's light and dark accent; the web sets `data-skin` on `<html>` (`lib/skin.js`) and the phone swaps `colors.brass*` (`theme.js`, `applySkin`). The choice is saved on `users/{uid}.skin`. Anything drawn with the accent on the phone is styled inline, so it picks up a change.
 
 Type: Goldman for the wordmark only, Archivo Expanded for page titles and headings, Inter for everything else (tabular figures).
 
@@ -47,7 +47,7 @@ Type: Goldman for the wordmark only, Archivo Expanded for page titles and headin
 | Charts | `<SpendChart>`, `<CostDonut>` in `components/Charts.jsx` | – |
 | On/off | `<label className="switch"><input type="checkbox" /><span /></label>` | – |
 
-App shell: `Layout.jsx` (navy sidebar with company, menu, projects with a red dot when today's report is missing, and you). Below 860px it folds into a top bar with a sideways-scrolling menu.
+App shell: `Layout.jsx` (white sidebar that stays put: company, menu in groups with line icons from `Icons.jsx`, projects with a red dot when today's report is missing, and you) and `TopBar.jsx` (time, date, your menu with skin, light/dark and sign out). Below 860px the sidebar folds into a top bar with a sideways-scrolling menu.
 
 Web layout helpers: `.actions`, `.section-head`, `.toolbar`, `.mt`, `.mt-sm`, `.mb`, `.m0`, `.form.compact`, `textarea.short`, `.lead`. Use these, not inline `style`. Inline style is only for values computed at runtime, such as a meter's width.
 

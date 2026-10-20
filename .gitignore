@@ -27,3 +27,6 @@ ui-debug.log
 firebase-debug.log
 firestore-debug.log
 coverage/
+
+# brainstorming mockups (local only)
+.superpowers/
