@@ -57,6 +57,8 @@ export const myChangeRequestsQuery = (cid, sid, uid) =>
 export const togglePin = (uid, current, key, on) => updateDoc(userDoc(uid), {
   pinned: on ? [key, ...current.filter((k) => k !== key)].slice(0, 50) : current.filter((k) => k !== key), updatedAt: serverTimestamp(),
 });
+// The person's skin (accent colour), lib/skin.js
+export const saveSkin = (uid, skin) => updateDoc(userDoc(uid), { skin, updatedAt: serverTimestamp() });
 // Report and issue emails (logic/mail in shared)
 export const saveEmailPrefs = (uid, prefs) => updateDoc(userDoc(uid), { emailPrefs: prefs, updatedAt: serverTimestamp() });
 // Days that need a daily report: working days, and single days skipped (logic/sites in shared)

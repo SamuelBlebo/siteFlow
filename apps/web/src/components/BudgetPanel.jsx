@@ -57,16 +57,16 @@ export default function BudgetPanel({ cid, site, data }) {
       {editingBudget && <BudgetForm cid={cid} sid={site.id} f={f} onDone={() => setEditingBudget(false)} />}
       {!rows.length ? <Empty title="No spending or category budgets yet." /> : (
         <div className="scroll"><table>
-          <thead><tr><th>Category</th><th>Budget</th><th>Spent</th><th>Left</th><th>Used</th></tr></thead>
+          <thead><tr><th>Category</th><th className="num">Budget</th><th className="num">Spent</th><th className="num">Left</th><th>Used</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.category}>
-                <td>{r.category}</td><td>{r.budget ? cedi(r.budget) : '–'}</td><td>{cedi(r.actual)}</td>
-                <td className={r.variance < 0 ? 'neg' : ''}>{r.budget ? cedi(r.variance) : '–'}</td>
+                <td>{r.category}</td><td className="num">{r.budget ? cedi(r.budget) : '–'}</td><td className="num">{cedi(r.actual)}</td>
+                <td className={`num${r.variance < 0 ? ' overrun' : ''}`}>{r.budget ? (r.variance < 0 ? `${cedi(-r.variance)} over` : cedi(r.variance)) : '–'}</td>
                 <td>{r.usedPct == null ? '–' : <><span className={`pill ${r.over ? 'bad' : r.usedPct >= 90 ? 'warn' : 'ok'}`}>{r.usedPct}%</span></>}</td>
               </tr>
             ))}
-            <tr className="total"><td><b>All</b></td><td><b>{cedi(total.budget)}</b></td><td><b>{cedi(total.actual)}</b></td><td className={total.variance < 0 ? 'neg' : ''}><b>{cedi(total.variance)}</b></td><td>{total.usedPct == null ? '–' : `${total.usedPct}%`}</td></tr>
+            <tr className="total"><td><b>All</b></td><td className="num"><b>{cedi(total.budget)}</b></td><td className="num"><b>{cedi(total.actual)}</b></td><td className={`num${total.variance < 0 ? ' overrun' : ''}`}><b>{total.variance < 0 ? `${cedi(-total.variance)} over` : cedi(total.variance)}</b></td><td>{total.usedPct == null ? '–' : `${total.usedPct}%`}</td></tr>
           </tbody>
         </table></div>
       )}
@@ -241,7 +241,7 @@ function ExpenseList({ cid, site, expenses }) {
       </div>
       {days === 'all' && older.loading ? <Loading what="all expenses" /> : !shown.length ? <Empty title="No expenses in this period." /> : (
         <div className="scroll"><table>
-          <thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Paid to</th><th>Paid by</th><th>Amount</th><th /></tr></thead>
+          <thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Paid to</th><th>Paid by</th><th className="num">Amount</th><th /></tr></thead>
           <tbody>
             {shown.map((x) => editing === x.id
               ? <tr key={x.id}><td colSpan={7}><EditExpense cid={cid} sid={site.id} x={x} onDone={() => setEditing(null)} /></td></tr>
@@ -253,7 +253,7 @@ function ExpenseList({ cid, site, expenses }) {
                     {x.category === 'Labour' && !x.period && <div className="small muted">Why by hand: {x.labourReason || 'no reason recorded'}</div>}
                     {x.voided && <div className="small void-note">Void: {x.voidReason} ({x.voidedByName})</div>}</td>
                   <td>{x.payee || '–'}</td><td>{x.method || '–'}</td>
-                  <td>{x.voided ? <><s>{cedi(x.voidedAmount)}</s><div className="small muted">not counted</div></> : <b>{cedi(x.amount)}</b>}</td>
+                  <td className="num">{x.voided ? <><s>{cedi(x.voidedAmount)}</s><div className="small muted">not counted</div></> : <b>{cedi(x.amount)}</b>}</td>
                   <td className="nowrap">
                     {can('finance.edit') && !x.voided && <button type="button" className="btn sm ghost" onClick={() => setEditing(x.id)}>Edit</button>}{' '}
                     <button type="button" className="btn sm ghost" aria-expanded={history === x.id} onClick={() => setHistory(history === x.id ? null : x.id)}>History</button>
@@ -261,7 +261,7 @@ function ExpenseList({ cid, site, expenses }) {
                 </tr>,
                 history === x.id && <tr key={`${x.id}-h`}><td colSpan={7}><ExpenseHistory cid={cid} sid={site.id} id={x.id} /></td></tr>]
               ))}
-            <tr className="total"><td colSpan={5}><b>Total shown</b></td><td><b>{cedi(total)}</b></td><td /></tr>
+            <tr className="total"><td colSpan={5}><b>Total shown</b></td><td className="num"><b>{cedi(total)}</b></td><td /></tr>
           </tbody>
         </table></div>
       )}

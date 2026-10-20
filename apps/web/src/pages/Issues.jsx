@@ -36,17 +36,17 @@ export default function Issues() {
       {can('site.work') && !reporting && <button type="button" className="btn gold" onClick={() => setReporting(true)}>Report an issue</button>}
     </PageHead>
     <section className="wrap">
-      <div>
-      </div>
       {reporting && (
         <div className="mt">
           <IssueForm cid={cid} sites={[...sites].sort((a, b) => a.name.localeCompare(b.name))} onDone={(r) => { setReporting(false); if (r) nav(`/issues/${r.siteId}/${r.id}`); }} />
         </div>
       )}
       {!!critical.length && (
-        <div className="critical-banner" role="alert">
-          <b>{critical.length} critical issue{critical.length === 1 ? '' : 's'} open:</b> {critical.map((i) => `${i.title} (${i.siteName})`).join('; ')}
-        </div>
+        <button type="button" className={`critical-filter${priority === 'critical' ? ' on' : ''}`} aria-pressed={priority === 'critical'}
+          onClick={() => { setPriority(priority === 'critical' ? '' : 'critical'); setStatus('open'); }}>
+          <b>{critical.length} critical issue{critical.length === 1 ? '' : 's'} open</b>
+          <span>{priority === 'critical' ? 'Show all issues' : 'Show only these'}</span>
+        </button>
       )}
       <div className="filters">
         <div className="field"><label htmlFor="is-st">Status</label>

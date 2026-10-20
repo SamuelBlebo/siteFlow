@@ -19,7 +19,7 @@ export default function IssueList({ issues, showSite, empty = 'No issues.' }) {
                 <b>{i.title}</b>
                 <small>
                   {showSite ? `${i.siteName}. ` : ''}{i.category}{i.location ? `, ${i.location}` : ''}. Reported {prettyDate(i.date)} by {i.createdByName}.
-                  {' '}{i.assignedToName ? `With ${i.assignedToName}.` : isOpenIssue(i.status) ? 'Not assigned.' : ''}
+                  {' '}{i.assignedToName ? `With ${i.assignedToName}.` : isOpenIssue(i.status) ? <span className="unassigned">Not assigned.</span> : ''}
                   {i.commentCount ? ` ${i.commentCount} comment${i.commentCount === 1 ? '' : 's'}.` : ''}
                 </small>
               </span>

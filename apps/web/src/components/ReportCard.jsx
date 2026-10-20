@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { prettyDate, reportAuthor } from '@siteflow/shared';
 import PhotoViewer from './PhotoViewer';
+import Icon from './Icons';
 
 // A report in a list: the essentials, linking to the full report
 export function ReportRow({ r, showSite }) {
@@ -8,15 +9,24 @@ export function ReportRow({ r, showSite }) {
     <li>
       <Link className="it report-row" to={`/reports/${r.siteId}/${r.id}`}>
         <span className="grow">
-          <b>{showSite ? `${r.siteName}, ` : ''}{prettyDate(r.date)}</b>
-          <small>{reportAuthor(r)}, sent {r.time}. {r.workersPresent} workers, {r.stage} {r.progress}%{r.weather ? `, ${r.weather.toLowerCase()}` : ''}</small>
-          <span className="excerpt">{r.text}</span>
+          <small>{showSite ? `${r.siteName}, ` : ''}{prettyDate(r.date)} · {reportAuthor(r)}, sent {r.time}</small>
+          <b className="excerpt">{r.text}</b>
+          <span className="rfacts">
+            <span><Icon name="team" />{r.workersPresent} workers</span>
+            <span>{r.stage} {r.progress}%</span>
+            {r.weather && <span>{r.weather}</span>}
+          </span>
         </span>
+        {!!(r.thumbs?.length || r.photos?.length) && (
+          <span className="rthumbs" aria-label={`${r.photos?.length || r.thumbs.length} photos`}>
+            {(r.thumbs?.length ? r.thumbs : r.photos).slice(0, 3).map((u) => <img key={u} src={u} alt="" loading="lazy" />)}
+            {(r.photos?.length || 0) > 3 && <span className="more">+{r.photos.length - 3}</span>}
+          </span>
+        )}
         <span className="tags">
           {r.review?.status === 'changes_requested' && <span className="pill warn">Changes requested</span>}
           {r.review?.status === 'updated' && <span className="pill ok">Updated</span>}
           {(r.issues || '').trim() && <span className="pill bad">Issue</span>}
-          {!!r.photos?.length && <span className="pill">{r.photos.length} photo{r.photos.length === 1 ? '' : 's'}</span>}
           {(r.photoCount || 0) > (r.photos?.length || 0) && <span className="pill warn">Photos uploading</span>}
         </span>
       </Link>

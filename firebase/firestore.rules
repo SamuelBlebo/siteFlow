@@ -59,7 +59,9 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, delete: if false;
       allow update: if signedIn() && request.auth.uid == uid
-        && onlyChanges(['name', 'phone', 'callPhone', 'mustChangePassword', 'companyId', 'emailPrefs', 'pinned', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'callPhone', 'mustChangePassword', 'companyId', 'emailPrefs', 'pinned', 'skin', 'updatedAt'])
+        // The person's skin (accent colour), SKINS in shared
+        && (!('skin' in data()) || data().skin in ['brass', 'amber', 'navy'])
         // Pinned projects ("companyId/projectId"), shown first on Projects
         && (!('pinned' in data()) || (data().pinned is list && data().pinned.size() <= 50))
         // Report and issue emails (logic/mail in shared)

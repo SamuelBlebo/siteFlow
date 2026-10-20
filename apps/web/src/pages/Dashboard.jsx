@@ -91,6 +91,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   const plan = plannedWeeklySpend(active.map((s) => ({ budget: finance[s.id]?.budget, planStart: s.planStart, planEnd: s.planEnd })));
   const parts = costBreakdown(active.map((s) => finance[s.id]));
   const usedPct = budgetAll ? Math.round((spentAll / budgetAll) * 100) : 0;
+  const overWeeks = plan ? weeks.filter((w) => w.total > plan * 1.1).length : 0;
 
   // Today on site: the latest reports in the chosen period, with their photos
   const feed = reports.filter((r) => inPeriod.has(r.date)).slice(0, period === 'today' ? 10 : 6);
@@ -126,6 +127,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
       <div className="dpage">
         {active.some((s) => s.sample) && <SampleBanner />}
         <GettingStarted company={company} sites={active} budgetSet={money ? active.some((s) => !s.sample && finance[s.id]?.budget > 0) : null} />
+        <ProjectStrip sites={active} states={states} today={today} risk={(s) => money && siteFinanceSummary(finance[s.id], s.progress || 0).overspendRisk} />
         <dl className="tiles">
           {money && (
             <>
@@ -163,22 +165,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         </dl>
 
         <div className="dgrid">
-          {money && (
-            <>
-              <section className="panel c8">
-                <div className="panel-h">
-                  <div><h2>Weekly spend against plan</h2><p>All projects, last 8 weeks.{plan ? ' Red bars ran more than 10% over plan.' : ' Add planned dates to projects to see the plan line.'}</p></div>
-                  <span className="count">{big(weeks.reduce((n, w) => n + w.total, 0))}</span>
-                </div>
-                <SpendChart weeks={weeks} plan={plan} />
-              </section>
-              <section className="panel c4">
-                <div className="panel-h"><div><h2>Where the money goes</h2><p>Spending by category to date</p></div></div>
-                {parts.length ? <CostDonut parts={parts} /> : <p className="empty mt-sm">No spending recorded yet.</p>}
-              </section>
-            </>
-          )}
-
           <AlertsPanel alerts={alerts} className={money ? 'c7' : 'c12'} />
 
           {money && (
@@ -195,12 +181,28 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                       <div className="row-between"><b>{s.name}</b>{!f?.budget ? <span className="pill">No budget</span> : fs.overspendRisk ? <span className="pill bad">Overspend risk</span> : <span className="pill ok">On track</span>}</div>
                       <div className="meter work"><span style={{ width: `${s.progress || 0}%` }} /></div>
                       <div className={`meter ${fs.overspendRisk ? 'hot' : ''}`}><span style={{ width: `${Math.min(b, 100)}%` }} /></div>
-                      <div className="bvp-lab"><span>{s.progress || 0}% built</span><span>{f?.budget ? `${b}% of ${big(f.budget)} spent` : 'Set a budget under Budget'}</span></div>
+                      <div className="bvp-lab"><span>{s.progress || 0}% built</span><span className={fs.overspendRisk ? 'overrun' : ''}>{f?.budget ? `${b}% of ${big(f.budget)} spent` : 'Set a budget under Budget'}</span></div>
                     </div>
                   );
                 })}
               </div>
             </section>
+          )}
+
+          {money && (
+            <>
+              <section className="panel c8">
+                <div className="panel-h">
+                  <div><h2>Weekly spend against plan</h2><p>All projects, last 8 weeks.{plan ? (overWeeks ? ` ${overWeeks} week${overWeeks === 1 ? '' : 's'} ran more than 10% over plan (red).` : ' No week ran more than 10% over plan.') : ' Add planned dates to projects to see the plan line.'}</p></div>
+                  <span className="count">{big(weeks.reduce((n, w) => n + w.total, 0))}</span>
+                </div>
+                <SpendChart weeks={weeks} plan={plan} />
+              </section>
+              <section className="panel c4">
+                <div className="panel-h"><div><h2>Where the money goes</h2><p>Spending by category to date</p></div></div>
+                {parts.length ? <CostDonut parts={parts} /> : <p className="empty mt-sm">No spending recorded yet.</p>}
+              </section>
+            </>
           )}
 
           <section className="panel c12">
@@ -210,8 +212,8 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             </div>
             <div className="scroll flush"><table className="ptable">
               <thead><tr>
-                <th>Project</th><th>Stage</th><th>Progress</th>{money && <><th>Budget used</th><th>Spent</th></>}<th>Today's report</th>
-                {mod('labour') && <th>On site</th>}<th>Open issues</th>
+                <th>Project</th><th>Stage</th><th>Progress</th>{money && <><th>Budget used</th><th className="num">Spent</th></>}<th>Today's report</th>
+                {mod('labour') && <th className="num">On site</th>}<th className="num">Open issues</th>
               </tr></thead>
               <tbody>
                 {active.map((s) => {
@@ -232,12 +234,12 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                       {money && (
                         <>
                           <td>{f?.budget ? <><div className={`mbar ${b >= 90 ? 'hot' : ''}`}><span style={{ width: `${Math.min(b, 100)}%` }} /></div><span className={`small ${b >= 90 ? 'badt' : 'muted'}`}>{b}%</span></> : <span className="muted">–</span>}</td>
-                          <td>{f ? <>{big(f.spent || 0)} {f.budget ? <span className="muted small">of {big(f.budget)}</span> : null}</> : '–'}</td>
+                          <td className="num">{f ? <>{big(f.spent || 0)} {f.budget ? <span className="muted small">of {big(f.budget)}</span> : null}</> : '–'}</td>
                         </>
                       )}
                       <td>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill ok skipped">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[reportDay(s, today)]}</td>
-                      {mod('labour') && <td>{present[s.id] || 0} / {crew[s.id] || 0}</td>}
-                      <td>{iss.length ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
+                      {mod('labour') && <td className="num">{present[s.id] || 0} / {crew[s.id] || 0}</td>}
+                      <td className="num">{iss.length ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
                     </tr>
                   );
                 })}
@@ -284,6 +286,41 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         {money && spentAll > 0 && <p className="hint mt">Figures in {getLocale().currency}. Spending comes from recorded expenses ({cedi(spentAll)} in total across active projects).</p>}
       </div>
     </>
+  );
+}
+
+// Your projects at a glance (the reference's loading bays): one card each with its progress and stage.
+// A card is filled with the accent when the project needs you: behind plan, today's report missing, or spending ahead of the work.
+const code = (name = '') => name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 3).map((w) => w[0].toUpperCase()).join('') || 'P';
+function ProjectStrip({ sites, states, today, risk }) {
+  if (sites.length < 2) return null;
+  const why = (s) => {
+    if (states[s.id].state === 'behind') return states[s.id].weeksBehind ? `${states[s.id].weeksBehind} week${states[s.id].weeksBehind === 1 ? '' : 's'} behind` : 'Behind plan';
+    if (reportDay(s, today) === 'due' && s.status === 'active') return "Today's report missing";
+    if (risk(s)) return 'Spending ahead of work';
+    return '';
+  };
+  const hot = sites.filter((s) => why(s)).length;
+  return (
+    <section className="pstrip" aria-labelledby="pstrip-h">
+      <div className="pstrip-h"><h2 id="pstrip-h">Your projects</h2><p>{hot ? `${hot} need${hot === 1 ? 's' : ''} you, filled in colour` : 'All on track'}</p></div>
+      <ul className="bays">
+        {sites.map((s) => {
+          const w = why(s);
+          const pct = states[s.id].actual;
+          return (
+            <li key={s.id}>
+              <Link to={`/sites/${s.id}`} className={`bay${w ? ' hot' : ''}`}>
+                <span className="bay-t"><span className="bay-code">{code(s.name)}</span><span className="bay-pct">{pct}%</span></span>
+                <b>{s.name}</b>
+                <small>{s.stage || 'No stage set'}{w ? <> · <span className="late">{w}</span></> : s.status !== 'active' ? ' · On hold' : ''}</small>
+                <span className="bay-bar"><span style={{ width: `${Math.min(100, pct)}%` }} /></span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

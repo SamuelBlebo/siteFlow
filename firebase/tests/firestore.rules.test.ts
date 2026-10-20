@@ -845,6 +845,16 @@ describe('project drawings', () => {
   });
 });
 
+describe('skins', () => {
+  it('people choose their own skin, only a known one', async () => {
+    const me = doc(asRole('supervisor'), paths.user(USERS.supervisor));
+    await assertSucceeds(updateDoc(me, { skin: 'amber', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(me, { skin: 'navy' }));
+    await assertFails(updateDoc(me, { skin: 'pink' }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.user(USERS.supervisor)), { skin: 'brass' }));
+  });
+});
+
 describe('emails', () => {
   it('people choose their own report and issue emails, only with known values', async () => {
     const me = doc(asRole('supervisor'), paths.user(USERS.supervisor));

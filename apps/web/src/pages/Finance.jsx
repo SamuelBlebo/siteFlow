@@ -65,14 +65,14 @@ export default function Finance() {
         <label className="chip"><input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} /> Include closed sites</label></div>
       {!rows.length ? <Empty title="No sites yet." /> : (
         <div className="scroll"><table>
-          <thead><tr><th>Site</th><th>Budget</th><th>Spent</th><th>Remaining</th><th>Budget used / work done</th><th>Expected final cost</th></tr></thead>
+          <thead><tr><th>Site</th><th className="num">Budget</th><th className="num">Spent</th><th className="num">Remaining</th><th>Budget used / work done</th><th className="num">Expected final cost</th></tr></thead>
           <tbody>
             {rows.map(({ site: s, sum }) => (
               <tr key={s.id}>
                 <td><Link to={`/sites/${s.id}?tab=budget`}>{s.name}</Link> {s.status !== 'active' && <StatusPill status={s.status} />}</td>
-                <td>{cedi(sum.budget)}</td><td>{cedi(sum.spent)}</td><td className={sum.remaining < 0 ? 'neg' : ''}>{cedi(sum.remaining)}</td>
+                <td className="num">{cedi(sum.budget)}</td><td className="num">{cedi(sum.spent)}</td><td className={`num${sum.remaining < 0 ? ' overrun' : ''}`}>{cedi(sum.remaining)}</td>
                 <td><div className={`meter ${sum.overspendRisk ? 'hot' : ''}`}><span style={{ width: `${Math.min(sum.usedPct, 100)}%` }} /></div><small className="muted">{sum.usedPct}% used, {sum.progress}% done</small></td>
-                <td>{sum.forecast == null ? '–' : cedi(sum.forecast)}{sum.forecastOver > 0 && <div className="small neg">{cedi(sum.forecastOver)} over</div>}</td>
+                <td className="num">{sum.forecast == null ? '–' : cedi(sum.forecast)}{sum.forecastOver > 0 && <div className="overrun">{cedi(sum.forecastOver)} over</div>}</td>
               </tr>
             ))}
           </tbody>
@@ -83,9 +83,10 @@ export default function Finance() {
         <>
           <h2 className="sec">By category</h2>
           <div className="scroll"><table>
-            <thead><tr><th>Category</th><th>Budget</th><th>Spent</th><th>Left</th></tr></thead>
+            <thead><tr><th>Category</th><th className="num">Budget</th><th className="num">Spent</th><th className="num">Left</th><th>Used</th></tr></thead>
             <tbody>{cats.map((x) => (
-              <tr key={x.c}><td>{x.c}</td><td>{x.budget ? cedi(x.budget) : '–'}</td><td>{cedi(x.spent)}</td><td className={x.budget && x.spent > x.budget ? 'neg' : ''}>{x.budget ? cedi(x.budget - x.spent) : '–'}</td></tr>
+              <tr key={x.c}><td>{x.c}</td><td className="num">{x.budget ? cedi(x.budget) : '–'}</td><td className="num">{cedi(x.spent)}</td><td className={`num${x.budget && x.spent > x.budget ? ' overrun' : ''}`}>{x.budget ? (x.spent > x.budget ? `${cedi(x.spent - x.budget)} over` : cedi(x.budget - x.spent)) : '–'}</td>
+                <td>{x.budget ? <div className={`meter ${x.spent > x.budget ? 'hot' : ''}`}><span style={{ width: `${Math.min(100, Math.round((x.spent / x.budget) * 100))}%` }} /></div> : <span className="muted">–</span>}</td></tr>
             ))}</tbody>
           </table></div>
           <p className="hint">Category budgets are set per site under Budget, Edit budget.</p>

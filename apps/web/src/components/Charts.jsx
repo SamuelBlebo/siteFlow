@@ -51,7 +51,7 @@ export function SpendChart({ weeks, plan }) {
         const h = y(0) - y(w.total);
         return (
           <g key={w.start}>
-            {w.total > 0 && <path d={bar(x, y(w.total), cw * 0.56, h)} fill={over(w.total) ? 'var(--bad)' : 'var(--c-done)'} opacity={i === weeks.length - 1 ? 1 : 0.85}>
+            {w.total > 0 && <path d={bar(x, y(w.total), cw * 0.56, h)} fill={over(w.total) ? 'var(--bad)' : 'var(--brass)'} opacity={i === weeks.length - 1 ? 1 : 0.85}>
               <title>{`Week of ${w.label}: ${big(w.total)}${over(w.total) ? ' (above plan)' : ''}`}</title>
             </path>}
             <text x={x + cw * 0.28} y={H - 10} textAnchor="middle">{w.label}</text>
@@ -60,9 +60,9 @@ export function SpendChart({ weeks, plan }) {
       })}
       {plan ? (
         <>
-          <line x1={L} x2={W - 6} y1={y(plan)} y2={y(plan)} stroke="var(--brass)" strokeWidth="2" strokeDasharray="5 4" />
+          <line x1={L} x2={W - 6} y1={y(plan)} y2={y(plan)} stroke="var(--ink)" strokeWidth="1.5" strokeDasharray="5 4" />
           <rect x={L + 4} y={y(plan) - 19} width="118" height="16" rx="4" fill="var(--surface)" />
-          <text x={L + 8} y={y(plan) - 7} style={{ fill: 'var(--brass)', fontWeight: 600 }}>Plan {big(plan)}/week</text>
+          <text x={L + 8} y={y(plan) - 7} style={{ fill: 'var(--ink)', fontWeight: 600 }}>Plan {big(plan)}/week</text>
         </>
       ) : null}
     </svg>
@@ -70,7 +70,8 @@ export function SpendChart({ weeks, plan }) {
 }
 
 // Where the money goes: ring of spending by category with the total in the middle, and the list beside it
-const CAT_COLORS = ['var(--c-done)', 'var(--brass)', '#6F8594', '#C9B48C', 'var(--muted)', 'var(--line)'];
+// The biggest share in the accent, the rest in greys (minimal colour)
+const CAT_COLORS = ['var(--brass)', 'var(--c-done)', '#8E9398', '#B4B8BC', 'var(--c-none)', 'var(--line)'];
 export function CostDonut({ parts }) {
   const total = parts.reduce((n, p) => n + p.amount, 0);
   // Five biggest, the rest folded into "Other"

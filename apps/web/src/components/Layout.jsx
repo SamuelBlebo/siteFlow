@@ -1,22 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
 import { companyDoc, siteDoc, sitesCol } from '../lib/db';
 import { PLAN_LABELS, ROLE_LABELS, isOn, planFor, reportDay, todayKey } from '@siteflow/shared';
 import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
-import ThemeSwitch from './ThemeSwitch';
+import Icon from './Icons';
+import TopBar, { initials } from './TopBar';
 import { usePins } from './PinButton';
-
-const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+import { useProfileSkin } from '../lib/skin';
 // Red dot: an active site whose daily report hasn't come in today
 const late = (s) => reportDay(s, todayKey()) === 'due';
 
-// The app shell: navy sidebar (company, menu, projects, you) and the page beside it.
-// On phones the sidebar folds into a top bar with a sideways-scrolling menu.
+// The app shell: a white sidebar that stays put (company, menu in groups, projects, you), and beside
+// it the top bar and the page. On phones the sidebar folds into a top bar with a sideways-scrolling menu.
 export default function Layout() {
   const { cid, profile, role, can, companies, switchCompany } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +26,7 @@ export default function Layout() {
   const pinned = usePins();
   const open = sites.filter((s) => s.status !== 'closed').sort((a, b) => (pinned(b.id) - pinned(a.id)) || a.name.localeCompare(b.name));
   const mod = (k) => isOn(company, k);
+  useProfileSkin(profile?.skin);
 
   // A new page starts at the top, and screen readers start reading it from its heading
   const first = useRef(true);
@@ -57,34 +56,36 @@ export default function Layout() {
             <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">
-          {all && <NavLink to="/" end>Dashboard</NavLink>}
-          <NavLink to="/sites" end>{all ? 'Projects' : 'My projects'}</NavLink>
-          {all && <NavLink to="/reports">Daily reports</NavLink>}
-          {all && <NavLink to="/issues">Issues</NavLink>}
-          {can('finance.view') && mod('budget') && <NavLink to="/finance">Finance</NavLink>}
-          {can('team.manage') && <NavLink to="/team">Team</NavLink>}
-          {can('company.settings') && <NavLink to="/modules">Modules</NavLink>}
-          {can('company.settings') && <NavLink to="/reminders">Reminders</NavLink>}
-          {can('company.settings') && <NavLink to="/company">Company</NavLink>}
+          <span className="lbl">Overview</span>
+          {all && <NavLink to="/" end><Icon name="dashboard" />Dashboard</NavLink>}
+          <NavLink to="/sites" end><Icon name="projects" />{all ? 'Projects' : 'My projects'}</NavLink>
+          {all && <><span className="lbl">On site</span>
+            <NavLink to="/reports"><Icon name="reports" />Daily reports</NavLink>
+            <NavLink to="/issues"><Icon name="issues" />Issues</NavLink></>}
+          {((can('finance.view') && mod('budget')) || can('team.manage')) && <span className="lbl">Money and people</span>}
+          {can('finance.view') && mod('budget') && <NavLink to="/finance"><Icon name="finance" />Finance</NavLink>}
+          {can('team.manage') && <NavLink to="/team"><Icon name="team" />Team</NavLink>}
           {all && !!open.length && <span className="lbl">Projects</span>}
           {all && open.map((s) => (
             <NavLink key={s.id} to={`/sites/${s.id}`} className="site-link" title={late(s) ? `${s.name}: today's report is missing` : s.name}>
-              <span className="dot" style={{ background: late(s) ? 'var(--bad)' : 'var(--ok)' }} aria-hidden="true" /><span>{s.name}</span>{s.sample && <i className="tag">Sample</i>}
+              <span className={`dot${late(s) ? ' late' : ''}`} aria-hidden="true" /><span>{s.name}</span>
             </NavLink>
           ))}
           {!all && (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />)}
+          {can('company.settings') && <><span className="lbl">Settings</span>
+            <NavLink to="/modules"><Icon name="modules" />Modules</NavLink>
+            <NavLink to="/reminders"><Icon name="reminders" />Reminders</NavLink>
+            <NavLink to="/company"><Icon name="company" />Company</NavLink></>}
         </nav>
-        <ThemeSwitch compact />
         <div className="me">
           <NavLink to="/account" title="Your account">
             <span className="avatar">{initials(profile?.name)}</span>
             <span className="who-text"><b>{profile?.name}</b><span>{role ? ROLE_LABELS[role] : ''}</span></span>
           </NavLink>
-          <button type="button" className="signout" onClick={() => signOut(auth)}>Sign out</button>
         </div>
       </aside>
       {/* A crash in one page keeps the menu working; moving to another page clears it */}
-      <main id="main" className="main" ref={main} tabIndex={-1}><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
+      <main id="main" className="main" ref={main} tabIndex={-1}><TopBar /><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
     </div>
   );
 }
@@ -95,7 +96,7 @@ function MySiteLink({ cid, sid }) {
   if (!s || s.status === 'closed') return null;
   return (
     <NavLink to={`/sites/${sid}`} className="site-link">
-      <span className="dot" style={{ background: late(s) ? 'var(--bad)' : 'var(--ok)' }} aria-hidden="true" /><span>{s.name}</span>
+      <span className={`dot${late(s) ? ' late' : ''}`} aria-hidden="true" /><span>{s.name}</span>
     </NavLink>
   );
 }

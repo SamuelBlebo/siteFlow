@@ -9,6 +9,7 @@ import PasswordForm from '../components/PasswordForm';
 import EmailPrefsForm from '../components/EmailPrefs';
 import PageHead from '../components/PageHead';
 import ThemeSwitch from '../components/ThemeSwitch';
+import SkinPicker from '../components/SkinPicker';
 
 export default function Account() {
   useTitle('Your account');
@@ -58,12 +59,16 @@ export default function Account() {
         <button type="submit" className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>
       </form>
 
-      <h2 className="sub">Emails</h2>
+      <h2 className="sub" id="emails">Emails</h2>
       <p className="muted mb">Daily reports and issues by email, to {user.email}. Every email has a link back to these settings.</p>
       <EmailPrefsForm initial={emailPrefsFor(profile.emailPrefs, role)} onSave={(prefs) => save(saveEmailPrefs(user.uid, prefs), 'Email settings')} />
 
       <h2 className="sub">Appearance</h2>
       <div className="card">
+        <h3>Skin</h3>
+        <p className="muted mb">The colour SiteFlow uses for you. Saved to your account, so it follows you to other browsers and the phone app.</p>
+        <SkinPicker />
+        <h3 className="mt">Light or dark</h3>
         <p className="muted mb">Light, dark (good at night and on site in the evening), or follow your device. Saved on this browser.</p>
         <ThemeSwitch />
       </div>

@@ -59,7 +59,7 @@ export default function SiteDetail() {
   const OLD_TABS = { report: 'reports', history: 'reports', drawing: 'overview', workers: 'labour' };
   const asked = params.get('tab');
   const tab = OLD_TABS[asked] || asked || (can('site.work') && isSiteScoped(role) ? 'today' : 'overview');
-  const tabs = [...(can('site.work') ? [['today', 'Today']] : []), ['overview', 'Overview'], ['reports', 'Daily reports'], ['progress', 'Progress'], ['issues', 'Issues']];
+  const tabs = [...(can('site.work') ? [['today', 'Live today']] : []), ['overview', 'Overview'], ['reports', 'Daily reports'], ['progress', 'Progress'], ['issues', 'Issues']];
   if (mod('materials')) tabs.push(['materials', 'Materials']);
   if (mod('labour')) tabs.push(['labour', 'Labour']);
   if (money) tabs.push(['budget', 'Budget']);
