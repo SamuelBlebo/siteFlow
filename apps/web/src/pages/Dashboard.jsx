@@ -16,6 +16,7 @@ import StatusPill from '../components/StatusPill';
 import { Mark } from '../components/Brand';
 import { CostDonut, Ring, Spark, SpendChart } from '../components/Charts';
 import { ScheduleBadge } from '../components/ProgressPanel';
+import ProjectCover from '../components/ProjectCover';
 import { Empty, ErrorState, Loading } from '../components/States';
 
 const PERIODS = [['today', 'Today', 1], ['week', 'This week', 6], ['month', 'This month', 26]]; // working days (Sundays off)
@@ -289,8 +290,8 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   );
 }
 
-// Your projects at a glance (the reference's loading bays): one card each with its progress and stage.
-// A card is filled with the accent when the project needs you: behind plan, today's report missing, or spending ahead of the work.
+// Your projects at a glance (the reference's loading bays): one card each with its image, progress and stage.
+// A card is washed with the accent when the project needs you: behind plan, today's report missing, or spending ahead of the work.
 const code = (name = '') => name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 3).map((w) => w[0].toUpperCase()).join('') || 'P';
 function ProjectStrip({ sites, states, today, risk }) {
   if (sites.length < 2) return null;
@@ -303,7 +304,7 @@ function ProjectStrip({ sites, states, today, risk }) {
   const hot = sites.filter((s) => why(s)).length;
   return (
     <section className="pstrip" aria-labelledby="pstrip-h">
-      <div className="pstrip-h"><h2 id="pstrip-h">Your projects</h2><p>{hot ? `${hot} need${hot === 1 ? 's' : ''} you, filled in colour` : 'All on track'}</p></div>
+      <div className="pstrip-h"><h2 id="pstrip-h">Your projects</h2><p>{hot ? `${hot} need${hot === 1 ? 's' : ''} you, shown in colour` : 'All on track'}</p></div>
       <ul className="bays">
         {sites.map((s) => {
           const w = why(s);
@@ -311,6 +312,7 @@ function ProjectStrip({ sites, states, today, risk }) {
           return (
             <li key={s.id}>
               <Link to={`/sites/${s.id}`} className={`bay${w ? ' hot' : ''}`}>
+                <ProjectCover site={s} className="bay-img" label={false} />
                 <span className="bay-t"><span className="bay-code">{code(s.name)}</span><span className="bay-pct">{pct}%</span></span>
                 <b>{s.name}</b>
                 <small>{s.stage || 'No stage set'}{w ? <> · <span className="late">{w}</span></> : s.status !== 'active' ? ' · On hold' : ''}</small>

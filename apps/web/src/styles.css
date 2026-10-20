@@ -960,31 +960,39 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 .tag-manual { color: var(--warn, #b45309); font-weight: 600; }
 .grid3 > .span-all { grid-column: 1 / -1; }
 
-/* Dashboard: your projects at a glance, one card each; the ones that need you are filled with the accent */
+/* Dashboard: your projects at a glance, one card each with the project image behind it.
+   The ones that need you are washed with the accent and ringed in it. */
 .pstrip { background: var(--surface) radial-gradient(circle, var(--line) 1px, transparent 1.2px) 0 0 / 14px 14px; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px 18px; margin-bottom: 12px; }
 .pstrip-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .pstrip-h h2 { font-size: 15px; }
 .pstrip-h p { color: var(--muted); font-size: 13px; }
-.bays { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
-.bay { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 140px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--ink); text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
-.bay:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, .08); }
-.bay:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.bays { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.bay { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-height: 172px; border-radius: 14px; padding: 12px; color: #fff; text-decoration: none; background: #1D2328; transition: transform .15s ease, box-shadow .15s ease; }
+.bay .cover.bay-img { position: absolute; inset: 0; z-index: -2; aspect-ratio: auto; border-radius: 0; }
+.bay .cover.bay-img img { transition: transform .45s ease; }
+/* No image yet: the blueprint panel, without its initials (the card's code chip has them) */
+.bay .cover.bay-img .cover-mark { display: none; }
+.bay:hover .cover.bay-img img { transform: scale(1.05); }
+/* A dark wash so the words read on any photo */
+.bay::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(12, 14, 16, .25) 0%, rgba(12, 14, 16, .2) 35%, rgba(12, 14, 16, .88) 100%); }
+.bay.hot { color: var(--brass-ink); box-shadow: 0 0 0 2px var(--brass); }
+.bay.hot::after { background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 20%, transparent) 0%, color-mix(in srgb, var(--brass) 55%, transparent) 40%, color-mix(in srgb, var(--brass) 96%, transparent) 100%); }
+.bay:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0, 0, 0, .16); }
+.bay.hot:hover { box-shadow: 0 0 0 2px var(--brass), 0 12px 26px rgba(0, 0, 0, .16); }
+.bay:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
 .bay-t { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: auto; }
-.bay-code { font-size: 11.5px; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 99px; background: var(--sunk); color: var(--muted); border: 1px solid var(--line); }
-.bay-pct { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
-.bay b { font-weight: 600; font-size: 14px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; padding-top: 18px; }
-.bay small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bay-bar { height: 5px; background: var(--sunk); border-radius: 9px; margin-top: 8px; overflow: hidden; }
-.bay-bar span { display: block; height: 100%; background: var(--brass); border-radius: 9px; }
-.bay.hot { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); }
-.bay.hot small, .bay.hot .bay-pct { color: var(--brass-ink); opacity: .85; }
-.bay.hot .bay-code { background: color-mix(in srgb, var(--brass-ink) 16%, transparent); color: var(--brass-ink); border-color: transparent; }
+.bay-code, .bay-pct { font-size: 12px; font-weight: 700; letter-spacing: .03em; padding: 3px 9px; border-radius: 99px; background: rgba(12, 14, 16, .45); color: #fff; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-variant-numeric: tabular-nums; }
+.bay.hot .bay-code, .bay.hot .bay-pct { background: var(--brass); color: var(--brass-ink); }
+.bay b { font-weight: 700; font-size: 14.5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; padding-top: 28px; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.bay small { font-size: 12.5px; opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bay.hot b { text-shadow: none; }
+.bay .late { font-weight: 700; }
+.bay-bar { height: 5px; background: rgba(255, 255, 255, .28); border-radius: 9px; margin-top: 8px; overflow: hidden; }
+.bay-bar span { display: block; height: 100%; background: #fff; border-radius: 9px; }
 .bay.hot .bay-bar { background: color-mix(in srgb, var(--brass-ink) 22%, transparent); }
 .bay.hot .bay-bar span { background: var(--brass-ink); }
-.bay .late { color: var(--bad); font-weight: 600; }
-.bay.hot .late { color: var(--brass-ink); }
-@media (prefers-reduced-motion: reduce) { .bay, .bay:hover { transform: none; transition: none; } }
-@media (max-width: 560px) { .bays { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bay { min-height: 120px; } }
+@media (prefers-reduced-motion: reduce) { .bay, .bay:hover, .bay .cover.bay-img img, .bay:hover .cover.bay-img img { transform: none; transition: none; } }
+@media (max-width: 560px) { .bays { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bay { min-height: 150px; } .bay b { padding-top: 18px; } }
 
 /* Report rows: the work is the main text, then small facts and photo thumbnails */
 .rfacts { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 12.5px; margin-top: 3px; }
