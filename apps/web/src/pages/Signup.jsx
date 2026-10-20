@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
 import Brand from '../components/Brand';
+import AuthFrame from '../components/AuthFrame';
 import GoogleButton from '../components/GoogleButton';
 import { CountrySelect } from '../components/CountryFields';
 
@@ -44,7 +45,7 @@ export default function Signup() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <Brand big home />
       <form className="form card" onSubmit={submit}>
         <h1>Create your company account</h1>
@@ -62,6 +63,6 @@ export default function Signup() {
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         <p className="row-between"><span /><Link to="/login">I already have an account</Link></p>
       </form>
-    </div>
+    </AuthFrame>
   );
 }

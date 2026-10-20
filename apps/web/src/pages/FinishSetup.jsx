@@ -6,6 +6,7 @@ import { auth, functions } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
 import Brand from '../components/Brand';
+import AuthFrame from '../components/AuthFrame';
 import { CountrySelect } from '../components/CountryFields';
 
 // Shown when someone is signed in but has no profile: a sign-up that didn't finish,
@@ -34,7 +35,7 @@ export default function FinishSetup() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <Brand big />
       <form className="form card" onSubmit={submit}>
         <h1>Finish setting up</h1>
@@ -47,6 +48,6 @@ export default function FinishSetup() {
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Setting up…' : 'Create my company'}</button>
         <p className="row-between"><span /><button type="button" className="linkbtn" onClick={() => signOut(auth)}>Sign out</button></p>
       </form>
-    </div>
+    </AuthFrame>
   );
 }

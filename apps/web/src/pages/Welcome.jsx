@@ -7,11 +7,16 @@ import { companyDoc, sitesCol, updateCompany, updateCompanyLocale } from '../lib
 import CountryFields from '../components/CountryFields';
 import { loadDemo, setModule } from '../lib/account';
 import { save, toast } from '../lib/save';
-import Brand from '../components/Brand';
+import PageHead from '../components/PageHead';
 import { InviteForm, IssuedLogin } from '../components/Invite';
 import { ErrorState, Loading } from '../components/States';
 
-const STEPS = ['Your company', 'Features', 'Your team', 'First project'];
+const STEPS = [
+  ['Your company', 'Name, phone, country and currency'],
+  ['Features', 'What your sites need'],
+  ['Your team', 'Managers, accounts and foremen'],
+  ['First project', 'A real one, or sample data'],
+];
 
 // Setting up a new company, one step at a time. Every step can be skipped and done later
 // from Company, Modules or Team.
@@ -27,25 +32,32 @@ export default function Welcome() {
   const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : nav('/'));
 
   return (
-    <section className="wrap narrow welcome">
-      <Brand big />
-      <h1>Welcome to SiteFlow{profile?.name ? `, ${profile.name.split(' ')[0]}` : ''}</h1>
-      <p className="muted lead">A few minutes now and {company.name} is ready for its first project. Skip anything and come back to it later.</p>
-      <ol className="wsteps" aria-label="Setup steps">
-        {STEPS.map((s, i) => (
-          <li key={s} className={i === step ? 'on' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}>
-            <button type="button" onClick={() => setStep(i)}><span>{i < step ? '✓' : i + 1}</span>{s}</button>
-          </li>
-        ))}
-      </ol>
-      <div className="card">
-        {step === 0 && <CompanyStep cid={cid} company={company} onDone={next} />}
-        {step === 1 && <FeaturesStep company={company} onDone={next} />}
-        {step === 2 && <TeamStep role={role} sites={sites} onDone={next} />}
-        {step === 3 && <ProjectStep sites={sites} />}
+    <>
+    <PageHead title={`Welcome to SiteFlow${profile?.name ? `, ${profile.name.split(' ')[0]}` : ''}`}
+      sub={`A few minutes now and ${company.name} is ready for its first project. Skip anything and come back to it later.`}>
+      <Link to="/" className="btn ghost sm">Skip setup</Link>
+    </PageHead>
+    <section className="wrap welcome">
+      <div className="wgrid">
+        <nav className="wside" aria-label="Setup steps">
+          <div className="wprog"><span>Step {step + 1} of {STEPS.length}</span><div className="gs-bar" aria-hidden="true"><span style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} /></div></div>
+          <ol className="wsteps">
+            {STEPS.map(([title, line], i) => (
+              <li key={title} className={i === step ? 'on' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}>
+                <button type="button" onClick={() => setStep(i)}><span className="wnum">{i < step ? '✓' : i + 1}</span><span className="wtxt"><b>{title}</b><small>{line}</small></span></button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+        <div className="card">
+          {step === 0 && <CompanyStep cid={cid} company={company} onDone={next} />}
+          {step === 1 && <FeaturesStep company={company} onDone={next} />}
+          {step === 2 && <TeamStep role={role} sites={sites} onDone={next} />}
+          {step === 3 && <ProjectStep sites={sites} />}
+        </div>
       </div>
-      <p className="mt small"><Link to="/">Skip setup and go to the dashboard</Link></p>
     </section>
+    </>
   );
 }
 

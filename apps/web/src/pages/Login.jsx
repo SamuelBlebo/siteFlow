@@ -7,6 +7,7 @@ import { friendlyError } from '@siteflow/shared';
 import { useTitle } from '../lib/hooks';
 import PasswordInput from '../components/PasswordInput';
 import Brand from '../components/Brand';
+import AuthFrame from '../components/AuthFrame';
 import GoogleButton from '../components/GoogleButton';
 
 export default function Login() {
@@ -32,7 +33,7 @@ export default function Login() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <Brand big home />
       <form className="form card" onSubmit={submit}>
         <h1>Sign in</h1>
@@ -45,6 +46,6 @@ export default function Login() {
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         <p className="row-between"><button type="button" className="linkbtn" onClick={reset}>Forgot password</button><Link to="/signup">Create a company account</Link></p>
       </form>
-    </div>
+    </AuthFrame>
   );
 }

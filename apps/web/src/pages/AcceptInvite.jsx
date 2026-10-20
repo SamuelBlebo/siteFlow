@@ -6,6 +6,7 @@ import { auth } from '../firebase';
 import { acceptInvite, inviteInfo } from '../lib/account';
 import { useTitle } from '../lib/hooks';
 import Brand from '../components/Brand';
+import AuthFrame from '../components/AuthFrame';
 import PasswordInput from '../components/PasswordInput';
 import { Loading } from '../components/States';
 
@@ -42,7 +43,7 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <Brand big home />
       {problem ? (
         <div className="card"><h1>This link doesn't work</h1><p className="muted mt-sm">{problem}</p>
@@ -64,6 +65,6 @@ export default function AcceptInvite() {
           <p className="hint mt-sm">On site? Install the SiteFlow app and sign in there with the same email and password.</p>
         </form>
       )}
-    </div>
+    </AuthFrame>
   );
 }
