@@ -41,7 +41,7 @@ export function MyChangeRequests({ cid, sid, uid, onUpdate }) {
             <Text style={{ fontWeight: '700' }}>{r.review.byName} ({ROLE_LABELS[r.review.byRole] || r.review.byRole})</Text> asked you to update your report for {prettyDate(r.date)}: {r.review.items.filter((i) => i !== 'other').map((i) => REVIEW_ITEMS[i].toLowerCase()).join(', ')}{r.review.note ? ` “${r.review.note}”` : ''}.
           </Text>
           <Pressable onPress={() => onUpdate(r)} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: 6, backgroundColor: colors.brass, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Update report</Text>
+            <Text style={{ color: colors.brassInk, fontWeight: '700' }}>Update report</Text>
           </Pressable>
         </View>
       ))}

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { ISSUE_MAIL_LABELS, REPORT_MAIL_LABELS, ROLE_DESCRIPTIONS, ROLE_LABELS, emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
+import { DEFAULT_SKIN, ISSUE_MAIL_LABELS, REPORT_MAIL_LABELS, ROLE_DESCRIPTIONS, ROLE_LABELS, SKINS, emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { companyRef, exists } from '../lib/db';
-import { saveEmailPrefs, updateMyProfile } from '../lib/account';
+import { saveEmailPrefs, saveSkin, updateMyProfile } from '../lib/account';
 import { getJournal } from '../lib/sync';
 import { getOutbox } from '../lib/reportOutbox';
 import { Button, Card, Choice, ErrorText, Field, H2, Muted, Notice, Screen, s } from '../components/ui';
@@ -72,6 +72,11 @@ export default function AccountScreen({ navigation }) {
       <Muted style={{ marginBottom: 8 }}>Daily reports and issues by email, to {user?.email}. Each project's reports for a week, and each issue, arrive as one email conversation.</Muted>
       <Choice label="Daily reports" options={Object.entries(REPORT_MAIL_LABELS).map(([value, label]) => ({ value, label }))} value={prefs.reports} onChange={(v) => setPref('reports', v)} />
       <Choice label="Issues" options={Object.entries(ISSUE_MAIL_LABELS).map(([value, label]) => ({ value, label: value === 'mine' ? 'Only mine' : label }))} value={prefs.issues} onChange={(v) => setPref('issues', v)} />
+
+      <H2>Skin</H2>
+      <Muted style={{ marginBottom: 8 }}>The colour SiteFlow uses for you, here and on the web.</Muted>
+      <Choice label="" options={Object.entries(SKINS).map(([value, sk]) => ({ value, label: sk.label }))} value={profile?.skin || DEFAULT_SKIN}
+        onChange={(v) => saveSkin(user.uid, v).catch((e) => Alert.alert('Could not save', e?.message || 'Try again when you have signal.'))} />
 
       <H2>Password</H2>
       <PasswordForm />

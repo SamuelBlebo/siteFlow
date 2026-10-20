@@ -18,20 +18,20 @@ export default function WelcomeIntro({ uid, name }) {
   if (!show) return null;
   const done = () => { setShow(false); AsyncStorage.setItem(key, '1').catch(() => {}); };
   return (
-    <Card style={{ padding: 16, marginBottom: 14, backgroundColor: colors.navy, borderColor: colors.navy }}>
-      <Text accessibilityRole="header" style={{ color: colors.onNavy, fontSize: 20, fontWeight: '800', marginBottom: 10 }}>Welcome{name ? `, ${name.split(' ')[0]}` : ''}</Text>
+    <Card style={{ padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: colors.brass }}>
+      <Text accessibilityRole="header" style={{ color: colors.ink, fontSize: 20, fontWeight: '800', marginBottom: 10 }}>Welcome{name ? `, ${name.split(' ')[0]}` : ''}</Text>
       {TIPS.map(([title, text], i) => (
         <View key={title} style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
           <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.brass, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: colors.brassInk, fontWeight: '700' }}>{i + 1}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.onNavy, fontWeight: '700' }}>{title}</Text>
-            <Text style={{ color: colors.onNavyMuted, marginTop: 2 }}>{text}</Text>
+            <Text style={{ color: colors.ink, fontWeight: '700' }}>{title}</Text>
+            <Text style={{ color: colors.muted, marginTop: 2 }}>{text}</Text>
           </View>
         </View>
       ))}
-      <Button title="Got it" onPress={done} style={{ backgroundColor: colors.brass, marginTop: 4 }} />
+      <Button title="Got it" onPress={done} style={{ marginTop: 4 }} />
     </Card>
   );
 }

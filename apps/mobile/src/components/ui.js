@@ -133,7 +133,7 @@ export const ErrorText = ({ children }) => (children ? <Text style={s.err} acces
 export const Notice = ({ children }) => <View style={s.notice}><Text style={{ color: colors.ok, fontWeight: '500' }}>{children}</Text></View>;
 
 export function Pill({ kind = 'ok', children }) {
-  const map = { ok: [colors.okbg, colors.ok], bad: [colors.badbg, colors.bad], warn: [colors.warnbg, colors.warn], sample: [colors.brassSoft, colors.warn] };
+  const map = { ok: [colors.sunk, colors.ink], bad: [colors.badbg, colors.bad], warn: [colors.warnbg, colors.warn], sample: [colors.brassSoft, colors.warn] };
   const [bg, fg] = map[kind];
   return <View style={[s.pill, { backgroundColor: bg }]}><Text style={{ color: fg, fontWeight: '600', fontSize: 12 }}>{children}</Text></View>;
 }
@@ -146,18 +146,18 @@ export const s = StyleSheet.create({
   h1: { fontSize: 24, fontWeight: '700', color: colors.ink, marginBottom: 4 },
   h2: { fontSize: 18, fontWeight: '700', color: colors.ink, marginTop: 20, marginBottom: 8 },
   muted: { color: colors.muted },
-  btn: { minHeight: touchMin, justifyContent: 'center', backgroundColor: colors.steel, borderRadius: 8, paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.steel },
+  btn: { minHeight: touchMin, justifyContent: 'center', backgroundColor: colors.steel, borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.steel },
   btnGhost: { backgroundColor: 'transparent' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   label: { fontWeight: '600', color: colors.ink, marginBottom: 6 },
-  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: 12, fontSize: 16, color: colors.ink },
+  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 12, fontSize: 16, color: colors.ink },
   hint: { color: colors.muted, fontSize: 13, marginTop: 4 },
   chip: { minHeight: touchMin - 4, justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, marginRight: 8 },
   err: { backgroundColor: colors.badbg, color: colors.bad, padding: 12, borderRadius: 8, marginBottom: 12, fontWeight: '500' },
   notice: { backgroundColor: colors.okbg, padding: 12, borderRadius: 8, marginBottom: 12 },
   pill: { borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
   banner: { padding: 12, borderRadius: 8, marginBottom: 12 },
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10 },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 14 },
   loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 32 },
   empty: { borderWidth: 1, borderStyle: 'dashed', borderColor: colors.line, borderRadius: 10, padding: 16 },
   row: { minHeight: touchMin, flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: colors.line, gap: 12 },

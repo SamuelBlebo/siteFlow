@@ -78,11 +78,11 @@ export default function SitesScreen({ navigation }) {
             return (
               <Pressable key={site.id} onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name })} accessibilityRole="button"
                 android_ripple={{ color: colors.sunk }} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
-                {/* The project image (visualization or photo), or its initials on navy */}
+                {/* The project image (visualization or photo), or its initials */}
                 {site.cover
-                  ? <Image source={{ uri: site.cover }} style={{ width: 64, height: 40, borderRadius: 6, marginRight: 12, backgroundColor: colors.navy }} accessibilityIgnoresInvertColors />
-                  : <View style={{ width: 64, height: 40, borderRadius: 6, marginRight: 12, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 1 }}>{site.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')}</Text>
+                  ? <Image source={{ uri: site.cover }} style={{ width: 64, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: colors.sunk }} accessibilityIgnoresInvertColors />
+                  : <View style={{ width: 64, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: colors.muted, fontWeight: '800', letterSpacing: 1 }}>{site.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')}</Text>
                     </View>}
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{site.name}</Text>
@@ -99,7 +99,7 @@ export default function SitesScreen({ navigation }) {
                       // Straight to today's report form for this site
                       ? <Pressable onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name, screen: 'Report' })} accessibilityRole="button" accessibilityLabel={`Make a report for ${site.name}`} hitSlop={8}
                           style={{ backgroundColor: colors.brass, borderRadius: 8, paddingHorizontal: 14, minHeight: 40, justifyContent: 'center' }}>
-                          <Text style={{ color: '#fff', fontWeight: '700' }}>Report</Text>
+                          <Text style={{ color: colors.brassInk, fontWeight: '700' }}>Report</Text>
                         </Pressable>
                       : <Pill kind={sent ? 'ok' : 'bad'}>{sent ? 'Report sent' : 'Report due'}</Pill>}
               </Pressable>

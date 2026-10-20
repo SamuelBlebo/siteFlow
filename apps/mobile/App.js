@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { AuthProvider, useAuth } from './src/auth/AuthProvider';
 import { SiteProvider, useSite } from './src/site/SiteContext';
 import { startOutbox } from './src/lib/reportOutbox';
 import { startSync } from './src/lib/sync';
-import { colors } from './src/theme';
+import { applySkin, colors } from './src/theme';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import LoginScreen from './src/screens/LoginScreen';
 import SitesScreen from './src/screens/SitesScreen';
@@ -45,6 +45,7 @@ function SiteTabBar() {
           tabBarActiveBackgroundColor: colors.brassSoft,
           tabBarInactiveTintColor: colors.muted,
           tabBarIcon: () => null,
+          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.line },
           tabBarLabelStyle: { fontSize: 15, fontWeight: '600' },
           tabBarItemStyle: { justifyContent: 'center' },
         }}
@@ -58,13 +59,17 @@ function SiteTabBar() {
   );
 }
 
+const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.surface, text: colors.ink, border: colors.line, primary: colors.ink } };
+
 function Root() {
   const { user, active, profile, loading } = useAuth();
+  // The person's skin, before anything below draws with the accent
+  applySkin(profile?.skin);
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.steel} /></View>;
   }
   return (
-    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.navy }, headerTintColor: colors.onNavy }}>
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.ink, headerTitleStyle: { fontWeight: '700' }, headerShadowVisible: false, contentStyle: { backgroundColor: colors.bg } }}>
       {!user ? (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       ) : !active ? (
@@ -96,8 +101,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer>
-          <StatusBar style="light" />
+        <NavigationContainer theme={navTheme}>
+          <StatusBar style="dark" />
           <ErrorBoundary>
             <Root />
           </ErrorBoundary>

@@ -24,6 +24,9 @@ export function updateMyProfile(uid, input) {
 // Report and issue emails (logic/mail in shared). Saved straight away; offline it waits in Firestore's queue.
 export const saveEmailPrefs = (uid, prefs) => firestore().doc(paths.user(uid)).update({ emailPrefs: prefs, updatedAt: firestore.FieldValue.serverTimestamp() });
 
+// The person's skin (accent colour), SKINS in shared; the same choice as on the web
+export const saveSkin = (uid, skin) => firestore().doc(paths.user(uid)).update({ skin, updatedAt: firestore.FieldValue.serverTimestamp() });
+
 registerOps({ updateMyProfile });
 registerChecks({
   updateMyProfile: async (uid, { name, phone, callPhone = '' }) => {
