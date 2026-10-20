@@ -7,9 +7,9 @@
   --ok: #1E7A55; --okbg: #E2F2EA; --bad: #B3372B; --badbg: #F9E6E3; --warn: #8F6310; --warnbg: #FAF0D9;
   --shadow: 0 1px 2px rgba(20, 22, 25, .04);
   --radius: 16px;
-  /* type: Goldman for the logo, Archivo Expanded for titles and headings, Inter for everything else (UI, tables, forms, figures) */
-  --font-logo: Goldman, var(--font-display);
-  --font-display: Archivo, Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* type: Goldman for the logo, Inter for everything else (titles, headings, UI, tables, forms, figures) */
+  --font-logo: Goldman, var(--font-ui);
+  --font-display: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-ui: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   /* chart colours: the accent for money, dark grey for quantities, red only for problems, a one-hue red scale for issue priority */
   --c-ok: #1E7A55; --c-bad: #B3372B; --c-none: #C9CCCF; --c-done: #5A5F64;
@@ -50,7 +50,7 @@
 :root[data-skin="navy"][data-theme="dark"] { --brass: #A9C3D1; --brass-ink: #0A1318; --brass-soft: #16252E; }
 *, *::before, *::after { box-sizing: inherit; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 14.5px/1.55 var(--font-ui); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
-h1, h2, h3 { font-family: var(--font-display); font-stretch: 125%; font-weight: 800; letter-spacing: -0.015em; margin: 0; line-height: 1.2; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.015em; margin: 0; line-height: 1.25; }
 h1 { font-size: 26px; }
 h2 { font-size: 17px; }
 h3 { font-size: 15px; font-weight: 700; letter-spacing: 0; }
@@ -794,7 +794,7 @@ main:focus { outline: none; }
 .cover.none { display: grid; place-items: center;
   background-image: linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px), linear-gradient(135deg, #17344A, #0F1D27);
   background-size: 18px 18px, 18px 18px, 100% 100%; }
-.cover-mark { font-family: 'Archivo', sans-serif; font-stretch: 125%; font-weight: 800; font-size: clamp(22px, 3vw, 38px); color: rgba(255, 255, 255, .92); letter-spacing: 2px;
+.cover-mark { font-family: var(--font-display); font-weight: 800; font-size: clamp(22px, 3vw, 38px); color: rgba(255, 255, 255, .92); letter-spacing: 2px;
   border: 2px solid rgba(242, 183, 5, .85); padding: 6px 14px; border-radius: 6px; }
 .cover.thumb { width: 72px; flex: none; border-radius: 8px; }
 .cover.thumb .cover-mark { font-size: 12px; padding: 2px 5px; border-width: 1.5px; letter-spacing: 1px; }

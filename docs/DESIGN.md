@@ -26,7 +26,7 @@ Colour is minimal:
 
 Skins: each person picks **Brass** (default), **Amber** or **Navy** from the menu at the top right, on Your account, or on the phone's Account screen. `SKINS` in `design.ts` holds each skin's light and dark accent; the web sets `data-skin` on `<html>` (`lib/skin.js`) and the phone swaps `colors.brass*` (`theme.js`, `applySkin`). The choice is saved on `users/{uid}.skin`. Anything drawn with the accent on the phone is styled inline, so it picks up a change.
 
-Type: Goldman for the wordmark only, Archivo Expanded for page titles and headings, Inter for everything else (tabular figures).
+Type: Goldman for the wordmark only, Inter for everything else, headings included (tabular figures).
 
 ## Building blocks
 
