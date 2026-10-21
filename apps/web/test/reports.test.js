@@ -34,7 +34,7 @@ async function send(who, sid, extra = {}, opts = {}) {
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Ofori Works', name: 'Kwesi Ofori' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Ofori Works', name: 'Kwesi Ofori' });
   cid = user.uid;
   const mk = async (name) => { const v = validate(siteInput, { name, location: 'Accra', stage: 'Foundation', budget: 100000 }); const r = createSite(cid, v.data); await r.done; return r.id; };
   a = await mk('Adenta house');

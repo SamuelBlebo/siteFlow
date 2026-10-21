@@ -27,7 +27,7 @@ const siteOf = async (sid) => ({ id: sid, ...(await getDoc(siteDoc(cid, sid))).d
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Osei Construction', name: 'Yaw Osei' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Osei Construction', name: 'Yaw Osei' });
   cid = user.uid;
   const mk = async (name) => { const v = validate(siteInput, { name, location: 'Kumasi', stage: 'Blockwork', budget: 200000, foremanPhone: '0241234567', foremanName: 'Kojo' }); const r = createSite(cid, v.data); await r.done; return r.id; };
   a = await mk('Ahodwo villa');

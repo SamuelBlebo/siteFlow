@@ -11,6 +11,8 @@ import { ErrorState, Loading } from './components/States';
 // Each page is its own download, fetched the first time it is opened
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
+const Terms = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })));
+const Privacy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })));
 const FinishSetup = lazy(() => import('./pages/FinishSetup'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
 const Account = lazy(() => import('./pages/Account'));
@@ -81,6 +83,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route path="/email-settings" element={<EmailSettings />} />
         <Route element={<Guard><Layout /></Guard>}>

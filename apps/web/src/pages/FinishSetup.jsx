@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
 import { signOut } from 'firebase/auth';
 import { companySetupInput, friendlyError, guessCountry, validate } from '@siteflow/shared';
@@ -21,7 +22,7 @@ export default function FinishSetup() {
 
   async function submit(e) {
     e.preventDefault();
-    const v = validate(companySetupInput, f);
+    const v = validate(companySetupInput, { ...f, acceptTerms: f.acceptTerms || undefined });
     if (!v.ok) return setErr(v.error);
     setBusy(true); setErr('');
     try {
@@ -45,6 +46,7 @@ export default function FinishSetup() {
         <div className="field"><label htmlFor="fs-n">Your name</label><input id="fs-n" value={f.name} onChange={set('name')} /></div>
         <div className="field"><label htmlFor="fs-k">Country</label><CountrySelect id="fs-k" value={f.country} onChange={({ country }) => setF({ ...f, country })} />
           <p className="hint">Sets your currency, time zone and phone format.</p></div>
+        <label className="agree"><input id="fs-terms" type="checkbox" checked={!!f.acceptTerms} onChange={(e) => setF({ ...f, acceptTerms: e.target.checked })} /> <span>I agree to the <Link to="/terms" target="_blank">Terms of Service</Link> and the <Link to="/privacy" target="_blank">Privacy Policy</Link>, for my company.</span></label>
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Setting up…' : 'Create my company'}</button>
         <p className="row-between"><span /><button type="button" className="linkbtn" onClick={() => signOut(auth)}>Sign out</button></p>
       </form>

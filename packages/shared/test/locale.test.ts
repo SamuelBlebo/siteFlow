@@ -81,9 +81,12 @@ describe('dates in the company time zone', () => {
 
 describe('company settings', () => {
   it('sign-up picks a country (Ghana when none is given); settings need a real country, currency and zone', () => {
-    expect(validate(companySetupInput, { companyName: 'Okafor Build', name: 'Ada Okafor', country: 'NG' })).toMatchObject({ ok: true, data: { country: 'NG' } });
-    expect(validate(companySetupInput, { companyName: 'Mensah Build', name: 'Kofi Mensah' })).toMatchObject({ ok: true, data: { country: 'GH' } });
-    expect(validate(companySetupInput, { companyName: 'X Build', name: 'X Y', country: 'ZZ' }).ok).toBe(false);
+    expect(validate(companySetupInput, { companyName: 'Okafor Build', name: 'Ada Okafor', country: 'NG', acceptTerms: true })).toMatchObject({ ok: true, data: { country: 'NG' } });
+    expect(validate(companySetupInput, { companyName: 'Mensah Build', name: 'Kofi Mensah', acceptTerms: true })).toMatchObject({ ok: true, data: { country: 'GH' } });
+    expect(validate(companySetupInput, { companyName: 'X Build', name: 'X Y', country: 'ZZ', acceptTerms: true }).ok).toBe(false);
+    // Agreeing to the Terms and the Privacy Policy is needed to create a company
+    expect(validate(companySetupInput, { companyName: 'Mensah Build', name: 'Kofi Mensah' })).toMatchObject({ ok: false, error: expect.stringContaining('Terms') });
+    expect(validate(companySetupInput, { companyName: 'Mensah Build', name: 'Kofi Mensah', acceptTerms: false }).ok).toBe(false);
     expect(validate(companyLocaleInput, { country: 'KE', currency: 'KES', timeZone: 'Africa/Nairobi' }).ok).toBe(true);
     expect(validate(companyLocaleInput, { country: 'KE', currency: 'KES', timeZone: 'Mars/Olympus' }).ok).toBe(false);
     expect(validate(companyLocaleInput, { country: 'KE', currency: 'XYZ', timeZone: 'Africa/Nairobi' }).ok).toBe(false);

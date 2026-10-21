@@ -192,7 +192,7 @@ export default function Landing() {
         <div className="lp-in">
           <Brand />
           <span className="muted small">Construction project management. © {new Date().getFullYear()} Digital Prime.</span>
-          <nav aria-label="Footer"><Link to="/login">Sign in</Link><Link to="/signup">Create account</Link><Link to="/photo-credits">Photo credits</Link></nav>
+          <nav aria-label="Footer"><Link to="/login">Sign in</Link><Link to="/signup">Create account</Link><Link to="/terms">Terms</Link><Link to="/privacy">Privacy</Link><Link to="/photo-credits">Photo credits</Link></nav>
         </div>
       </footer>
     </div>

@@ -21,7 +21,7 @@ let cid, real;
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Boateng Builders', name: 'Ama Boateng' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Boateng Builders', name: 'Ama Boateng' });
   cid = user.uid;
   const r = createSite(cid, { name: 'Real job, Tema', location: 'Tema', stage: 'Foundation', budget: 300000 }); await r.done; real = r.id;
   const admin = await team.invite({ name: 'Kojo Admin', email: email('admin'), role: 'admin' });
@@ -72,7 +72,7 @@ describe('a company in another country', () => {
   it('gets its currency and time zone at sign-up, and sample projects in its own cities', async () => {
     await signOut(auth);
     const { user } = await createUserWithEmailAndPassword(auth, `ng-${run}@example.com`, 'naija-pass-1');
-    await httpsCallable(functions, 'createCompany')({ companyName: 'Okafor Construction', name: 'Ada Okafor', country: 'NG' });
+    await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Okafor Construction', name: 'Ada Okafor', country: 'NG' });
     const c = (await getDoc(companyDoc(user.uid))).data();
     expect(c).toMatchObject({ country: 'NG', currency: 'NGN', timeZone: 'Africa/Lagos' });
     await loadDemo();

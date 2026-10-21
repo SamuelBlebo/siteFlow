@@ -31,7 +31,7 @@ const issue = (extra = {}) => ({ title: 'Scaffold unsafe on level 2', descriptio
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Boakye Builders', name: names.owner });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Boakye Builders', name: names.owner });
   cid = user.uid;
   const v = validate(siteInput, { name: 'Sunyani clinic', location: 'Sunyani', stage: 'Blockwork', budget: 300000, foremanName: 'Yaw Foreman', foremanPhone: '0201112222' });
   const r = createSite(cid, v.data); await r.done; sid = r.id;

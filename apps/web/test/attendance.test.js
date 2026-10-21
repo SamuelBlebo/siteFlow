@@ -27,7 +27,7 @@ const workerList = async () => (await getDocs(sub(cid, sid, 'workers'))).docs.ma
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Amoah Builders', name: 'Kwame Amoah' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Amoah Builders', name: 'Kwame Amoah' });
   cid = user.uid;
   const v = validate(siteInput, { name: 'Kasoa clinic', location: 'Kasoa', stage: 'Blockwork', budget: 300000 });
   const r = createSite(cid, v.data); await r.done; sid = r.id;

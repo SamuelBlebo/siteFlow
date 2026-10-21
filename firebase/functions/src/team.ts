@@ -13,7 +13,7 @@ import { actorOf, joinCompany, leaveCompany, membershipOf, migrateCompany, type 
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 import {
-  DEFAULT_MODULES, MODULES, countryOf, ROLE_LABELS, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isSiteScoped,
+  DEFAULT_MODULES, MODULES, countryOf, ROLE_LABELS, TERMS_VERSION, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isSiteScoped,
   can, memberActiveInput, memberRefInput, memberUpdateInput, paths, siteAssignInput, validate,
   type Company, type Role,
 } from '@siteflow/shared';
@@ -92,6 +92,8 @@ export const createCompany = onCall(callOpts, async (req) => {
     t.set(companyRef, {
       name: companyName, ownerId: uid, plan: 'starter', modules: DEFAULT_MODULES,
       country: where.code, currency: where.currency, timeZone: where.timeZone, createdAt: FieldValue.serverTimestamp(),
+      // The owner agreed to these Terms and Privacy Policy when creating the company (checked by companySetupInput)
+      terms: { version: TERMS_VERSION, acceptedBy: uid, acceptedAt: FieldValue.serverTimestamp() },
     });
     const person = account.data();
     t.set(db.doc(paths.member(uid, uid)), {

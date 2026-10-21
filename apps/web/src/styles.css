@@ -1080,3 +1080,16 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 .choice button[aria-pressed="true"] { border-color: var(--brass); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 25%, transparent); }
 .choice button b { display: block; margin-bottom: 4px; }
 .choice button span { font-size: 13px; color: var(--muted); }
+
+/* Terms of Service and Privacy Policy (Legal), and the agreement at sign-up */
+.legal { min-height: 100vh; background: var(--bg); padding: 24px 16px 60px; }
+.legal-top { max-width: 760px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.legal-top nav { display: flex; gap: 16px; font-size: 14px; }
+.legal-body { max-width: 760px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px 32px; line-height: 1.6; }
+.legal-body h1 { margin: 0 0 4px; }
+.legal-body h2 { font-size: 17px; margin: 26px 0 6px; }
+.legal-body ul { padding-left: 20px; margin: 6px 0; }
+.legal-body li { margin: 4px 0; }
+@media (max-width: 700px) { .legal-body { padding: 20px 18px; } }
+.agree { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin: 4px 0 14px; cursor: pointer; }
+.agree input { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: var(--brass); }

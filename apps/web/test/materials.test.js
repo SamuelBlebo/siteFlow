@@ -30,7 +30,7 @@ const entry = async (who, o) => {
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Quaye Construction', name: names.owner });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Quaye Construction', name: names.owner });
   cid = user.uid;
   const v = validate(siteInput, { name: 'Ho school block', location: 'Ho', stage: 'Foundation', budget: 500000 });
   const r = createSite(cid, v.data); await r.done; sid = r.id;

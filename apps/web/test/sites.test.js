@@ -39,7 +39,7 @@ async function firstSignIn(who) {
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Boateng Builders', name: 'Ama Boateng' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Boateng Builders', name: 'Ama Boateng' });
   cid = user.uid;
   await invite('manager', 'manager');
   await invite('finance', 'finance');

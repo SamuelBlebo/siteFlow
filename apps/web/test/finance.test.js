@@ -29,7 +29,7 @@ const expense = (extra = {}) => ({ date: '2026-06-10', category: 'Materials', am
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Agyeman Works', name: names.owner });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Agyeman Works', name: names.owner });
   cid = user.uid;
   const v = validate(siteInput, { name: 'Takoradi office', location: 'Takoradi', stage: 'Foundation', budget: 100000 });
   const r = createSite(cid, v.data); await r.done; sid = r.id;

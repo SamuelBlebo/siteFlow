@@ -23,7 +23,7 @@ const code = (p) => p.then(() => 'ok', (e) => e.code);
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Asante Construction', name: 'Yaa Asante' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Asante Construction', name: 'Yaa Asante' });
   cid = user.uid;
   const a = createSite(cid, { name: 'Tema warehouse', location: 'Tema', stage: 'Foundation', budget: 500000 }); await a.done; s1 = a.id;
   const b = createSite(cid, { name: 'Kumasi school', location: 'Kumasi', stage: 'Foundation', budget: 800000 }); await b.done; s2 = b.id;
@@ -162,7 +162,7 @@ describe('switch off, reset, remove', () => {
   it('another company cannot touch our members', async () => {
     await signOut(auth);
     await createUserWithEmailAndPassword(auth, email('rival'), 'rival-pass-1');
-    await httpsCallable(functions, 'createCompany')({ companyName: 'Rival Co', name: 'Rival Owner' });
+    await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Rival Co', name: 'Rival Owner' });
     expect(await code(team.update({ uid: ids.super, role: 'viewer' }))).toBe('functions/not-found');
     expect(await code(team.setActive({ uid: ids.super, active: false }))).toBe('functions/not-found');
     expect(await code(team.remove({ uid: ids.admin }))).toBe('functions/not-found');

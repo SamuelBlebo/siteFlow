@@ -27,7 +27,7 @@ const list = async () => (await getDocs(milestonesQuery(cid, sid))).docs.map((d)
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Annan Homes', name: names.owner });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Annan Homes', name: names.owner });
   cid = user.uid;
   const v = validate(siteInput, { name: 'Tamale house', location: 'Tamale', stage: 'Site clearing', budget: 400000, planStart: '2026-01-05', planEnd: '2026-10-30' });
   const r = createSite(cid, v.data); await r.done; sid = r.id;

@@ -118,7 +118,7 @@ describe('validation', () => {
     expect(validate(inviteInput, { name: 'Ama', email: 'nope', role: 'viewer' }).ok).toBe(false);
   });
   it('company setup and worker', () => {
-    expect(validate(companySetupInput, { companyName: ' Mensah Builders ', name: 'Ama' })).toMatchObject({ ok: true, data: { companyName: 'Mensah Builders' } });
+    expect(validate(companySetupInput, { companyName: ' Mensah Builders ', name: 'Ama', acceptTerms: true })).toMatchObject({ ok: true, data: { companyName: 'Mensah Builders' } });
     expect(validate(workerInput, { name: 'Y', trade: 'Mason' }).ok).toBe(false);
   });
 });

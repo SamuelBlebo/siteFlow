@@ -5,9 +5,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getDoc, getDocs, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { TERMS_VERSION } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
-  addExpense, addMaterial, addWorker, attendanceDoc, createSite, financeDoc, logMaterial, markAttendance, myReportId,
+  addExpense, addMaterial, addWorker, attendanceDoc, companyDoc, createSite, financeDoc, logMaterial, markAttendance, myReportId,
   memberDoc, sendReport, siteDoc, sub, subDoc, uploadPhotos, userDoc,
 } from '../src/lib/db';
 import { save, SaveError } from '../src/lib/save';
@@ -25,7 +26,7 @@ const as = async (email, pw) => { await signOut(auth); return (await signInWithE
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, ownerEmail, 'password123');
-  await call('createCompany', { companyName: 'Mensah Builders', name: 'Ama Mensah' });
+  await call('createCompany', { acceptTerms: true, companyName: 'Mensah Builders', name: 'Ama Mensah' });
   cid = user.uid;
 });
 afterAll(async () => { await signOut(auth); await terminate(db); });
@@ -34,8 +35,11 @@ describe('owner', () => {
   it('sign-up creates the company and owner profile on the server', async () => {
     expect((await getDoc(userDoc(cid))).data()).toMatchObject({ companyId: cid, companyIds: [cid], name: 'Ama Mensah' });
     expect((await getDoc(memberDoc(cid, cid))).data()).toMatchObject({ role: 'owner', name: 'Ama Mensah', active: true });
+    // The owner's agreement to the Terms and Privacy Policy is recorded on the company
+    expect((await getDoc(companyDoc(cid))).data().terms).toMatchObject({ version: TERMS_VERSION, acceptedBy: cid });
+    await expect(call('createCompany', { companyName: 'Other Builders', name: 'Ama Mensah' })).rejects.toThrow(/Terms/);
     // Calling again is harmless (retry after a half-finished sign-up)
-    await expect(call('createCompany', { companyName: 'Mensah Builders', name: 'Ama Mensah' })).resolves.toEqual({ companyId: cid });
+    await expect(call('createCompany', { acceptTerms: true, companyName: 'Mensah Builders', name: 'Ama Mensah' })).resolves.toEqual({ companyId: cid });
   });
 
   it('creates a site with its budget kept apart', async () => {

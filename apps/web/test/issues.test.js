@@ -28,7 +28,7 @@ const input = (extra = {}) => ({ title: 'Scaffold boards loose on level 2', desc
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Sarpong Builders', name: names.owner });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Sarpong Builders', name: names.owner });
   cid = user.uid;
   const v = validate(siteInput, { name: 'Cape Coast hostel', location: 'Cape Coast', stage: 'Blockwork', budget: 900000 });
   const r = createSite(cid, v.data); await r.done;

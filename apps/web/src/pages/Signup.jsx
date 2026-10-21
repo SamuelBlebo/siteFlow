@@ -25,7 +25,7 @@ export default function Signup() {
 
   async function submit(e) {
     e.preventDefault();
-    const v = validate(companySetupInput, { companyName: f.company, name: f.name, country: f.country });
+    const v = validate(companySetupInput, { companyName: f.company, name: f.name, country: f.country, acceptTerms: f.acceptTerms || undefined });
     if (!v.ok) return setErr(v.error);
     if (f.password.length < 8) return setErr('Use a password with at least 8 characters.');
     setBusy(true); setErr('');
@@ -51,7 +51,7 @@ export default function Signup() {
         <h1>Create your company account</h1>
         {err && <p className="err" role="alert">{err}</p>}
         <GoogleButton onError={setErr} />
-        <p className="hint">With Google you'll add your company name and country next.</p>
+        <p className="hint">With Google you'll add your company name and country next, and agree to the terms there.</p>
         <div className="or"><span>or</span></div>
 
         <div className="field"><label htmlFor="c">Company name</label><input id="c" value={f.company} onChange={set('company')} /></div>
@@ -60,6 +60,7 @@ export default function Signup() {
           <p className="hint">Sets your currency, time zone and phone format. You can change it later.</p></div>
         <div className="field"><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="email" value={f.email} onChange={set('email')} /></div>
         <div className="field"><label htmlFor="p">Password</label><PasswordInput id="p" autoComplete="new-password" value={f.password} onChange={set('password')} /></div>
+        <label className="agree"><input id="su-terms" type="checkbox" checked={!!f.acceptTerms} onChange={(e) => setF({ ...f, acceptTerms: e.target.checked })} /> <span>I agree to the <Link to="/terms" target="_blank">Terms of Service</Link> and the <Link to="/privacy" target="_blank">Privacy Policy</Link>, for my company.</span></label>
         <button type="submit" className="btn block" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         <p className="row-between"><span /><Link to="/login">I already have an account</Link></p>
       </form>

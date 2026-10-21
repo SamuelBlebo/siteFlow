@@ -130,7 +130,11 @@ export const companySetupInput = z.object({
   companyName: z.string().trim().min(2, 'Enter your company name.').max(100),
   name: personName,
   country: countryCode.optional().default(DEFAULT_COUNTRY),
+  // The owner agrees to the Terms of Service and the Privacy Policy (TERMS_VERSION) when the company is created
+  acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Agree to the Terms of Service and the Privacy Policy to continue.' }) }),
 });
+// The version of the Terms of Service and Privacy Policy shown at sign-up; recorded on the company
+export const TERMS_VERSION = '2026-10-21';
 
 // Account and organisation
 export const profileInput = z.object({ name: personName, phone, callPhone: phone });

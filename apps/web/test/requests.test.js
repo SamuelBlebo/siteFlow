@@ -24,7 +24,7 @@ const until = async (read, ok, ms = 15000) => { const end = Date.now() + ms; for
 
 beforeAll(async () => {
   const { user } = await createUserWithEmailAndPassword(auth, email('owner'), pw.owner);
-  await httpsCallable(functions, 'createCompany')({ companyName: 'Darko Contractors', name: 'Esi Darko' });
+  await httpsCallable(functions, 'createCompany')({ acceptTerms: true, companyName: 'Darko Contractors', name: 'Esi Darko' });
   cid = user.uid;
   const s = createSite(cid, { name: 'Spintex warehouse', location: 'Spintex', stage: 'Roofing', budget: 900000 }); await s.done; sid = s.id;
   for (const [who, role, sites] of [['super', 'supervisor', [sid]], ['viewer', 'viewer', [sid]], ['finance', 'finance', []]]) {
