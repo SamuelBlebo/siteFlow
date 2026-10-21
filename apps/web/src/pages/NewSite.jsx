@@ -39,7 +39,7 @@ export default function NewSite() {
     <div className="dtop"><p className="crumb"><Link to="/">Dashboard</Link> / <Link to="/sites">Projects</Link> / New project</p></div>
     <section className="wrap narrow">
       <h1>New project</h1>
-      <ol className="steps" aria-label="Steps">
+      <ol className="nsteps" aria-label="Steps">
         {STEPS.map((s, i) => <li key={s} className={i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}><b>{i < step ? '✓' : i + 1}</b>{s}</li>)}
       </ol>
       {step === 0 && <>

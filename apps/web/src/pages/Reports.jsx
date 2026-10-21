@@ -43,31 +43,29 @@ export default function Reports() {
   const shown = filterReports(data, { q, author, withIssues: issuesOnly, withPhotos: photosOnly });
   const withIssues = data.filter((r) => (r.issues || '').trim()).length;
   const reset = (fn) => (e) => fn(e.target.value);
+  const active = [siteId, range !== '7' && range, author].filter(Boolean).length; // filters set (phones show the count)
 
   return (
     <>
     <PageHead title="Daily reports" sub="Every report from every project. Select one to see it in full.">
       <SearchBox value={q} onChange={setQ} placeholder="Search work, issues, notes, stage, weather" label="Search reports" />
+      <button type="button" className="btn ghost head-filters-toggle" aria-expanded={showFilters} aria-controls="rf-filters" onClick={() => setShowFilters(!showFilters)}>
+        {showFilters ? 'Hide filters' : `Filters${active ? ` (${active})` : ''}`}
+      </button>
     </PageHead>
     <section className="wrap">
-      <div id="rf-box" className={`filters${showFilters ? ' open' : ''}`}>
-        <button type="button" className="btn ghost sm filters-toggle" aria-expanded={showFilters} aria-controls="rf-box" onClick={() => setShowFilters(!showFilters)}>
-          {showFilters ? 'Hide filters' : `Filters${[siteId, range !== '7' && range, author].filter(Boolean).length ? ` (${[siteId, range !== '7' && range, author].filter(Boolean).length})` : ''}`}
-        </button>
-        <div className="field"><label htmlFor="rf-s">Site</label>
-          <select id="rf-s" value={siteId} onChange={reset(setSiteId)}>
+      <div className="toolbar report-tools">
+        <div id="rf-filters" className={`head-filters${showFilters ? ' open' : ''}`} role="group" aria-label="Filters">
+          <select className="head-select" aria-label="Site" value={siteId} onChange={reset(setSiteId)}>
             <option value="">All sites</option>
             {[...sites].sort((a, b) => a.name.localeCompare(b.name)).map((s) => <option key={s.id} value={s.id}>{s.name}{s.status === 'closed' ? ' (closed)' : ''}</option>)}
-          </select></div>
-        <div className="field"><label htmlFor="rf-r">Period</label>
-          <select id="rf-r" value={range} onChange={reset(setRange)}>{RANGES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
-        <div className="field"><label htmlFor="rf-a">Sent by</label>
-          <select id="rf-a" value={author} onChange={(e) => setAuthor(e.target.value)}>
-            <option value="">Anyone</option>
+          </select>
+          <select className="head-select" aria-label="Period" value={range} onChange={reset(setRange)}>{RANGES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+          <select className="head-select" aria-label="Sent by" value={author} onChange={(e) => setAuthor(e.target.value)}>
+            <option value="">Sent by anyone</option>
             {authors.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select></div>
-      </div>
-      <div className="toolbar report-tools">
+          </select>
+        </div>
       <div className="chips">
         <label className="chip"><input type="checkbox" checked={issuesOnly} onChange={(e) => setIssuesOnly(e.target.checked)} /> With issues ({withIssues})</label>
         <label className="chip"><input type="checkbox" checked={photosOnly} onChange={(e) => setPhotosOnly(e.target.checked)} /> With photos</label>

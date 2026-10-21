@@ -36,6 +36,7 @@ export default function Issues() {
     <>
     <PageHead title="Issues" sub="Problems reported on site and who is fixing them.">
       <SearchBox value={q} onChange={setQ} placeholder="Search title, details, location, names" label="Search issues" />
+      <button type="button" className="btn ghost head-filters-toggle" aria-expanded={showFilters} aria-controls="is-filters" onClick={() => setShowFilters(!showFilters)}>{showFilters ? 'Hide filters' : 'Filters'}</button>
       {can('site.work') && !reporting && <button type="button" className="btn gold" onClick={() => setReporting(true)}>Report an issue</button>}
     </PageHead>
     <section className="wrap">
@@ -51,28 +52,25 @@ export default function Issues() {
           <span>{priority === 'critical' ? 'Show all issues' : 'Show only these'}</span>
         </button>
       )}
-      <div className={`filters${showFilters ? ' open' : ''}`}>
-        <button type="button" className="btn ghost sm filters-toggle" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}>{showFilters ? 'Hide filters' : 'Filters'}</button>
-        <div className="field"><label htmlFor="is-st">Status</label>
-          <select id="is-st" value={status} onChange={(e) => setStatus(e.target.value)}>
+      <div className="toolbar report-tools">
+        <div id="is-filters" className={`head-filters${showFilters ? ' open' : ''}`} role="group" aria-label="Filters">
+          <select className="head-select" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="open">Open and in progress ({open.data.length})</option>
             {ISSUE_STATUSES.map((s) => <option key={s} value={s}>{ISSUE_STATUS_LABELS[s]}</option>)}
-            <option value="all">All</option>
-          </select></div>
-        <div className="field"><label htmlFor="is-p">Priority</label>
-          <select id="is-p" value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <option value="">Any</option>{ISSUE_PRIORITIES.map((p) => <option key={p} value={p}>{ISSUE_PRIORITY_LABELS[p]}</option>)}
-          </select></div>
-        <div className="field"><label htmlFor="is-s">Site</label>
-          <select id="is-s" value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+            <option value="all">All statuses</option>
+          </select>
+          <select className="head-select" aria-label="Priority" value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <option value="">Any priority</option>{ISSUE_PRIORITIES.map((p) => <option key={p} value={p}>{ISSUE_PRIORITY_LABELS[p]}</option>)}
+          </select>
+          <select className="head-select" aria-label="Site" value={siteId} onChange={(e) => setSiteId(e.target.value)}>
             <option value="">All sites</option>{[...sites].sort((a, b) => a.name.localeCompare(b.name)).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select></div>
-        <div className="field"><label htmlFor="is-c">About</label>
-          <select id="is-c" value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="">Anything</option>{ISSUE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-          </select></div>
+          </select>
+          <select className="head-select" aria-label="About" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">About anything</option>{ISSUE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="chips"><label className="chip"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Given to me</label></div>
       </div>
-      <label className="chip mb"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Given to me</label>
       {source.loading ? <Loading what="issues" /> : source.error ? <ErrorState error={source.error} what="issues" /> : (
         <IssueList issues={shown} showSite={!siteId} empty={status === 'open' ? 'No open issues.' : 'No issues match.'} />
       )}
