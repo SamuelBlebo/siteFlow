@@ -1060,5 +1060,6 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 .gal-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
 .gal-strip figure { margin: 0; flex: 0 0 200px; scroll-snap-align: start; }
 .gal-strip figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.viewer img { touch-action: pan-y; user-select: none; } /* a sideways swipe is ours (Lightbox), not the browser's */
 .viewer-cap { color: #fff; font-size: 14px; margin: 0; text-align: center; }
 @media (max-width: 700px) { .gal-grid { grid-template-columns: repeat(3, 1fr); gap: 4px; } .gal-strip figure { flex-basis: 150px; } }

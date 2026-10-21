@@ -28,6 +28,8 @@ describe('web hosting', () => {
     expect(csp['object-src']).toEqual(["'none'"]);
     expect(csp['frame-ancestors']).toEqual(["'none'"]);
     expect(csp['connect-src']).toEqual(expect.arrayContaining(['https://*.googleapis.com', 'https://*.cloudfunctions.net']));
+    // blob: and data: for the 3D viewer: three.js loads a GLB's textures and a glTF's buffers with fetch()
+    expect(csp['connect-src']).toEqual(expect.arrayContaining(['blob:', 'data:']));
     expect(csp['img-src']).toContain('https://firebasestorage.googleapis.com');
     expect(Object.values(csp).flat()).not.toContain("'unsafe-eval'");
   });

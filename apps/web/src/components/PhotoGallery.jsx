@@ -7,11 +7,11 @@ import Lightbox from './Lightbox';
 // Every photo from the daily reports, newest first and grouped by week, with the stage and progress
 // of the week, so scrolling down shows how the project has moved along. Issue photos on request.
 // reports: loaded page by page by the caller (hasMore / onMore). issuesQuery: made only when asked;
-// siteId keeps only that project's issues (company-wide queries).
-export default function PhotoGallery({ reports, hasMore, loadingMore, onMore, issuesQuery, siteId = '', showSite = false }) {
+// siteId and from keep issues to the page's project and period.
+export default function PhotoGallery({ reports, hasMore, loadingMore, onMore, issuesQuery, siteId = '', from = '', showSite = false }) {
   const [withIssues, setWithIssues] = useState(false);
-  const { data: issues } = useQuery(() => withIssues && issuesQuery(), [withIssues]);
-  const photos = useMemo(() => galleryPhotos(reports, withIssues ? issues.filter((i) => !siteId || i.siteId === siteId) : []), [reports, issues, withIssues, siteId]);
+  const { data: issues } = useQuery(() => withIssues && issuesQuery(), [withIssues, siteId]);
+  const photos = useMemo(() => galleryPhotos(reports, withIssues ? issues : [], { siteId, from }), [reports, issues, withIssues, siteId, from]);
   const weeks = useMemo(() => galleryWeeks(photos), [photos]);
   // Then and now only makes sense for one project
   const story = useMemo(() => (showSite ? [] : thenAndNow(photos)), [photos, showSite]);

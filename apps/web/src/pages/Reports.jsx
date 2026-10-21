@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { REPORT_DAY_LABELS, filterReports, reportDay, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { usePagedQuery, useQuery, useTitle } from '../lib/hooks';
-import { companyIssuesQuery, companyReportsQuery, sitesCol } from '../lib/db';
+import { companyIssuesQuery, companyReportsQuery, siteIssuesQuery, sitesCol } from '../lib/db';
 import { ReportRow } from '../components/ReportCard';
 import { Empty, ErrorState, Loading } from '../components/States';
 import PageHead from '../components/PageHead';
@@ -79,7 +79,7 @@ export default function Reports() {
         <>
           <p className="hint">{shown.length} of {data.length} report{data.length === 1 ? '' : 's'} shown.</p>
           {view === 'photos' ? (
-            <PhotoGallery reports={shown} showSite={!siteId} issuesQuery={() => companyIssuesQuery(cid)} siteId={siteId} />
+            <PhotoGallery reports={shown} showSite={!siteId} issuesQuery={() => (siteId ? siteIssuesQuery(cid, siteId, 200) : companyIssuesQuery(cid))} siteId={siteId} from={from} />
           ) : !shown.length ? <Empty title="No reports match these filters." /> : view === 'projects'
             ? <ByProject reports={shown} sites={sites} cid={cid} />
             : <ul className="list">{shown.map((r) => <ReportRow key={`${r.siteId}/${r.id}`} r={r} showSite={!siteId} />)}</ul>}

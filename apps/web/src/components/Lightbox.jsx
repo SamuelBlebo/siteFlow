@@ -22,8 +22,9 @@ export default function Lightbox({ items, index, onIndex, onClose }) {
 
   return (
     <div className="viewer" role="dialog" aria-modal="true" aria-label={`Photo ${index + 1} of ${n}`} onClick={onClose}>
-      <img src={item.url} alt={item.alt || `Photo ${index + 1}`} onClick={stop}
+      <img src={item.url} alt={item.alt || `Photo ${index + 1}`} onClick={stop} draggable={false}
         onPointerDown={(e) => { startX.current = e.clientX; }}
+        onPointerCancel={() => { startX.current = null; }}
         onPointerUp={(e) => {
           const dx = startX.current === null ? 0 : e.clientX - startX.current;
           startX.current = null;

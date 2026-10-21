@@ -33,6 +33,7 @@ export default function ModelCard({ cid, site }) {
           {model && !open && <button type="button" className="btn sm gold" onClick={() => setOpen(true)}>Open 3D model</button>}
           {manage && !uploading && <ModelUpload cid={cid} site={site} label={model ? 'Replace' : 'Upload 3D model'} onProgress={setPct} />}
           {manage && model && !uploading && <button type="button" className="btn sm ghost" onClick={async () => {
+            if (!window.confirm('Remove the 3D model? The file is deleted for good.')) return;
             try { await save(removeModel(cid, site.id, model), 'The 3D model'); toast('3D model removed.'); } catch (e) { toast(friendlyError(e), 'err'); }
           }}>Remove</button>}
         </div>
@@ -81,7 +82,8 @@ function ModelViewer({ model, panel, onClose }) {
       view.current = v; setState('ready');
     }).catch((e) => { console.error('3D model failed to open', e); if (!gone) setState('failed'); });
     return () => { gone = true; view.current?.dispose(); view.current = null; };
-  }, [model]);
+    // Only a new file reloads: the project document changes often (reports, edits) without touching the model
+  }, [model.file, model.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="model-view">

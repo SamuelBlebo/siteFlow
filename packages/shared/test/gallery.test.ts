@@ -43,6 +43,10 @@ describe('gallery weeks', () => {
     expect(w[0]).toMatchObject({ label: 'Week of 12 Oct', stage: 'Blockwork', progress: 42 });
     expect(w[0].photos).toHaveLength(3);
   });
+  it('a week mixing projects has no stage or progress (it would be one project’s)', () => {
+    const w = galleryWeeks(galleryPhotos([report('a', '2026-10-13'), { ...report('b', '2026-10-14'), siteId: 's2', siteName: 'Legon' } as Report]));
+    expect(w[0]).toMatchObject({ stage: '', progress: null });
+  });
   it('a week with only issue photos has no stage', () => {
     expect(galleryWeeks(galleryPhotos([], [issue('i', '2026-10-17', ['x'])]))[0]).toMatchObject({ stage: '', progress: null });
   });
@@ -59,3 +63,13 @@ describe('then and now', () => {
     expect(thenAndNow(q).map((x) => x.date)).toEqual(['2026-08-03', '2026-09-02', '2026-10-01', '2026-10-20']);
   });
 });
+
+describe('issue photos follow the page filters', () => {
+  it('only the chosen project and period', () => {
+    const issues = [issue('old', '2026-09-01', ['o']), issue('new', '2026-10-15', ['n']), { ...issue('other', '2026-10-15', ['x']), siteId: 's2' } as Issue];
+    expect(galleryPhotos([], issues, { from: '2026-10-01', siteId: 's' }).map((p) => p.refId)).toEqual(['new']);
+    expect(galleryPhotos([], issues, { from: '2026-10-01' }).map((p) => p.refId).sort()).toEqual(['new', 'other']);
+    expect(galleryPhotos([], issues)).toHaveLength(3);
+  });
+});
+

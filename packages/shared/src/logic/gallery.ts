@@ -15,12 +15,13 @@ type WithThumbs = { photos?: string[]; thumbs?: string[] };
 const each = (r: WithThumbs) => (r.photos || []).map((url, i) => ({ url, thumb: r.thumbs?.[i] || url }));
 const newestFirst = (a: GalleryPhoto, b: GalleryPhoto) => (b.date + b.time).localeCompare(a.date + a.time);
 
-export function galleryPhotos(reports: Report[], issues: Issue[] = []): GalleryPhoto[] {
+// Issues follow the page's filters: only the chosen project (siteId) and dates from `from` on
+export function galleryPhotos(reports: Report[], issues: Issue[] = [], { from = '', siteId = '' }: { from?: string; siteId?: string } = {}): GalleryPhoto[] {
   const fromReports = reports.flatMap((r) => each(r as Report & WithThumbs).map((p) => ({
     ...p, date: r.date, time: r.time || '', by: r.createdByName, stage: r.stage || '', progress: r.progress ?? null,
     siteId: r.siteId, siteName: r.siteName, source: 'report' as const, refId: r.id || '',
   })));
-  const fromIssues = issues.flatMap((x) => each(x as Issue & WithThumbs).map((p) => ({
+  const fromIssues = issues.filter((x) => (!siteId || x.siteId === siteId) && (!from || x.date >= from)).flatMap((x) => each(x as Issue & WithThumbs).map((p) => ({
     ...p, date: x.date, time: '', by: x.createdByName, stage: '', progress: null,
     siteId: x.siteId, siteName: x.siteName, source: 'issue' as const, refId: x.id || '',
   })));
@@ -29,7 +30,8 @@ export function galleryPhotos(reports: Report[], issues: Issue[] = []): GalleryP
 
 const dayMonth = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-// Newest week first. The heading's stage and progress come from the week's latest report photo.
+// Newest week first. The heading's stage and progress come from the week's latest report photo
+// (none when the week mixes projects).
 export function galleryWeeks(photos: GalleryPhoto[]) {
   const weeks = new Map<string, GalleryPhoto[]>();
   for (const p of [...photos].sort(newestFirst)) {
@@ -38,7 +40,8 @@ export function galleryWeeks(photos: GalleryPhoto[]) {
     weeks.get(w)!.push(p);
   }
   return [...weeks.entries()].map(([week, list]) => {
-    const latest = list.find((p) => p.source === 'report');
+    // A week mixing projects has no single stage or progress
+    const latest = new Set(list.map((p) => p.siteId)).size > 1 ? undefined : list.find((p) => p.source === 'report');
     return { week, label: `Week of ${dayMonth(week)}`, stage: latest?.stage || '', progress: latest ? latest.progress : null, photos: list };
   });
 }
