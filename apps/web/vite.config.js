@@ -10,6 +10,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
+          // The 3D model viewer is large and loaded only when a model is opened: its own files
+          if (/node_modules[\/](three|web-ifc)[\/]/.test(id)) return undefined;
           // Storage is loaded on demand (photo uploads), so it stays out of the main Firebase file
           if (/[\/]@?firebase[\/]storage/.test(id)) return 'firebase-storage';
           if (/[\/]@?firebase[\/]app-check/.test(id)) return 'firebase-app-check'; // only when App Check is switched on

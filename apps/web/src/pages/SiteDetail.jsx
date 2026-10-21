@@ -24,6 +24,7 @@ import BudgetPanel from '../components/BudgetPanel';
 import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import ProjectDrawing from '../components/ProjectDrawing';
+import ModelCard from '../components/ModelCard';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
 import ContactLinks from '../components/ContactLinks';
@@ -107,7 +108,7 @@ export default function SiteDetail() {
       )}
       <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'overview' && <><AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} /><ProjectDrawing cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
+      {tab === 'overview' && <><AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} /><ProjectDrawing cid={cid} site={site} /><ModelCard cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
       {tab === 'today' && <AiOverview site={site} kind="today" stamp={`${site.lastReportDate}|${site.lastReportTime}|${data.presentCount}`} />}
       {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
       {tab === 'reports' && (
@@ -367,7 +368,7 @@ function DeleteProject({ site }) {
   return (
     <section className="danger-zone">
       <h3 className="sub">Delete project</h3>
-      <p className="small">Deleting removes the project and <b>everything recorded on it</b> for good: daily reports and photos, issues, attendance and wages, materials, expenses, the programme and drawings. Nobody can undo it.
+      <p className="small">Deleting removes the project and <b>everything recorded on it</b> for good: daily reports and photos, issues, attendance and wages, materials, expenses, the programme, drawings and the 3D model. Nobody can undo it.
         {site.status !== 'closed' ? <> If the work is finished, <b>close</b> the project instead (Status, above): it keeps the history and the site team can no longer add to it.</> : null}</p>
       {!open ? <button type="button" className="btn ghost danger" onClick={() => setOpen(true)}>Delete this project…</button> : (
         <form className="form inline" onSubmit={go}>
