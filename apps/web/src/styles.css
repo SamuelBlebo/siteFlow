@@ -804,7 +804,7 @@ main:focus { outline: none; }
 .auth.wide { max-width: 560px; }
 .field.radios { border: 0; padding: 0; margin: 0 0 16px; }
 .field.radios legend { font-weight: 600; margin-bottom: 6px; }
-.radio { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14.5px; cursor: pointer; }
+.radio, .field label.radio { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14.5px; cursor: pointer; }
 .radio input { width: 18px; height: 18px; accent-color: var(--brass); }
 
 /* "Make a report" (project page, project lists, My sites) */
@@ -1179,4 +1179,44 @@ body.sheet-open { overflow: hidden; }
   .filters:not(.open) > .field:not(.grow) { display: none; }
   .pcard .cover { aspect-ratio: 2 / 1; }
   .sitehead > .report-day { grid-column: 1 / -1; justify-self: start; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+}
+
+/* ---------- Finish: controls that no rule styled, quieter scrollbars, and phone alignment ---------- */
+/* Any field without its own styling gets the form-field look (zero specificity: every other rule wins) */
+:where(select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"])) {
+  border: 1px solid var(--line); border-radius: 9px; background-color: var(--surface); color: var(--ink); padding: 8px 12px; font: inherit;
+}
+:where(select, textarea, input):focus-visible { outline: none; border-color: var(--brass); box-shadow: 0 0 0 3px var(--brass-soft); }
+.scroll, .tabs, .gal-strip, .prog-list { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 30%, transparent) transparent; }
+::selection { background: var(--brass-soft); color: var(--ink); }
+.choice-select { margin: 0 0 14px; }
+.toolbar .choice-select, .dtop .choice-select, .section-head .choice-select { margin: 0; }
+
+@media (max-width: 700px) {
+  /* Tabs: a clean row that runs to the screen edge and fades out, without a scrollbar that reads as an underline */
+  .tabs { margin-left: -16px; margin-right: -16px; padding: 0 16px; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+  .tabs::-webkit-scrollbar { display: none; }
+  /* The project picture shows on Overview only, so other tabs reach their content sooner */
+  .sitehead.compact-m .cover.head { display: none; }
+  /* Card headers: buttons keep their words on one line and drop under the title when they need to */
+  .panel-h { flex-wrap: wrap; row-gap: 10px; }
+  .panel-h > .btn, .panel-h > a.btn, .row-actions .btn { white-space: nowrap; }
+  /* Lists: the text takes the full width, labels and counts line up underneath */
+  .list .it:not(.report-row) > .grow { flex: 1 1 100%; min-width: 0; }
+  .list .it > .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* Alerts: the action sits under its text, aligned with it */
+  .alist .body { flex: 1 1 calc(100% - 24px); min-width: 0; }
+  .alist li > :not(.sev):not(.body) { margin-left: 21px; }
+  /* Milestones: the percentage and buttons run the full width */
+  .list .it.milestone { flex-direction: column; align-items: stretch; }
+  .ms-actions { justify-content: space-between; width: 100%; }
+  .ms-actions > b { font-size: 15px; }
+  .ms-actions .seg { order: 3; width: 100%; display: flex; }
+  .ms-actions .seg button { flex: 1; padding: 8px 4px; }
+  /* Radio options: the button stays level with the first line of a long label */
+  .radio, .field label.radio { display: flex; align-items: flex-start; }
+  .radio input { margin-top: 3px; flex: none; }
+  /* Forms: the main button spans the width, the same in every form */
+  .form > button[type="submit"], .form > .btn:not(.ghost):not(.sm) { width: 100%; }
 }
