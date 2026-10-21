@@ -22,13 +22,14 @@ describe('web hosting', () => {
     const csp = Object.fromEntries(header('Content-Security-Policy').split(';').map((d) => d.trim().split(/\s+/)).map(([k, ...v]) => [k, v]));
     // the app's own files, plus reCAPTCHA for App Check; never inline or eval
     // apis.google.com: the Google sign-in pop-up (Firebase Auth loads its helper from there)
-    expect(csp['script-src']).toEqual(["'self'", 'https://apis.google.com', 'https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/']);
+    // 'wasm-unsafe-eval': WebAssembly only (the IFC reader for 3D models), not JavaScript eval
+    expect(csp['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'", 'https://apis.google.com', 'https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/']);
     expect(csp['script-src']).not.toContain("'unsafe-inline'");
     expect(csp['object-src']).toEqual(["'none'"]);
     expect(csp['frame-ancestors']).toEqual(["'none'"]);
     expect(csp['connect-src']).toEqual(expect.arrayContaining(['https://*.googleapis.com', 'https://*.cloudfunctions.net']));
     expect(csp['img-src']).toContain('https://firebasestorage.googleapis.com');
-    expect(header('Content-Security-Policy')).not.toContain('unsafe-eval');
+    expect(Object.values(csp).flat()).not.toContain("'unsafe-eval'");
   });
   it('built files are cached for a year; every app address always gets the current app', () => {
     const cache = (path: string) => hosting.headers
