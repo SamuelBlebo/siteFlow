@@ -27,6 +27,9 @@ export default function ProjectDrawing({ cid, site }) {
   const [params, setParams] = useSearchParams();
   const { data: drawings, loading, error } = useQuery(() => cid && drawingsQuery(cid, site.id), [cid, site.id]);
   const [adding, setAdding] = useState(false);
+  // Closed until asked for (it is large); a link to a sheet or a pinned issue opens it
+  const [open, setOpen] = useState(() => !!(params.get('sheet') || params.get('pin')));
+  useEffect(() => { if (params.get('sheet') || params.get('pin')) setOpen(true); }, [params]);
   const current = drawings.find((d) => d.id === params.get('sheet')) ?? overviewDrawing(drawings, site.overviewDrawingId);
   const pick = (id) => { const p = new URLSearchParams(params); p.set('sheet', id); p.delete('pin'); setParams(p, { replace: true }); };
 
@@ -35,11 +38,14 @@ export default function ProjectDrawing({ cid, site }) {
       <div className="panel-h">
         <div>
           <h2 id="dwg-h">Project drawing</h2>
-          <p>{current ? sheetName(current) : 'The architect’s drawing, with progress by area and issues pinned where they are.'}</p>
+          <p>{current ? `${sheetName(current)}${drawings.length > 1 ? ` · ${drawings.length} sheets` : ''}` : 'The architect’s drawing, with progress by area and issues pinned where they are.'}</p>
         </div>
-        {manage && !adding && <button type="button" className={`btn sm ${drawings.length ? 'ghost' : 'gold'}`} onClick={() => setAdding(true)}>{drawings.length ? 'Upload drawing' : 'Upload site plan or drawing'}</button>}
+        <div className="row-actions">
+          {current && <button type="button" className={`btn sm ${open ? '' : 'gold'}`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Close drawing' : 'Open drawing'}</button>}
+          {manage && !adding && <button type="button" className={`btn sm ${drawings.length ? 'ghost' : 'gold'}`} onClick={() => setAdding(true)}>{drawings.length ? 'Upload drawing' : 'Upload site plan or drawing'}</button>}
+        </div>
       </div>
-      {adding && <DrawingUpload cid={cid} site={site} first={!drawings.length} onDone={(id) => { setAdding(false); if (id) pick(id); }} />}
+      {adding && <DrawingUpload cid={cid} site={site} first={!drawings.length} onDone={(id) => { setAdding(false); if (id) { pick(id); setOpen(true); } }} />}
       {error ? <p className="notice warn">Could not load the drawings. {friendlyError(error)}</p>
         : loading ? <p className="muted small">Loading drawings…</p>
           : !current ? (!adding && (
@@ -48,7 +54,7 @@ export default function ProjectDrawing({ cid, site }) {
                 ? 'Upload the floor plan or site plan (PDF or image). Then mark areas on it and link them to programme stages, so everyone sees what is done at a glance.'
                 : 'When a manager uploads the project drawing, it shows here with progress by area.'}</p>
             </div>
-          )) : <Board key={current.id} cid={cid} site={site} drawing={current} drawings={drawings} manage={manage} work={work} onPick={pick} focusPin={params.get('pin')} />}
+          )) : open && <Board key={current.id} cid={cid} site={site} drawing={current} drawings={drawings} manage={manage} work={work} onPick={pick} focusPin={params.get('pin')} />}
     </section>
   );
 }
