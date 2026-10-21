@@ -108,7 +108,7 @@ export default function SiteDetail() {
           {can('sites.manage') ? ' Reopen it from Settings.' : ''}
         </p>
       )}
-      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Section">
+      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <><AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} /><ProjectDrawing cid={cid} site={site} /><ModelCard cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
       {tab === 'today' && <AiOverview site={site} kind="today" stamp={`${site.lastReportDate}|${site.lastReportTime}|${data.presentCount}`} />}

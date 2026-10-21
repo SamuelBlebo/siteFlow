@@ -2,7 +2,6 @@ import { useId, useRef } from 'react';
 
 // Tabs with their panel. Arrow keys, Home and End move between tabs (the WAI-ARIA tabs pattern);
 // only the selected tab is in the Tab order, so keyboard users reach the panel in one step.
-// On phones a dropdown takes the row's place.
 export default function Tabs({ tabs, value, onChange, label = 'Sections', children }) {
   const id = useId();
   const refs = useRef({});
@@ -18,13 +17,6 @@ export default function Tabs({ tabs, value, onChange, label = 'Sections', childr
   }
   return (
     <>
-      {/* Phones: the sections as a dropdown (CSS shows one or the other) */}
-      <div className="tabs-select field">
-        <label htmlFor={`${id}-pick`}>{label}</label>
-        <select id={`${id}-pick`} value={value} onChange={(e) => onChange(e.target.value)}>
-          {tabs.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
-        </select>
-      </div>
       <div className="tabs" role="tablist" aria-label={label} onKeyDown={onKey}>
         {tabs.map(([key, text]) => (
           <button key={key} type="button" role="tab" id={`${id}-${key}`} aria-selected={value === key} aria-controls={`${id}-panel`}
