@@ -19,6 +19,7 @@ import { ScheduleBadge } from '../components/ProgressPanel';
 import ProjectCover from '../components/ProjectCover';
 import { Empty, ErrorState, Loading } from '../components/States';
 import Choice from '../components/Choice';
+import SearchBox from '../components/SearchBox';
 
 const PERIODS = [['today', 'Today', 1], ['week', 'This week', 6], ['month', 'This month', 26]]; // working days (Sundays off)
 const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
@@ -104,17 +105,15 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   return (
     <>
       <PageHead title="Portfolio dashboard" sub={`${company?.name || ''}${company ? ', ' : ''}${longToday()}`}>
-        <div className="search" role="search">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="7" cy="7" r="5" /><path d="m11 11 3.5 3.5" /></svg>
-          <input type="search" placeholder="Search projects, locations, foremen" aria-label="Search projects" value={q} onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && matches[0]) nav(`/sites/${matches[0].id}`); if (e.key === 'Escape') setQ(''); }} />
+        <SearchBox value={q} onChange={setQ} placeholder="Search projects, locations, foremen" label="Search projects"
+          onKeyDown={(e) => { if (e.key === 'Enter' && matches[0]) nav(`/sites/${matches[0].id}`); if (e.key === 'Escape') setQ(''); }}>
           {!!q.trim() && (
             <ul className="search-results">
               {matches.length ? matches.map((s) => <li key={s.id}><Link to={`/sites/${s.id}`}><b>{s.name}</b><small>{s.location} · {s.stage}</small></Link></li>)
                 : <li className="muted small" style={{ padding: '8px 10px' }}>No project matches "{q}".</li>}
             </ul>
           )}
-        </div>
+        </SearchBox>
         <Choice className="period" label="Period" value={period} onChange={setPeriod} options={PERIODS.map(([value, label]) => ({ value, label }))} />
         <a className="iconbtn" href="#attention" aria-label={`${alerts.length} item${alerts.length === 1 ? '' : 's'} need your attention`}
           onClick={(e) => { e.preventDefault(); const el = document.getElementById('attention'); el?.scrollIntoView({ behavior: 'smooth', block: 'start' }); el?.focus({ preventScroll: true }); }}>
@@ -245,6 +244,34 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                 })}
               </tbody>
             </table></div>
+            {/* Phones: the same projects as cards (the table is hidden there) */}
+            <ul className="pcards-m">
+              {active.map((s) => {
+                const st = states[s.id];
+                const f = finance[s.id];
+                const pic = thumbFor(s.id);
+                const iss = issuesBySite(s.id);
+                const day = reportDay(s, today);
+                return (
+                  <li key={s.id}>
+                    <Link to={`/sites/${s.id}`} className="pcm">
+                      <span className="pcm-top">
+                        <span className="pthumb">{pic ? <img src={pic.thumbs?.[0] || pic.photos[0]} alt="" loading="lazy" /> : <Mark />}</span>
+                        <span className="pcm-name"><b>{s.name}</b><span className="muted small">{s.location}</span></span>
+                        <Ring pct={st.actual} size={44} />
+                      </span>
+                      <span className="pcm-stage"><span>{s.stage}</span><ScheduleBadge st={st} />{s.sample && <span className="pill sample">Sample</span>}{s.status !== 'active' && <StatusPill status={s.status} />}</span>
+                      <span className="pcm-facts">
+                        <span><small>Today's report</small>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill ok skipped">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[day]}</span>
+                        {money && <span><small>Spent</small><b className={f && budgetUsedPct(f) >= 90 ? 'badt' : ''}>{f ? big(f.spent || 0) : '–'}</b></span>}
+                        {mod('labour') && <span><small>On site</small><b>{present[s.id] || 0} / {crew[s.id] || 0}</b></span>}
+                        <span><small>Issues</small><b className={iss.length ? 'badt' : ''}>{iss.length}</b></span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </section>
 
           {mod('labour') && (

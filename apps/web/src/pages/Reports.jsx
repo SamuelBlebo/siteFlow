@@ -11,6 +11,7 @@ import ProjectCover from '../components/ProjectCover';
 import ReportButton from '../components/ReportButton';
 import PhotoGallery from '../components/PhotoGallery';
 import Choice from '../components/Choice';
+import SearchBox from '../components/SearchBox';
 
 // By project (a card per project) or newest first (one list). Remembered on this browser.
 const VIEW_KEY = 'sf.reportsView';
@@ -45,7 +46,9 @@ export default function Reports() {
 
   return (
     <>
-    <PageHead title="Daily reports" sub="Every report from every project. Select one to see it in full." />
+    <PageHead title="Daily reports" sub="Every report from every project. Select one to see it in full.">
+      <SearchBox value={q} onChange={setQ} placeholder="Search work, issues, notes, stage, weather" label="Search reports" />
+    </PageHead>
     <section className="wrap">
       <div id="rf-box" className={`filters${showFilters ? ' open' : ''}`}>
         <button type="button" className="btn ghost sm filters-toggle" aria-expanded={showFilters} aria-controls="rf-box" onClick={() => setShowFilters(!showFilters)}>
@@ -63,10 +66,8 @@ export default function Reports() {
             <option value="">Anyone</option>
             {authors.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select></div>
-        <div className="field grow"><label htmlFor="rf-q">Search</label>
-          <input id="rf-q" type="search" placeholder="Work, issues, notes, stage, weather" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       </div>
-      <div className="toolbar">
+      <div className="toolbar report-tools">
       <div className="chips">
         <label className="chip"><input type="checkbox" checked={issuesOnly} onChange={(e) => setIssuesOnly(e.target.checked)} /> With issues ({withIssues})</label>
         <label className="chip"><input type="checkbox" checked={photosOnly} onChange={(e) => setPhotosOnly(e.target.checked)} /> With photos</label>

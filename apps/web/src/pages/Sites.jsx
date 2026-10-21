@@ -11,6 +11,7 @@ import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
 import PageHead from '../components/PageHead';
 import Choice from '../components/Choice';
+import SearchBox from '../components/SearchBox';
 
 // Grid (cards with the project image) or list (table). Remembered on this browser.
 const VIEW_KEY = 'sf.projectsView';
@@ -53,6 +54,18 @@ export default function Sites() {
   return (
     <>
     <PageHead title={all ? 'Projects' : 'My projects'} sub={all ? `${sites.length} project${sites.length === 1 ? '' : 's'} in total` : 'The projects you work on. Open one to send today’s report, mark attendance or log materials.'}>
+      {!!sites.length && (
+        <>
+          <SearchBox value={q} onChange={setQ} placeholder="Search name, location, foreman or client" label="Search projects" />
+          <select className="head-select" aria-label="Filter by status" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            {FILTERS.map(([value, label]) => <option key={value} value={value}>{label} ({count(value)})</option>)}
+          </select>
+          <Choice className="seg view-toggle" label="View" value={view} onChange={setView} options={[
+            { value: 'grid', text: 'Grid', label: <><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" /></svg> Grid</> },
+            { value: 'list', text: 'List', label: <><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 2h14v2.5H1zM1 6.75h14v2.5H1zM1 11.5h14V14H1z" /></svg> List</> },
+          ]} />
+        </>
+      )}
       {can('sites.manage') && <Link to="/sites/new" className="btn gold">New project</Link>}
     </PageHead>
     <section className="wrap">
@@ -64,14 +77,6 @@ export default function Sites() {
         </div>
       ) : (
         <>
-          <div className="toolbar">
-            <Choice label="Filter by status" value={filter} onChange={setFilter} options={FILTERS.map(([value, label]) => ({ value, label: `${label} (${count(value)})` }))} />
-            <Choice className="seg view-toggle" label="View" value={view} onChange={setView} options={[
-              { value: 'grid', text: 'Grid', label: <><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" /></svg> Grid</> },
-              { value: 'list', text: 'List', label: <><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 2h14v2.5H1zM1 6.75h14v2.5H1zM1 11.5h14V14H1z" /></svg> List</> },
-            ]} />
-            <input type="search" aria-label="Search sites" placeholder="Search name, location, foreman or client" value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
           {!shown.length ? <Empty title="No sites match." action={<button type="button" className="btn sm ghost" onClick={() => { setQ(''); setFilter('all'); }}>Clear search and filter</button>}>Try another filter or search.</Empty> : view === 'grid' ? (
             <>
               {!!pins.length && <h2 className="pgroup-title"><span aria-hidden="true">📌</span> Pinned</h2>}
@@ -118,8 +123,8 @@ function ProjectCard({ cid, site: s, today }) {
           <h3>{s.name}</h3>
           <p className="muted small">{s.location}{s.client?.name ? `, for ${s.client.name}` : ''}</p>
           <div className="pcard-progress">
+            <span className="pcard-prog-line"><span>{s.stage || 'No stage'}</span><b>{pct}%</b></span>
             <div className="meter" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progress"><span style={{ width: `${pct}%` }} /></div>
-            <span className="small"><b>{pct}%</b> · {s.stage || 'No stage'}</span>
           </div>
           <dl className="pcard-facts">
             <div><dt>Planned finish</dt><dd>{s.planEnd ? prettyDate(s.planEnd) : '–'}</dd></div>
@@ -138,7 +143,7 @@ function LastReport({ s, today }) {
   const d = reportDay(s, today);
   if (d === 'sent') return <span className="pill ok">Today {s.lastReportTime}</span>;
   const last = s.lastReportDate ? prettyDate(s.lastReportDate) : 'None yet';
-  if (d === 'due') return <><span className="pill bad">Due today</span><div className="muted small">Last: {last}</div></>;
-  if (d === 'skipped' || d === 'day_off') return <><span className={`pill ${d === 'skipped' ? 'ok skipped' : 'calm'}`}>{d === 'skipped' ? 'Skipped today' : 'Day off'}</span><div className="muted small">Last: {last}</div></>;
+  if (d === 'due') return <><span className="pill bad">Due today</span><span className="muted small">Last {last}</span></>;
+  if (d === 'skipped' || d === 'day_off') return <><span className={`pill ${d === 'skipped' ? 'ok skipped' : 'calm'}`}>{d === 'skipped' ? 'Skipped today' : 'Day off'}</span><span className="muted small">Last {last}</span></>;
   return <span className="muted">{last}</span>;
 }

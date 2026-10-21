@@ -8,6 +8,7 @@ import IssueList from '../components/IssueList';
 import IssueForm from '../components/IssueForm';
 import { ErrorState, Loading } from '../components/States';
 import PageHead from '../components/PageHead';
+import SearchBox from '../components/SearchBox';
 
 // Every issue in the company, for roles that see every site. Critical ones at the top.
 export default function Issues() {
@@ -20,6 +21,7 @@ export default function Issues() {
   const [siteId, setSiteId] = useState(params.get('site') || '');
   const [category, setCategory] = useState('');
   const [mine, setMine] = useState(false);
+  const [showFilters, setShowFilters] = useState(false); // phones: the selects fold away behind Filters
   const [q, setQ] = useState('');
   const [reporting, setReporting] = useState(false);
   const { data: sites } = useQuery(() => cid && sitesCol(cid), [cid]);
@@ -33,6 +35,7 @@ export default function Issues() {
   return (
     <>
     <PageHead title="Issues" sub="Problems reported on site and who is fixing them.">
+      <SearchBox value={q} onChange={setQ} placeholder="Search title, details, location, names" label="Search issues" />
       {can('site.work') && !reporting && <button type="button" className="btn gold" onClick={() => setReporting(true)}>Report an issue</button>}
     </PageHead>
     <section className="wrap">
@@ -48,7 +51,8 @@ export default function Issues() {
           <span>{priority === 'critical' ? 'Show all issues' : 'Show only these'}</span>
         </button>
       )}
-      <div className="filters">
+      <div className={`filters${showFilters ? ' open' : ''}`}>
+        <button type="button" className="btn ghost sm filters-toggle" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}>{showFilters ? 'Hide filters' : 'Filters'}</button>
         <div className="field"><label htmlFor="is-st">Status</label>
           <select id="is-st" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="open">Open and in progress ({open.data.length})</option>
@@ -67,7 +71,6 @@ export default function Issues() {
           <select id="is-c" value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="">Anything</option>{ISSUE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select></div>
-        <div className="field grow"><label htmlFor="is-q">Search</label><input id="is-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Title, details, location, names" /></div>
       </div>
       <label className="chip mb"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Given to me</label>
       {source.loading ? <Loading what="issues" /> : source.error ? <ErrorState error={source.error} what="issues" /> : (
