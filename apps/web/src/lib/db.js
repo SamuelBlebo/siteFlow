@@ -314,6 +314,21 @@ export function addStandardMilestones(cid, site, stages) {
   syncSiteProgress(b, cid, site.id, list);
   return b.commit();
 }
+// Stages read from the contractor's programme file (logic/programme in shared). The project's planned
+// start and finish are filled from it when they are empty.
+export function addProgrammeMilestones(cid, site, programme) {
+  const b = writeBatch(db);
+  const list = programme.stages.map((st, i) => ({ ...st, order: i + 1, weight: 1, status: 'not_started', percentDone: 0, actualStart: null, actualEnd: null, note: '' }));
+  for (const m of list) b.set(doc(sub(cid, site.id, 'milestones')), { ...m, createdAt: serverTimestamp() });
+  // One update of the site: its progress (from the new stages) and any missing plan dates
+  const progress = overallProgress(list);
+  b.update(siteDoc(cid, site.id), {
+    ...(progress != null ? { progress } : {}),
+    ...(!site.planStart && programme.start ? { planStart: programme.start } : {}), ...(!site.planEnd && programme.end ? { planEnd: programme.end } : {}),
+    updatedAt: serverTimestamp(),
+  });
+  return b.commit();
+}
 
 // ---------- notifications ----------
 // Owner: which notifications go out, by WhatsApp and/or email ({ kind: { whatsapp, email } })

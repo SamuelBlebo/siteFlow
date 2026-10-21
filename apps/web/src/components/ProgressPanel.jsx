@@ -10,6 +10,7 @@ import {
   WORK_TYPES, scheduleStatus, stagesFor, todayKey, validate, workTypeOf,
 } from '@siteflow/shared';
 import { Empty, ErrorState, Loading } from './States';
+import ProgrammeImport from './ProgrammeImport';
 
 export const ScheduleBadge = ({ st }) => {
   const kind = { behind: 'bad', ahead: 'ok', on_track: 'ok', finished: 'ok', no_plan: '' }[st.state];
@@ -44,8 +45,8 @@ export default function ProgressPanel({ cid, site, canWork }) {
       <h3 className="sub">Milestones</h3>
       {!milestones.length ? (
         <>
-          <Empty title="No milestones yet.">{manage ? 'Add your own below, or start from the usual stages for this kind of work.' : 'A project manager sets up the milestones.'} Until then, progress comes from the daily reports.</Empty>
-          {manage && <StageTemplate cid={cid} site={site} />}
+          <Empty title="No milestones yet.">{manage ? 'Upload your programme, start from the usual stages for this kind of work, or add your own below.' : 'A project manager sets up the milestones.'} Until then, progress comes from the daily reports.</Empty>
+          {manage && <ProgrammeChoice cid={cid} site={site} />}
         </>
       ) : <MilestoneList cid={cid} site={site} milestones={milestones} canWork={canWork} manage={manage} />}
       {manage && <AddMilestone cid={cid} sid={site.id} all={milestones} />}
@@ -199,6 +200,14 @@ function Chart({ site, milestones, reports, actual }) {
       <figcaption><span className="key planned" /> Planned <span className="key actual" /> Actual (from daily reports{milestones.length ? ' and milestones' : ''})</figcaption>
     </figure>
   );
+}
+
+// No milestones yet: upload the programme (ProgrammeImport) or use the standard stages
+function ProgrammeChoice({ cid, site }) {
+  const [upload, setUpload] = useState(false);
+  return upload
+    ? <div className="mt-sm"><ProgrammeImport cid={cid} site={site} /><button type="button" className="btn sm ghost mt-sm" onClick={() => setUpload(false)}>Back</button></div>
+    : <><StageTemplate cid={cid} site={site} /><div className="actions mt-sm"><button type="button" className="btn ghost" onClick={() => setUpload(true)}>Upload my programme (Excel or MS Project)</button></div></>;
 }
 
 // Start the milestones from the usual stages of a kind of work (the site's, unless changed here)

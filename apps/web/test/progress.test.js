@@ -3,10 +3,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getDoc, getDocs, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { STAGES, scheduleStatus, siteInput, validate } from '@siteflow/shared';
+import { STAGES, parseCsv, programmeFromRows, scheduleStatus, siteInput, validate } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
-  addMilestone, addStandardMilestones, createSite, deleteMilestone, milestonesQuery, sendReport, setMilestoneProgress, siteDoc,
+  addMilestone, addProgrammeMilestones, addStandardMilestones, createSite, deleteMilestone, milestonesQuery, sendReport, setMilestoneProgress, siteDoc,
   swapMilestones, updateMilestonePlan,
 } from '../src/lib/db';
 import { team } from '../src/lib/account';
@@ -107,3 +107,23 @@ describe('planned against actual', () => {
     expect(['behind', 'on_track', 'ahead', 'no_plan']).toContain(st.state);
   });
 });
+
+describe('stages from the contractor’s programme', () => {
+  it('a project manager uploads a programme: its tasks become the stages, and the empty plan dates are filled', async () => {
+    await as('owner');
+    const v = validate(siteInput, { name: 'Bolga clinic', location: 'Bolgatanga', stage: 'Site clearing', budget: 900000 });
+    const r = createSite(cid, v.data); await r.done;
+    const programme = programmeFromRows(parseCsv('Task,Start,Finish\nSite clearance,02/11/2026,06/11/2026\nFoundations,09/11/2026,04/12/2026\n'));
+    await as('super');
+    await expect(save(addProgrammeMilestones(cid, { id: r.id, ...v.data }, programme))).rejects.toBeInstanceOf(SaveError);
+    await as('manager');
+    await save(addProgrammeMilestones(cid, { id: r.id, ...v.data }, programme));
+    const ms = (await getDocs(milestonesQuery(cid, r.id))).docs.map((d) => d.data());
+    expect(ms.map((m) => [m.name, m.plannedStart, m.plannedEnd, m.status])).toEqual([
+      ['Site clearance', '2026-11-02', '2026-11-06', 'not_started'], ['Foundations', '2026-11-09', '2026-12-04', 'not_started'],
+    ]);
+    const s = (await getDoc(siteDoc(cid, r.id))).data();
+    expect([s.planStart, s.planEnd, s.progress]).toEqual(['2026-11-02', '2026-12-04', 0]);
+  });
+});
+

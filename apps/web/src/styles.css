@@ -1036,7 +1036,7 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 /* 3D model on the project overview (ModelCard). The viewer stays light in dark mode. */
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .model-progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.model-progress progress { flex: 1; max-width: 320px; accent-color: var(--accent); }
+.model-progress progress { flex: 1; max-width: 320px; accent-color: var(--brass); }
 .model-view { position: relative; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #eef0f3; }
 .model-canvas { height: 480px; touch-action: none; }
 .model-canvas canvas { display: block; width: 100%; height: 100%; }
@@ -1055,7 +1055,7 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 .gal-tile { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--sunk); cursor: zoom-in; }
 .gal-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
 .gal-tile:hover img { transform: scale(1.03); }
-.gal-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gal-tile:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 .gal-tile .pill { position: absolute; left: 6px; top: 6px; }
 .gal-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
 .gal-strip figure { margin: 0; flex: 0 0 200px; scroll-snap-align: start; }
@@ -1063,3 +1063,20 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 .viewer img { touch-action: pan-y; user-select: none; } /* a sideways swipe is ours (Lightbox), not the browser's */
 .viewer-cap { color: #fff; font-size: 14px; margin: 0; text-align: center; }
 @media (max-width: 700px) { .gal-grid { grid-template-columns: repeat(3, 1fr); gap: 4px; } .gal-strip figure { flex-basis: 150px; } }
+
+/* Programme upload (ProgrammeImport) and the new-project steps (NewSite) */
+.prog-list { margin: 8px 0 12px; padding-left: 22px; max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.prog-list li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 12px 7px 4px; border-bottom: 1px solid var(--line); }
+.prog-list li:last-child { border-bottom: 0; }
+.steps { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0 0 14px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.steps li { display: flex; align-items: center; gap: 6px; }
+.steps li + li::before { content: ''; width: 18px; height: 1px; background: var(--line); }
+.steps li b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); font-weight: 600; background: var(--surface); }
+.steps li[aria-current="step"] { color: var(--ink); font-weight: 600; }
+.steps li[aria-current="step"] b { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); }
+.steps li.done b { background: var(--sunk); }
+.choice { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 10px 0 16px; }
+.choice button { text-align: left; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.choice button[aria-pressed="true"] { border-color: var(--brass); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 25%, transparent); }
+.choice button b { display: block; margin-bottom: 4px; }
+.choice button span { font-size: 13px; color: var(--muted); }
