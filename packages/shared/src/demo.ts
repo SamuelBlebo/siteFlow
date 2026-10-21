@@ -38,6 +38,12 @@ interface Plan {
   weekly: { Equipment: number; Transport: number };
 }
 
+// The architect's 3D model of the finished building (scripts/demo-models.mjs), served with the photos
+const MODELS: Record<string, { name: string; sizeMb: number }> = {
+  adenta: { name: 'Adenta residence - architect model.glb', sizeMb: 0.1 },
+  legon: { name: 'East Legon offices - architect model.glb', sizeMb: 0.2 },
+};
+
 const PLANS: Plan[] = [
   {
     key: 'adenta', name: 'Adenta 4-bedroom residence', location: 'Adenta, Accra', workType: 'building', stageIndex: 3, budget: 650000,
@@ -274,6 +280,7 @@ function buildGhana({ companyId, photoBase, now = new Date() }: { companyId: str
       ...siteFields({ name: p.name, location: p.location, stage, foremanName: p.foremanName, foremanPhone: p.foremanPhone, planStart, planEnd,
         clientName: p.client.name, clientPhone: p.client.phone, clientEmail: p.client.email }),
       progress, status: 'active', sample: true, overviewDrawingId: spec ? drawingId : null, cover: `${photoBase}/${p.key}-cover.jpg`,
+      model: MODELS[p.key] ? { file: `${photoBase}/models/${p.key}.glb`, kind: 'glb', ...MODELS[p.key], uploadedBy: fid, uploadedByName: 'SiteFlow sample' } : null,
       lastReportDate: last?.doc.date ?? null, lastReportTime: last?.doc.time ?? null,
     };
     const totals = { Materials: 0.55, Labour: 0.25, Equipment: 0.12, Transport: 0.08 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAMPLE_PREFIX, buildDemo, materialStatus, scheduleStatus, siteAlerts, stockDelta, todayKey, type Material, type Site } from '../src';
+import { SAMPLE_PREFIX, buildDemo, checkModelFile, materialStatus, scheduleStatus, siteAlerts, stockDelta, todayKey, type Material, type Site } from '../src';
 
 const now = new Date(2026, 9, 9, 18, 0); // Fri 9 Oct 2026, evening
 const demo = buildDemo({ companyId: 'c1', photoBase: 'https://example.web.app/demo', now });
@@ -15,6 +15,13 @@ describe('sample projects', () => {
       for (const id of ids) expect(id.startsWith(SAMPLE_PREFIX)).toBe(true);
       expect(new Set(ids).size).toBe(ids.length);
     }
+  });
+
+  it('the two buildings have the architect’s 3D model; the road has none', () => {
+    expect(by('adenta').site.model).toMatchObject({ file: 'https://example.web.app/demo/models/adenta.glb', kind: 'glb', uploadedByName: 'SiteFlow sample' });
+    expect(by('legon').site.model).toMatchObject({ file: 'https://example.web.app/demo/models/legon.glb', kind: 'glb' });
+    expect(by('road').site.model).toBeNull();
+    for (const s of demo) if (s.site.model) expect(checkModelFile(String((s.site.model as { name: string }).name), 1)).toHaveProperty('kind', 'glb');
   });
 
   it('nothing is dated in the future, and the same day builds the same data', () => {

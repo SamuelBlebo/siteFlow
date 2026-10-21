@@ -89,7 +89,7 @@ export async function loadModel(container, model) {
   controls.enableDamping = true;
 
   const home = () => {
-    camera.position.set(centre.x + span * 1.1, centre.y + span * 0.8, centre.z + span * 1.1);
+    camera.position.set(centre.x + span * 0.8, centre.y + span * 0.55, centre.z + span * 0.8);
     controls.target.copy(centre);
     controls.update();
   };
