@@ -39,6 +39,9 @@ Type: Goldman for the wordmark only, Inter for everything else, headings include
 | Status label | `.pill.ok/.warn/.bad` | `<Pill kind>` |
 | Sections | `<Tabs tabs value onChange>{panel}</Tabs>` | bottom tabs |
 | Photos | file input + `PhotoViewer` | `<PhotoPicker>` |
+| Full-screen photo | `<Lightbox items index onIndex onClose>` (arrows, swipe, caption, link) | – |
+| Photo gallery | `<PhotoGallery reports>` (weeks with stage and progress, then and now) | – |
+| 3D model | `<ModelCard>` on the overview; viewer in `lib/model3d.js` (three.js, web-ifc), loaded only when opened, light background in both themes | – |
 | Page title bar | `<PageHead title sub>{actions}</PageHead>` | stack header (navy) |
 | Brand | `<Brand big />`, `<Mark />` (hazard-tape square) | tape mark on the login screen |
 | Headline numbers | `<dl className="tiles">` of `.tile` (dt, dd, `.foot` with `.delta.up/.dn/.nt` and `<Spark>`) | – |
