@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ROLE_LABELS, longToday } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { logOut } from '../lib/account';
+import Brand from './Brand';
 import Icon from './Icons';
 import SkinPicker from './SkinPicker';
 import ThemeSwitch from './ThemeSwitch';
@@ -10,13 +11,15 @@ import ThemeSwitch from './ThemeSwitch';
 export const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 const clock = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-// The slim bar above every page: the time and date, and you (your account, skin, theme, sign out)
+// The slim bar above every page: the time and date, and you (your account, skin, theme, sign out).
+// On phones it also carries the logo, as the sidebar is hidden there.
 export default function TopBar() {
   const [time, setTime] = useState(clock);
   useEffect(() => { const t = setInterval(() => setTime(clock()), 15000); return () => clearInterval(t); }, []);
   return (
     <div className="topbar">
-      <span className="tchip"><Icon name="clock" />{time}</span>
+      <span className="tbrand"><Brand /></span>
+      <span className="tchip time"><Icon name="clock" />{time}</span>
       <span className="tchip date"><Icon name="calendar" />{longToday()}</span>
       <span className="grow" />
       <UserMenu />

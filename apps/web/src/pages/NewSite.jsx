@@ -66,7 +66,7 @@ function ProgrammeStep({ cid, site, onNext }) {
     <div className="card form">
       <h2 className="m0">The programme</h2>
       <p className="muted">The project's stages and their dates. Progress is tracked against them.</p>
-      <div className="choice" role="group" aria-label="How to set up the stages">
+      <div className="howpick" role="group" aria-label="How to set up the stages">
         <button type="button" aria-pressed={how === 'upload'} onClick={() => setHow('upload')}><b>Upload my programme</b><span>From Excel, CSV or MS Project. Its tasks become the stages.</span></button>
         {stages.length > 0 && <button type="button" aria-pressed={how === 'standard'} onClick={() => setHow('standard')}><b>Use the standard stages</b><span>{stages.slice(0, 4).join(', ')}{stages.length > 4 ? '…' : ''}, spread over the planned dates.</span></button>}
       </div>

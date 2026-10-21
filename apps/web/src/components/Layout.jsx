@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
@@ -8,13 +8,15 @@ import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
 import Icon from './Icons';
 import TopBar, { initials } from './TopBar';
+import BottomNav from './BottomNav';
 import { usePins } from './PinButton';
 import { useProfileSkin } from '../lib/skin';
 // Red dot: an active site whose daily report hasn't come in today
+const GROUPS = ['Overview', 'On site', 'Money and people'];
 const late = (s) => reportDay(s, todayKey()) === 'due';
 
 // The app shell: a white sidebar that stays put (company, menu in groups, projects, you), and beside
-// it the top bar and the page. On phones the sidebar folds into a top bar with a sideways-scrolling menu.
+// it the top bar and the page. On phones the sidebar gives way to a bottom bar of icons, like a phone app.
 export default function Layout() {
   const { cid, profile, role, can, companies, switchCompany } = useAuth();
   const navigate = useNavigate();
@@ -36,6 +38,34 @@ export default function Layout() {
     main.current?.focus({ preventScroll: true });
   }, [pathname]);
 
+  // The menu, used by the sidebar and (on phones) the bottom bar. bar: one of the bottom bar's icons.
+  const items = [
+    all && { to: '/', end: true, icon: 'dashboard', label: 'Dashboard', short: 'Home', barIcon: 'home', group: 'Overview', bar: true },
+    { to: '/sites', end: true, icon: 'projects', label: all ? 'Projects' : 'My projects', short: 'Projects', group: 'Overview', bar: true },
+    all && { to: '/reports', icon: 'reports', label: 'Daily reports', short: 'Reports', group: 'On site', bar: true },
+    all && { to: '/issues', icon: 'issues', label: 'Issues', group: 'On site', bar: true },
+    can('finance.view') && mod('budget') && { to: '/finance', icon: 'finance', label: 'Finance', group: 'Money and people' },
+    can('team.manage') && { to: '/team', icon: 'team', label: 'Team', group: 'Money and people' },
+    ...(can('company.settings') ? [
+      { to: '/modules', icon: 'modules', label: 'Modules', group: 'Settings' },
+      { to: '/reminders', icon: 'reminders', label: 'Reminders', group: 'Settings' },
+      { to: '/company', icon: 'company', label: 'Company', group: 'Settings' },
+    ] : []),
+  ].filter(Boolean);
+  const settings = items.filter((i) => i.group === 'Settings');
+  const projectLinks = all
+    ? open.map((s) => (
+      <NavLink key={s.id} to={`/sites/${s.id}`} className="site-link" title={late(s) ? `${s.name}: today's report is missing` : s.name}>
+        <span className={`dot${late(s) ? ' late' : ''}`} aria-hidden="true" /><span>{s.name}</span>
+      </NavLink>
+    ))
+    : (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />);
+  const companyPick = companies.length > 1 && (
+    <select id="org-pick-m" aria-label="Company" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
+      {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>
+  );
+
   const plan = company ? PLAN_LABELS[company.plan] || PLAN_LABELS[planFor(company.modules || {})] : '';
   return (
     <div className="shell">
@@ -56,26 +86,13 @@ export default function Layout() {
             <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">
-          <span className="lbl">Overview</span>
-          {all && <NavLink to="/" end><Icon name="dashboard" />Dashboard</NavLink>}
-          <NavLink to="/sites" end><Icon name="projects" />{all ? 'Projects' : 'My projects'}</NavLink>
-          {all && <><span className="lbl">On site</span>
-            <NavLink to="/reports"><Icon name="reports" />Daily reports</NavLink>
-            <NavLink to="/issues"><Icon name="issues" />Issues</NavLink></>}
-          {((can('finance.view') && mod('budget')) || can('team.manage')) && <span className="lbl">Money and people</span>}
-          {can('finance.view') && mod('budget') && <NavLink to="/finance"><Icon name="finance" />Finance</NavLink>}
-          {can('team.manage') && <NavLink to="/team"><Icon name="team" />Team</NavLink>}
-          {all && !!open.length && <span className="lbl">Projects</span>}
-          {all && open.map((s) => (
-            <NavLink key={s.id} to={`/sites/${s.id}`} className="site-link" title={late(s) ? `${s.name}: today's report is missing` : s.name}>
-              <span className={`dot${late(s) ? ' late' : ''}`} aria-hidden="true" /><span>{s.name}</span>
-            </NavLink>
-          ))}
-          {!all && (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />)}
-          {can('company.settings') && <><span className="lbl">Settings</span>
-            <NavLink to="/modules"><Icon name="modules" />Modules</NavLink>
-            <NavLink to="/reminders"><Icon name="reminders" />Reminders</NavLink>
-            <NavLink to="/company"><Icon name="company" />Company</NavLink></>}
+          {GROUPS.map((g) => {
+            const list = items.filter((i) => i.group === g);
+            return list.length ? <Fragment key={g}><span className="lbl">{g}</span>{list.map((i) => <NavLink key={i.to} to={i.to} end={i.end}><Icon name={i.icon} />{i.label}</NavLink>)}</Fragment> : null;
+          })}
+          {(all ? !!open.length : !!(profile?.siteIds || []).length) && <span className="lbl">Projects</span>}
+          {projectLinks}
+          {settings.length > 0 && <><span className="lbl">Settings</span>{settings.map((i) => <NavLink key={i.to} to={i.to}><Icon name={i.icon} />{i.label}</NavLink>)}</>}
         </nav>
         <div className="me">
           <NavLink to="/account" title="Your account">
@@ -86,6 +103,7 @@ export default function Layout() {
       </aside>
       {/* A crash in one page keeps the menu working; moving to another page clears it */}
       <main id="main" className="main" ref={main} tabIndex={-1}><TopBar /><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
+      <BottomNav items={items} projects={projectLinks} companyPick={companyPick} siteIds={all ? null : profile?.siteIds || []} />
     </div>
   );
 }
