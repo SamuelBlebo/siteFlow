@@ -130,5 +130,7 @@ describe('3D model', () => {
   it('up to 100 MB', async () => {
     const big = new Uint8Array(100 * 1024 * 1024 + 1);
     await assertFails(uploadBytes(ref(asRole('manager'), file('big.ifc')), big, { contentType: 'application/octet-stream' }));
+    // Exactly 100 MB is allowed, as the app allows it
+    await assertSucceeds(uploadBytes(ref(asRole('manager'), file('edge.ifc')), new Uint8Array(100 * 1024 * 1024), { contentType: 'application/octet-stream' }));
   });
 });

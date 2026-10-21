@@ -901,6 +901,14 @@ describe('3D model', () => {
     await assertFails(updateDoc(ref('manager'), { model: { ...model, sizeMb: 101 } }));
     await assertFails(updateDoc(ref('supervisor'), { model }));
   });
+  it('the model names who uploaded it: the person saving it; others can still edit the project around it', async () => {
+    const ref = (r: Role) => doc(asRole(r), paths.site(C1, S1));
+    const model = { file: 'https://firebasestorage.googleapis.com/v0/b/x/o/m.ifc', kind: 'ifc', name: 'House.ifc', sizeMb: 12.4, uploadedBy: USERS.manager, uploadedByName: 'manager user' };
+    await assertFails(updateDoc(ref('owner'), { model }));                                  // owner can't save it as the manager
+    await assertFails(updateDoc(ref('manager'), { model: { ...model, uploadedAt: 'yesterday' } }));
+    await assertSucceeds(updateDoc(ref('manager'), { model: { ...model, uploadedAt: serverTimestamp() } }));
+    await assertSucceeds(updateDoc(ref('owner'), { name: 'Renamed project' }));             // the manager's model stays as it is
+  });
 });
 
 describe('report days', () => {

@@ -65,7 +65,7 @@ service firebase.storage {
     match /companies/{cid}/sites/{sid}/model/{file} {
       allow read: if onSite(cid, sid);
       allow create: if resource == null && siteManager(cid)
-        && request.resource.size < 100 * 1024 * 1024
+        && request.resource.size <= 100 * 1024 * 1024
         && request.resource.contentType.matches('application/octet-stream|model/gltf-binary|model/gltf[+]json');
       allow update: if false;
       allow delete: if siteManager(cid);

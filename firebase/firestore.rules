@@ -144,7 +144,10 @@ service cloud.firestore {
                     && isText(data().model.file, 9, 2000) && data().model.file.matches('^(https://|/).*')
                     && data().model.kind in ['ifc', 'glb', 'gltf'] && isText(data().model.name, 1, 200)
                     && data().model.sizeMb is number && data().model.sizeMb >= 0 && data().model.sizeMb <= 100
-                    && isText(data().model.uploadedBy, 1, 128) && isText(data().model.uploadedByName, 1, 100)))
+                    && isText(data().model.uploadedBy, 1, 128) && isText(data().model.uploadedByName, 1, 100)
+                    && (!('uploadedAt' in data().model) || data().model.uploadedAt is timestamp)
+                    // A new or changed model names the person saving it; one already there is left as it is
+                    && (data().model.uploadedBy == request.auth.uid || (resource != null && resource.data.get('model', null) == data().model))))
             && (!('overviewDrawingId' in data()) || data().overviewDrawingId == null || isText(data().overviewDrawingId, 1, 100))
             && (!('client' in data()) || data().client == null
                 || (data().client is map && data().client.keys().hasOnly(['name', 'phone', 'email']) && isText(data().client.name, 1, 120)));

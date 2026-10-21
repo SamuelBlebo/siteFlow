@@ -19,7 +19,12 @@ export async function uploadModel(cid, sid, file, previous, { uid, name }, onPro
     file: await getDownloadURL(r), kind: check.kind, name: file.name.slice(0, 200),
     sizeMb: Math.round((file.size / (1024 * 1024)) * 10) / 10, uploadedBy: uid, uploadedByName: name, uploadedAt: serverTimestamp(),
   };
-  await updateDoc(doc(db, paths.site(cid, sid)), { model, updatedAt: serverTimestamp() });
+  try {
+    await updateDoc(doc(db, paths.site(cid, sid)), { model, updatedAt: serverTimestamp() });
+  } catch (e) {
+    await dropFile(model.file); // not saved on the project, so the uploaded file would be left over
+    throw e;
+  }
   if (isOurs(previous?.file, cid, sid)) await dropFile(previous.file);
   return model;
 }
