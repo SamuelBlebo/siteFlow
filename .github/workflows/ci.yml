@@ -76,8 +76,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
+      # No cache: this job installs nothing, and saving a pnpm cache that was never filled fails the job
       - uses: actions/setup-node@v7
-        with: { node-version-file: .nvmrc, cache: pnpm }
+        with: { node-version-file: .nvmrc }
       # The server side has its own lockfile: any known high-severity issue fails CI
       - name: Cloud Functions (runs on Google's servers, blocking)
         run: npm --prefix firebase/functions audit --omit=dev --audit-level=high
