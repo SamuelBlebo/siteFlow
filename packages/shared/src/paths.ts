@@ -30,6 +30,8 @@ export const paths = {
   issuePhoto: (cid: string, sid: string, issueId: string, file: string) => `companies/${cid}/sites/${sid}/issues/${issueId}/${file}`,
   // The project image (paths.coverFile): a visualization or photo shown on project cards
   coverFile: (cid: string, sid: string, file: string) => `companies/${cid}/sites/${sid}/cover/${file}`,
+  // The architect's 3D model (IFC or GLB), one per project
+  modelFile: (cid: string, sid: string, file: string) => `companies/${cid}/sites/${sid}/model/${file}`,
   drawingFile: (cid: string, sid: string, drawingId: string, file: string) => `companies/${cid}/sites/${sid}/drawings/${drawingId}/${file}`,
   photo: (cid: string, sid: string, reportId: string, file: string) => `companies/${cid}/sites/${sid}/reports/${reportId}/${file}`,
 };

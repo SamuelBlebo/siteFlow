@@ -82,6 +82,7 @@ export interface Site {
   skipDates?: string[] | null;   // single days with no report needed (holiday, rain, no work)
   cover?: string | null;         // project image: a visualization (render) or photo, shown on project cards
   sample?: boolean;              // a sample project (Explore with sample data); never sends messages
+  model?: import('./logic/model').SiteModel | null; // the architect's 3D model (IFC or GLB)
 }
 
 // companies/{cid}/sites/{sid}/finance/summary. Finance roles only.
