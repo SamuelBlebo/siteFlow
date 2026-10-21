@@ -889,6 +889,20 @@ describe('project image', () => {
   });
 });
 
+describe('3D model', () => {
+  it('managers set or clear the model; it must be a model file they uploaded; the site team cannot', async () => {
+    const ref = (r: Role) => doc(asRole(r), paths.site(C1, S1));
+    const model = { file: 'https://firebasestorage.googleapis.com/v0/b/x/o/m.ifc', kind: 'ifc', name: 'House.ifc', sizeMb: 12.4, uploadedBy: USERS.manager, uploadedByName: 'manager user' };
+    await assertSucceeds(updateDoc(ref('manager'), { model }));
+    await assertSucceeds(updateDoc(ref('owner'), { model: null }));
+    await assertFails(updateDoc(ref('manager'), { model: { ...model, kind: 'rvt' } }));
+    await assertFails(updateDoc(ref('manager'), { model: { ...model, file: 'javascript:alert(1)' } }));
+    await assertFails(updateDoc(ref('manager'), { model: { ...model, extra: 1 } }));
+    await assertFails(updateDoc(ref('manager'), { model: { ...model, sizeMb: 101 } }));
+    await assertFails(updateDoc(ref('supervisor'), { model }));
+  });
+});
+
 describe('report days', () => {
   it('managers set working days and skip days; the site team cannot', async () => {
     const ref = (r: Role) => doc(asRole(r), paths.site(C1, S1));

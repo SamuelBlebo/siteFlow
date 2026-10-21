@@ -60,6 +60,17 @@ service firebase.storage {
       allow delete: if siteManager(cid);
     }
 
+    // The architect's 3D model: paths.modelFile. IFC (no reliable content type) or GLB / glTF,
+    // up to 100 MB. Uploaded by owners, admins and project managers; a new one replaces the old.
+    match /companies/{cid}/sites/{sid}/model/{file} {
+      allow read: if onSite(cid, sid);
+      allow create: if resource == null && siteManager(cid)
+        && request.resource.size < 100 * 1024 * 1024
+        && request.resource.contentType.matches('application/octet-stream|model/gltf-binary|model/gltf[+]json');
+      allow update: if false;
+      allow delete: if siteManager(cid);
+    }
+
     // Anything else is closed until a feature needs it
     match /{all=**} {
       allow read, write: if false;

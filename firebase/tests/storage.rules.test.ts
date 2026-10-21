@@ -115,3 +115,20 @@ describe('project image', () => {
     await assertFails(getBytes(ref(storageAs(OTHER_OWNER), paths.coverFile(C1, S1, 'c1.jpg'))));
   });
 });
+
+describe('3D model', () => {
+  const file = (name: string) => paths.modelFile(C1, S1, name);
+  it('managers upload IFC and glTF files (not other files); the site team only looks', async () => {
+    await assertSucceeds(upload(asRole('manager'), file('m.ifc'), 'application/octet-stream'));
+    await assertSucceeds(upload(asRole('owner'), file('m.glb'), 'model/gltf-binary'));
+    await assertSucceeds(upload(asRole('admin'), file('m.gltf'), 'model/gltf+json'));
+    await assertFails(upload(asRole('manager'), file('m.jpg'), 'image/jpeg'));
+    await assertFails(upload(asRole('supervisor'), file('s.ifc'), 'application/octet-stream'));
+    await assertSucceeds(getBytes(ref(asRole('supervisor'), file('m.ifc'))));
+    await assertFails(getBytes(ref(storageAs(OTHER_OWNER), file('m.ifc'))));
+  });
+  it('up to 100 MB', async () => {
+    const big = new Uint8Array(100 * 1024 * 1024 + 1);
+    await assertFails(uploadBytes(ref(asRole('manager'), file('big.ifc')), big, { contentType: 'application/octet-stream' }));
+  });
+});

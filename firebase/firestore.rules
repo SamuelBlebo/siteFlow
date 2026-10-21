@@ -122,7 +122,7 @@ service cloud.firestore {
       match /sites/{sid} {
         function siteKeys() {
           return ['name', 'location', 'foremanName', 'foremanPhone', 'foremanEmail', 'stage', 'progress', 'status',
-                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'clientReports', 'cover', 'workDays', 'skipDates', 'sample', 'createdAt', 'updatedAt'];
+                  'lastReportDate', 'lastReportTime', 'planStart', 'planEnd', 'client', 'overviewDrawingId', 'clientReports', 'cover', 'model', 'workDays', 'skipDates', 'sample', 'createdAt', 'updatedAt'];
         }
         function validSite() {
           return data().keys().hasOnly(siteKeys())
@@ -138,6 +138,13 @@ service cloud.firestore {
             && (!('workDays' in data()) || data().workDays == null || (data().workDays is list && data().workDays.size() <= 7))
             && (!('skipDates' in data()) || data().skipDates == null || (data().skipDates is list && data().skipDates.size() <= 200))
             && (!('cover' in data()) || data().cover == null || (isText(data().cover, 9, 2000) && data().cover.matches('^(https://|/).*')))
+            // The architect's 3D model (logic/model in shared): a file managers uploaded to paths.modelFile
+            && (!('model' in data()) || data().model == null
+                || (data().model is map && data().model.keys().hasOnly(['file', 'kind', 'name', 'sizeMb', 'uploadedBy', 'uploadedByName', 'uploadedAt'])
+                    && isText(data().model.file, 9, 2000) && data().model.file.matches('^(https://|/).*')
+                    && data().model.kind in ['ifc', 'glb', 'gltf'] && isText(data().model.name, 1, 200)
+                    && data().model.sizeMb is number && data().model.sizeMb >= 0 && data().model.sizeMb <= 100
+                    && isText(data().model.uploadedBy, 1, 128) && isText(data().model.uploadedByName, 1, 100)))
             && (!('overviewDrawingId' in data()) || data().overviewDrawingId == null || isText(data().overviewDrawingId, 1, 100))
             && (!('client' in data()) || data().client == null
                 || (data().client is map && data().client.keys().hasOnly(['name', 'phone', 'email']) && isText(data().client.name, 1, 120)));
