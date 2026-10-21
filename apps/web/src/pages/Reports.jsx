@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 import { REPORT_DAY_LABELS, filterReports, reportDay, todayKey } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { usePagedQuery, useQuery, useTitle } from '../lib/hooks';
-import { companyReportsQuery, sitesCol } from '../lib/db';
+import { companyIssuesQuery, companyReportsQuery, sitesCol } from '../lib/db';
 import { ReportRow } from '../components/ReportCard';
 import { Empty, ErrorState, Loading } from '../components/States';
 import PageHead from '../components/PageHead';
 import ProjectCover from '../components/ProjectCover';
 import ReportButton from '../components/ReportButton';
+import PhotoGallery from '../components/PhotoGallery';
 
 // By project (a card per project) or newest first (one list). Remembered on this browser.
 const VIEW_KEY = 'sf.reportsView';
-const savedView = () => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'projects'; } catch { return 'projects'; } };
+const savedView = () => { try { const v = localStorage.getItem(VIEW_KEY); return v === 'list' || v === 'photos' ? v : 'projects'; } catch { return 'projects'; } };
 
 const PAGE = 50;
 const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
@@ -68,6 +69,7 @@ export default function Reports() {
       <div className="seg view-toggle" role="group" aria-label="View">
         <button type="button" aria-pressed={view === 'projects'} onClick={() => setView('projects')}>By project</button>
         <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>Newest first</button>
+        <button type="button" aria-pressed={view === 'photos'} onClick={() => setView('photos')}>Photos</button>
       </div>
       </div>
 
@@ -76,7 +78,9 @@ export default function Reports() {
       ) : (
         <>
           <p className="hint">{shown.length} of {data.length} report{data.length === 1 ? '' : 's'} shown.</p>
-          {!shown.length ? <Empty title="No reports match these filters." /> : view === 'projects'
+          {view === 'photos' ? (
+            <PhotoGallery reports={shown} showSite={!siteId} issuesQuery={() => companyIssuesQuery(cid)} siteId={siteId} />
+          ) : !shown.length ? <Empty title="No reports match these filters." /> : view === 'projects'
             ? <ByProject reports={shown} sites={sites} cid={cid} />
             : <ul className="list">{shown.map((r) => <ReportRow key={`${r.siteId}/${r.id}`} r={r} showSite={!siteId} />)}</ul>}
           {hasMore && <button type="button" className="btn ghost mt-sm" disabled={loadingMore} onClick={more}>{loadingMore ? 'Loading…' : 'Show more'}</button>}

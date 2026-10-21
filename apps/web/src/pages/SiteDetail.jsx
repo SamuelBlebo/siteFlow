@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useQuery, useSiteData, useTitle } from '../lib/hooks';
+import { useDoc, usePagedQuery, useQuery, useSiteData, useTitle } from '../lib/hooks';
 import {
-  companyDoc, financeDoc, setBudget, setClientReports, setSiteStatus, siteDoc, teamQuery, updateSiteDetails,
+  companyDoc, financeDoc, setBudget, setClientReports, setSiteStatus, siteDoc, siteIssuesQuery, siteReportsQuery, teamQuery, updateSiteDetails,
 } from '../lib/db';
 import { save, savedText, toast } from '../lib/save';
 import { deleteProject, team } from '../lib/account';
@@ -25,6 +25,7 @@ import LabourPanel from '../components/LabourPanel';
 import SiteForm from '../components/SiteForm';
 import ProjectDrawing from '../components/ProjectDrawing';
 import ModelCard from '../components/ModelCard';
+import PhotoGallery from '../components/PhotoGallery';
 import ReportButton from '../components/ReportButton';
 import ProjectCover from '../components/ProjectCover';
 import ContactLinks from '../components/ContactLinks';
@@ -60,7 +61,7 @@ export default function SiteDetail() {
   const OLD_TABS = { report: 'reports', history: 'reports', drawing: 'overview', workers: 'labour' };
   const asked = params.get('tab');
   const tab = OLD_TABS[asked] || asked || (can('site.work') && isSiteScoped(role) ? 'today' : 'overview');
-  const tabs = [...(can('site.work') ? [['today', 'Live today']] : []), ['overview', 'Overview'], ['reports', 'Daily reports'], ['progress', 'Progress'], ['issues', 'Issues']];
+  const tabs = [...(can('site.work') ? [['today', 'Live today']] : []), ['overview', 'Overview'], ['reports', 'Daily reports'], ['photos', 'Photos'], ['progress', 'Progress'], ['issues', 'Issues']];
   if (mod('materials')) tabs.push(['materials', 'Materials']);
   if (mod('labour')) tabs.push(['labour', 'Labour']);
   if (money) tabs.push(['budget', 'Budget']);
@@ -120,6 +121,7 @@ export default function SiteDetail() {
           <ReportHistory cid={cid} site={site} />
         </>
       )}
+      {tab === 'photos' && <SitePhotos cid={cid} site={site} />}
       {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
       {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
       {tab === 'materials' && mod('materials') && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
@@ -383,4 +385,13 @@ function DeleteProject({ site }) {
       )}
     </section>
   );
+}
+
+// Photos: every report photo of the project, by week (PhotoGallery)
+const PHOTO_PAGE = 60;
+function SitePhotos({ cid, site }) {
+  const { data, loading, loadingMore, error, hasMore, more } = usePagedQuery(() => cid && siteReportsQuery(cid, site.id, PHOTO_PAGE), [cid, site.id], PHOTO_PAGE);
+  if (loading && !data.length) return <Loading what="photos" />;
+  if (error) return <ErrorState error={error} what="photos" />;
+  return <PhotoGallery reports={data} hasMore={hasMore} loadingMore={loadingMore} onMore={more} issuesQuery={() => siteIssuesQuery(cid, site.id, 200)} />;
 }
