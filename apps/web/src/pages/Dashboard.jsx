@@ -18,6 +18,7 @@ import { CostDonut, Ring, Spark, SpendChart } from '../components/Charts';
 import { ScheduleBadge } from '../components/ProgressPanel';
 import ProjectCover from '../components/ProjectCover';
 import { Empty, ErrorState, Loading } from '../components/States';
+import Choice from '../components/Choice';
 
 const PERIODS = [['today', 'Today', 1], ['week', 'This week', 6], ['month', 'This month', 26]]; // working days (Sundays off)
 const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
@@ -114,9 +115,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             </ul>
           )}
         </div>
-        <div className="period" role="group" aria-label="Period">
-          {PERIODS.map(([k, l]) => <button key={k} type="button" aria-pressed={period === k} onClick={() => setPeriod(k)}>{l}</button>)}
-        </div>
+        <Choice className="period" label="Period" value={period} onChange={setPeriod} options={PERIODS.map(([value, label]) => ({ value, label }))} />
         <a className="iconbtn" href="#attention" aria-label={`${alerts.length} item${alerts.length === 1 ? '' : 's'} need your attention`}
           onClick={(e) => { e.preventDefault(); const el = document.getElementById('attention'); el?.scrollIntoView({ behavior: 'smooth', block: 'start' }); el?.focus({ preventScroll: true }); }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 2h-11z" /><path d="M6.5 14.5a1.6 1.6 0 0 0 3 0" /></svg>

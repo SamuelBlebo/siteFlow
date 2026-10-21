@@ -4,6 +4,7 @@ import { logMaterial } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { materialLogInput, validate, currencySymbol } from '@siteflow/shared';
 import { Empty } from './States';
+import Choice from './Choice';
 
 // Record what was used or received. Deliveries take supplier, waybill and (finance roles) cost.
 export default function MaterialLogForm({ cid, sid, materials }) {
@@ -41,10 +42,7 @@ export default function MaterialLogForm({ cid, sid, materials }) {
 
   return (
     <form className="form" onSubmit={submit}>
-      <div className="seg" role="group" aria-label="Entry">
-        <button type="button" aria-pressed={type === 'usage'} onClick={() => setType('usage')}>Used</button>
-        <button type="button" aria-pressed={type === 'delivery'} onClick={() => setType('delivery')}>Received</button>
-      </div>
+      <Choice label="Entry" value={type} onChange={setType} options={[{ value: 'usage', label: 'Used' }, { value: 'delivery', label: 'Received' }]} />
       {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
       <div className="grid2">
         <div className="field"><label htmlFor="m-sel">Material</label>

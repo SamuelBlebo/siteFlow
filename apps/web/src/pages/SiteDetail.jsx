@@ -35,6 +35,7 @@ import { removeCover, uploadCover } from '../lib/cover';
 import StatusPill from '../components/StatusPill';
 import { Empty, ErrorState, Loading } from '../components/States';
 import { Ring } from '../components/Charts';
+import Choice from '../components/Choice';
 
 export default function SiteDetail() {
   const { sid } = useParams();
@@ -107,7 +108,7 @@ export default function SiteDetail() {
           {can('sites.manage') ? ' Reopen it from Settings.' : ''}
         </p>
       )}
-      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
+      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Section">
       {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
       {tab === 'overview' && <><AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} /><ProjectDrawing cid={cid} site={site} /><ModelCard cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
       {tab === 'today' && <AiOverview site={site} kind="today" stamp={`${site.lastReportDate}|${site.lastReportTime}|${data.presentCount}`} />}
@@ -281,13 +282,8 @@ function SettingsTab({ cid, sid, site }) {
   return (
     <>
       <h3 className="sub">Status</h3>
-      <div className="seg" role="group" aria-label="Site status">
-        {SITE_STATUSES.map((st) => (
-          <button key={st} type="button" aria-pressed={site.status === st} disabled={statusBusy || site.status === st} onClick={() => changeStatus(st)}>
-            {SITE_STATUS_LABELS[st]}
-          </button>
-        ))}
-      </div>
+      <Choice label="Site status" value={site.status} disabled={statusBusy} onChange={(st) => st !== site.status && changeStatus(st)}
+        options={SITE_STATUSES.map((st) => ({ value: st, label: SITE_STATUS_LABELS[st] }))} />
       <p className="hint">Active: daily reports expected. On hold: work paused, no report reminders. Closed: finished, read-only for the site team.</p>
 
       <h3 className="sub">Report days</h3>

@@ -9,6 +9,7 @@ import MaterialsTable from './MaterialsTable';
 import MaterialLogForm from './MaterialLogForm';
 import MaterialSetup from './MaterialSetup';
 import { Empty, ErrorState, Loading } from './States';
+import Choice from './Choice';
 
 const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return todayKey(d); };
 const RATE_DAYS = 14;
@@ -32,9 +33,7 @@ export default function MaterialsPanel({ cid, site, data, canWork }) {
 
   return (
     <>
-      <div className="seg" role="group" aria-label="Materials">
-        {views.map(([k, l]) => <button key={k} type="button" aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}
-      </div>
+      <Choice label="Materials" value={view} onChange={setView} options={views.map(([value, label]) => ({ value, label }))} />
       {view === 'stock' && (
         <>
           <MaterialsTable materials={data.materials} usage={data.usage} rates={rates} />

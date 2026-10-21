@@ -10,6 +10,7 @@ import PageHead from '../components/PageHead';
 import ProjectCover from '../components/ProjectCover';
 import ReportButton from '../components/ReportButton';
 import PhotoGallery from '../components/PhotoGallery';
+import Choice from '../components/Choice';
 
 // By project (a card per project) or newest first (one list). Remembered on this browser.
 const VIEW_KEY = 'sf.reportsView';
@@ -30,6 +31,7 @@ export default function Reports() {
   const [author, setAuthor] = useState('');
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [photosOnly, setPhotosOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false); // phones: site, period and author fold away behind Filters
   const [view, setViewState] = useState(savedView);
   const setView = (v) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* not remembered */ } };
   const from = range === 'all' ? '' : daysAgo(Number(range) - 1);
@@ -45,7 +47,10 @@ export default function Reports() {
     <>
     <PageHead title="Daily reports" sub="Every report from every project. Select one to see it in full." />
     <section className="wrap">
-      <div className="filters">
+      <div id="rf-box" className={`filters${showFilters ? ' open' : ''}`}>
+        <button type="button" className="btn ghost sm filters-toggle" aria-expanded={showFilters} aria-controls="rf-box" onClick={() => setShowFilters(!showFilters)}>
+          {showFilters ? 'Hide filters' : `Filters${[siteId, range !== '7' && range, author].filter(Boolean).length ? ` (${[siteId, range !== '7' && range, author].filter(Boolean).length})` : ''}`}
+        </button>
         <div className="field"><label htmlFor="rf-s">Site</label>
           <select id="rf-s" value={siteId} onChange={reset(setSiteId)}>
             <option value="">All sites</option>
@@ -66,11 +71,8 @@ export default function Reports() {
         <label className="chip"><input type="checkbox" checked={issuesOnly} onChange={(e) => setIssuesOnly(e.target.checked)} /> With issues ({withIssues})</label>
         <label className="chip"><input type="checkbox" checked={photosOnly} onChange={(e) => setPhotosOnly(e.target.checked)} /> With photos</label>
       </div>
-      <div className="seg view-toggle" role="group" aria-label="View">
-        <button type="button" aria-pressed={view === 'projects'} onClick={() => setView('projects')}>By project</button>
-        <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>Newest first</button>
-        <button type="button" aria-pressed={view === 'photos'} onClick={() => setView('photos')}>Photos</button>
-      </div>
+      <Choice className="seg view-toggle" label="View" value={view} onChange={setView}
+        options={[{ value: 'projects', label: 'By project' }, { value: 'list', label: 'Newest first' }, { value: 'photos', label: 'Photos' }]} />
       </div>
 
       {loading && !data.length ? <Loading what="reports" /> : error ? <ErrorState error={error} what="reports" /> : !data.length ? (

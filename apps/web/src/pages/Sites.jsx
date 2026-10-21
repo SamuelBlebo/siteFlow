@@ -10,6 +10,7 @@ import { siteDoc, sitesCol } from '../lib/db';
 import { Empty, ErrorState, Loading } from '../components/States';
 import StatusPill from '../components/StatusPill';
 import PageHead from '../components/PageHead';
+import Choice from '../components/Choice';
 
 // Grid (cards with the project image) or list (table). Remembered on this browser.
 const VIEW_KEY = 'sf.projectsView';
@@ -64,13 +65,11 @@ export default function Sites() {
       ) : (
         <>
           <div className="toolbar">
-            <div className="seg" role="group" aria-label="Filter by status">
-              {FILTERS.map(([k, label]) => <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>{label} ({count(k)})</button>)}
-            </div>
-            <div className="seg view-toggle" role="group" aria-label="View">
-              <button type="button" aria-pressed={view === 'grid'} onClick={() => setView('grid')}><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" /></svg> Grid</button>
-              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 2h14v2.5H1zM1 6.75h14v2.5H1zM1 11.5h14V14H1z" /></svg> List</button>
-            </div>
+            <Choice label="Filter by status" value={filter} onChange={setFilter} options={FILTERS.map(([value, label]) => ({ value, label: `${label} (${count(value)})` }))} />
+            <Choice className="seg view-toggle" label="View" value={view} onChange={setView} options={[
+              { value: 'grid', text: 'Grid', label: <><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" /></svg> Grid</> },
+              { value: 'list', text: 'List', label: <><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M1 2h14v2.5H1zM1 6.75h14v2.5H1zM1 11.5h14V14H1z" /></svg> List</> },
+            ]} />
             <input type="search" aria-label="Search sites" placeholder="Search name, location, foreman or client" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           {!shown.length ? <Empty title="No sites match." action={<button type="button" className="btn sm ghost" onClick={() => { setQ(''); setFilter('all'); }}>Clear search and filter</button>}>Try another filter or search.</Empty> : view === 'grid' ? (
