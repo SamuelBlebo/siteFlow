@@ -5,7 +5,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { PERMISSIONS, ROLES, can, issueDoc, paths, reportDoc, reportId, todayKey, type Permission, type Role, type SiteCollection } from '@siteflow/shared';
-import { C1, C2, MULTI, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, putPerson, seed, site } from './setup';
+import { C1, C2, MULTI, OFF_USER, OTHER_OWNER, S1, S2, S9, SEEDED_REPORT, USERS, makeEnv, putPerson, seed, site, suspend } from './setup';
 
 let env: RulesTestEnvironment;
 beforeAll(async () => { env = await makeEnv(); });
@@ -963,5 +963,41 @@ describe('reports sent back for changes', () => {
     await ask();
     await assertFails(updateDoc(rref(asRole('manager')), { text: 'Edited by manager', 'review.status': 'updated' }));
     await assertFails(updateDoc(rref(asRole('owner')), { review: { status: 'changes_requested', items: ['photos'] } }));
+  });
+});
+
+describe('suspended company', () => {
+  it('members can still read the company document, but nothing else', async () => {
+    await suspend(env, C1);
+    const snap = await assertSucceeds(getDoc(doc(asRole('owner'), paths.company(C1))));
+    expect(snap.data()?.suspended).toBeTruthy();
+    await assertFails(getDoc(doc(asRole('owner'), paths.site(C1, S1))));
+    await assertFails(getDocs(collection(asRole('owner'), paths.members(C1))));
+    await assertFails(getDocs(collection(asRole('owner'), paths.sub(C1, S1, 'reports'))));
+    await assertFails(getDocs(query(collectionGroup(asRole('owner'), 'reports'), where('companyId', '==', C1))));
+    await assertFails(sendReport(asRole('supervisor'), C1, S1, USERS.supervisor, 'supervisor user'));
+  });
+  it('the owner cannot change the company or clear the pause', async () => {
+    await suspend(env, C1);
+    const ref = doc(asRole('owner'), paths.company(C1));
+    await assertFails(updateDoc(ref, { suspended: null }));
+    await assertFails(updateDoc(ref, { name: 'Renamed Co' }));
+  });
+  it('a person in two companies keeps the one that is not paused', async () => {
+    await suspend(env, C1);
+    await assertSucceeds(getDoc(doc(as(MULTI), paths.company(C2))));
+    await assertSucceeds(getDoc(doc(as(MULTI), paths.site(C2, S9))));
+    await assertSucceeds(sendReport(as(MULTI), C2, S9, MULTI, 'Ebo Mensah'));
+  });
+  it('the owner cannot pause or mark a company internal from the client', async () => {
+    await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { suspended: { by: 'x', at: new Date() } }));
+    await assertFails(updateDoc(doc(asRole('owner'), paths.company(C1)), { internal: true }));
+  });
+});
+
+describe('admin log', () => {
+  it('is closed to every client', async () => {
+    await assertFails(getDoc(doc(asRole('owner'), 'adminLog/x')));
+    await assertFails(setDoc(doc(asRole('owner'), 'adminLog/x'), { action: 'x' }));
   });
 });

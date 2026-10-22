@@ -3,7 +3,7 @@ import { assertFails, assertSucceeds, type RulesTestEnvironment } from '@firebas
 import { deleteObject, getBytes, ref, uploadBytes, type FirebaseStorage } from 'firebase/storage';
 import { doc, updateDoc, type Firestore } from 'firebase/firestore';
 import { paths, thumbName, type Role } from '@siteflow/shared';
-import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, USERS, makeEnv, seed } from './setup';
+import { C1, C2, OFF_USER, OTHER_OWNER, S1, S2, S9, USERS, makeEnv, seed, suspend } from './setup';
 
 let env: RulesTestEnvironment;
 beforeAll(async () => { env = await makeEnv(); });
@@ -132,5 +132,14 @@ describe('3D model', () => {
     await assertFails(uploadBytes(ref(asRole('manager'), file('big.ifc')), big, { contentType: 'application/octet-stream' }));
     // Exactly 100 MB is allowed, as the app allows it
     await assertSucceeds(uploadBytes(ref(asRole('manager'), file('edge.ifc')), new Uint8Array(100 * 1024 * 1024), { contentType: 'application/octet-stream' }));
+  });
+});
+
+describe('suspended company', () => {
+  it('its members lose uploads and downloads; other companies are unaffected', async () => {
+    await suspend(env, C1);
+    await assertFails(upload(asRole('supervisor'), paths.photo(C1, S1, 'r1', 'late.jpg')));
+    await assertFails(getBytes(ref(asRole('viewer'), paths.photo(C1, S1, 'r1', 'existing.jpg'))));
+    await assertSucceeds(upload(storageAs('multi1'), paths.photo(C2, S9, 'r1', 'ok.jpg')));
   });
 });

@@ -11,9 +11,14 @@ service cloud.firestore {
     // role, projects and on/off switch in that company; users/{uid} holds the person themselves.
     function memberPath(cid) { return /databases/$(database)/documents/companies/$(cid)/members/$(request.auth.uid); }
     function meIn(cid) { return get(memberPath(cid)).data; }
-    // Member of this company, and not switched off
-    function member(cid) {
+    // Member of this company, and not switched off (even if the company is paused)
+    function memberOf(cid) {
       return signedIn() && exists(memberPath(cid)) && meIn(cid).get('active', true) != false;
+    }
+    // A paused company (companies/{cid}.suspended, set by the admin function): members keep only the
+    // company document itself, so the app can show the paused screen. Everything else uses member().
+    function member(cid) {
+      return memberOf(cid) && get(/databases/$(database)/documents/companies/$(cid)).data.get('suspended', null) == null;
     }
     function hasRole(cid, roles) { return member(cid) && meIn(cid).role in roles; }
 
@@ -70,7 +75,7 @@ service cloud.firestore {
         && isText(data().name, 2, 100) && optText('phone', 20) && optText('callPhone', 20)
         && data().get('mustChangePassword', false) == false
         && (data().get('companyId', '') == resource.data.get('companyId', '')
-            || (data().companyId in resource.data.get('companyIds', []) && member(data().companyId)));
+            || (data().companyId in resource.data.get('companyIds', []) && memberOf(data().companyId)));
     }
 
     // Company-wide reports page: one collection-group query, filtered by companyId
@@ -85,7 +90,7 @@ service cloud.firestore {
 
     // ---------- companies ----------
     match /companies/{cid} {
-      allow read: if member(cid);
+      allow read: if memberOf(cid);
       // Created by the createCompany function. plan and modules are set by the server only.
       allow create, delete: if false;
       // country, currency and time zone: the owner's local settings (codes checked in the app; shape checked here)
@@ -507,6 +512,12 @@ service cloud.firestore {
           allow delete: if siteManager(cid) && (moduleColl() || moneyColl());
         }
       }
+    }
+
+    // ---------- platform admin log ----------
+    // Written and read by the admin Cloud Functions only; no client, admin or not, touches it here
+    match /adminLog/{id} {
+      allow read, write: if false;
     }
   }
 }

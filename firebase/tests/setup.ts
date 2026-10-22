@@ -49,6 +49,13 @@ export async function putPerson(db: Firestore, uid: string, name: string, seats:
   }
 }
 
+// Pause a company the way the admin function does (rules off, so the test can set the field)
+export async function suspend(env: RulesTestEnvironment, cid: string) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), paths.company(cid)), { suspended: { by: 'admin1', at: new Date() } }, { merge: true });
+  });
+}
+
 export async function seed(env: RulesTestEnvironment) {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
