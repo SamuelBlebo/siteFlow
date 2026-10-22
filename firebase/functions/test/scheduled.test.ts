@@ -115,3 +115,16 @@ describe('paused companies in scheduled jobs', () => {
     expect(seen).not.toContain('sched-paused');
   });
 });
+
+describe('retrying messages for paused companies', () => {
+  it('leaves a paused company failed message alone, and still retries a normal one', async () => {
+    const base = { kind: 'critical_issue', channel: 'whatsapp', address: '0241234567', params: ['Adenta', 'Leak', 'Kofi'], text: 'x', status: 'failed', retry: true, attempts: 1, createdAt: Timestamp.now() };
+    await db.doc(paths.company('retry-paused')).set({ name: 'Paused Ltd', suspended: { by: 'admin', at: Timestamp.now() } });
+    await db.doc(`${paths.notifications('retry-paused')}/held`).set(base);
+    await db.doc(`${paths.notifications(CID)}/again`).set(base);
+    await retryFailedNotifications();
+    const held = (await db.doc(`${paths.notifications('retry-paused')}/held`).get()).data()!;
+    expect(held).toMatchObject({ status: 'failed', retry: true, attempts: 1, address: '0241234567' });
+    expect((await db.doc(`${paths.notifications(CID)}/again`).get()).data()).toMatchObject({ status: 'skipped', attempts: 2 });
+  });
+});
