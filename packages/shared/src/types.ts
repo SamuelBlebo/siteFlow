@@ -31,6 +31,8 @@ export interface Company {
   country?: string;   // ISO code; missing means Ghana (companies from before countries existed)
   currency?: string;  // ISO code, e.g. GHS, NGN, KES
   timeZone?: string;  // IANA zone, e.g. Africa/Accra
+  suspended?: { by: string; at: unknown } | null; // set by a platform admin: members see a paused screen
+  internal?: boolean; // test or own company: left out of the admin counts
 }
 
 // What the apps work with: the person (users/{uid}) joined with their membership in the company
