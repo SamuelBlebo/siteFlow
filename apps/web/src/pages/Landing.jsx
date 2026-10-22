@@ -68,7 +68,11 @@ export default function Landing() {
             </div>
             <div className="lp-hero-shots" aria-hidden="true">
               <Frame src={`${SHOTS}/dashboard.jpg`} alt="" />
-              <Phone src={`${SHOTS}/phone-site.jpg`} alt="" />
+              <Phone src={`${SHOTS}/phone-site.jpg`} alt="" className="overlay" />
+              <div className="lp-hero-phones m-only">
+                <Phone src={`${SHOTS}/phone-dashboard.jpg`} alt="" className="back" />
+                <Phone src={`${SHOTS}/phone-site.jpg`} alt="" className="front" />
+              </div>
             </div>
           </div>
         </section>
@@ -119,31 +123,31 @@ export default function Landing() {
               title="Know what happened on every site today"
               text="One dashboard for the whole portfolio: which reports are in, who is on site, what has been spent against the plan, and what needs your decision. Missing reports, high cement use, low stock and projects falling behind are flagged automatically."
               points={['Spend against plan, week by week', 'Budget against progress for each project', 'Alerts with a one-tap WhatsApp reminder']}
-              shot={`${SHOTS}/dashboard.jpg`} alt="The portfolio dashboard with spending, alerts and projects" />
+              shot={`${SHOTS}/dashboard.jpg`} alt="The portfolio dashboard with spending, alerts and projects" mobile={`${SHOTS}/phone-dashboard.jpg`} />
             <Feature flip
               kicker="For the site team"
               title="Three steps a day, from the phone"
               text="Mark attendance, log the materials used, send the daily report with photos. Everything is saved on the phone first and sent when there is signal, so nothing is lost on a site without network."
               points={['Attendance with daily rates and wage sheets', 'Materials received, used and counted', 'Photos and issues in the same report']}
-              shot={`${SHOTS}/sitework.jpg`} alt="The site team's day: attendance, materials, report and stock" phone={`${SHOTS}/phone-site.jpg`} />
+              shot={`${SHOTS}/sitework.jpg`} alt="The site team's day: attendance, materials, report and stock" phone={`${SHOTS}/phone-site.jpg`} mobile={`${SHOTS}/phone-site.jpg`} />
             <Feature
               kicker="Every project"
               title="Money, progress and people in one place"
               text="Each project has its budget and spending, milestones and programme, daily reports, issues, materials, labour and team. Site teams only see the projects they are given; finance figures stay with finance roles."
               points={['Progress against the planned dates', 'Expenses by category, kept up to date', 'Clear roles: owner, managers, finance, supervisors']}
-              shot={`${SHOTS}/project.jpg`} alt="A project page with budget, spending and progress" />
+              shot={`${SHOTS}/project.jpg`} alt="A project page with budget, spending and progress" mobile={`${SHOTS}/phone-project.jpg`} />
             <Feature flip
               kicker="Problems don't hide"
               title="Issues tracked until they are fixed"
               text="Anything that goes wrong on site is reported with a photo, given a priority and someone to fix it. Critical issues reach you straight away, and nothing is closed until it is resolved."
               points={['Critical, high, medium and low', 'Assigned, in progress, resolved, closed', 'A timeline of who did what']}
-              shot={`${SHOTS}/issues.jpg`} alt="The issues list with a critical issue at the top" />
+              shot={`${SHOTS}/issues.jpg`} alt="The issues list with a critical issue at the top" mobile={`${SHOTS}/phone-issues.jpg`} />
             <Feature
               kicker="Daily reports"
               title="A searchable record of every day on site"
               text="Every report from every project in one list, with the work done, workers, weather, issues and photos. Search it, filter it by project or date, and see at a glance which days are missing."
               points={['One report per person per site per day', 'Up to 8 photos, resized on the phone', 'Missing days highlighted']}
-              shot={`${SHOTS}/reports.jpg`} alt="The list of daily reports across projects" />
+              shot={`${SHOTS}/reports.jpg`} alt="The list of daily reports across projects" mobile={`${SHOTS}/phone-reports.jpg`} />
           </div>
         </section>
 
@@ -199,7 +203,8 @@ export default function Landing() {
   );
 }
 
-function Feature({ kicker, title, text, points, shot, alt, phone, flip }) {
+// mobile: the same screen on a phone, shown instead of the desktop picture on small screens
+function Feature({ kicker, title, text, points, shot, alt, phone, mobile, flip }) {
   return (
     <article className={`lp-feature ${flip ? 'flip' : ''}`}>
       <div className="lp-feature-text">
@@ -210,7 +215,8 @@ function Feature({ kicker, title, text, points, shot, alt, phone, flip }) {
       </div>
       <div className="lp-feature-shot">
         <Frame src={shot} alt={alt} />
-        {phone && <Phone src={phone} alt="The same screen on a phone" />}
+        {phone && <Phone src={phone} alt="The same screen on a phone" className="overlay" />}
+        {mobile && <Phone src={mobile} alt={alt} className="m-only" />}
       </div>
     </article>
   );
@@ -226,6 +232,7 @@ function Frame({ src, alt }) {
   );
 }
 
-function Phone({ src, alt }) {
-  return <figure className="lp-phone"><img src={src} alt={alt} loading="lazy" width="390" height="844" /></figure>;
+// A phone with the screen inside: rounded body, thin bezel, camera island and side buttons (all CSS)
+function Phone({ src, alt, className = '' }) {
+  return <figure className={`lp-phone ${className}`}><span className="lp-phone-screen"><img src={src} alt={alt} loading="lazy" width="390" height="844" /></span></figure>;
 }

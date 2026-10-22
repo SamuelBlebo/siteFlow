@@ -1372,3 +1372,47 @@ body.sheet-open { overflow: hidden; }
   .report-tools .head-select { max-width: none; width: 100%; min-height: 44px; font-size: 15px; }
   .report-tools .chips { flex: 1 1 0; }
 }
+@media (max-width: 700px) {
+  /* Search + Filters share a row; the page's main button gets its own full-width row below */
+  .dtop > .search:has(+ .head-filters-toggle) ~ .btn:not(.head-filters-toggle) { flex: 1 1 100%; }
+}
+
+/* ---------- Landing page: the phone mockup, and phone screens on small screens ---------- */
+/* The phone: a rounded body with a thin bezel, a camera island and side buttons */
+.lp-phone { position: relative; margin: 0; padding: 2.6%; border: 0; border-radius: 15% / 7%; overflow: visible;
+  background: linear-gradient(150deg, #3a3d43 0%, #16181b 38%, #0c0d0f 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 1px 0 1px rgba(0, 0, 0, .5), 0 34px 70px rgba(20, 22, 25, .26), 0 10px 24px rgba(20, 22, 25, .16); }
+.lp-phone-screen { position: relative; display: block; overflow: hidden; border-radius: 12.5% / 5.8%; background: #fff; padding-top: 11%; } /* the top strip is the phone's status bar, where the camera sits */
+.lp-phone-screen img { display: block; width: 100%; height: auto; }
+.lp-phone-screen::before { content: ""; position: absolute; z-index: 2; top: 1.8cqw; left: 50%; transform: translateX(-50%); width: 28%; aspect-ratio: 3.6 / 1; border-radius: 999px; background: #0b0c0e; }
+.lp-phone-screen::after { content: "9:41"; position: absolute; top: 3.6cqw; left: 9%; font: 600 clamp(7px, 3.2cqw, 13px)/1 var(--font-ui); color: #111; }
+.lp-phone { container-type: inline-size; }
+.lp-phone::before, .lp-phone::after { content: ""; position: absolute; width: 1.2%; border-radius: 0 3px 3px 0; background: #2b2e33; }
+.lp-phone::before { right: -1.1%; top: 22%; height: 11%; }
+.lp-phone::after { left: -1.1%; top: 18%; height: 7%; border-radius: 3px 0 0 3px; }
+.lp-phone.m-only, .lp-hero-phones { display: none; }
+
+@media (max-width: 700px) {
+  /* Each feature shows its phone screen in place of the shrunken desktop picture */
+  .lp-feature-shot .lp-frame, .lp-feature-shot .lp-phone.overlay, .lp-hero-shots .lp-frame, .lp-hero-shots .lp-phone.overlay { display: none; }
+  .lp-feature-shot { display: flex; justify-content: center; padding: 8px 0 4px; }
+  .lp-feature-shot .lp-phone.m-only { display: block; position: relative; width: min(74%, 300px); }
+  /* The hero: two phones, the dashboard behind and the site team's day in front */
+  .lp-hero-shots { padding: 8px 0 24px; }
+  .lp-hero-phones { display: block; position: relative; height: 470px; max-width: 360px; margin: 0 auto; }
+  .lp-hero-phones .lp-phone { position: absolute; display: block; width: 62%; }
+  .lp-hero-phones .lp-phone.back { left: 0; top: 0; transform: rotate(-5deg); }
+  .lp-hero-phones .lp-phone.front { right: 0; top: 34px; transform: rotate(4deg); }
+  /* Footer links stay whole and wrap as a group */
+  .lp-foot nav { margin-left: 0; flex-wrap: wrap; gap: 8px 18px; }
+  .lp-foot nav a { white-space: nowrap; }
+}
+@media (max-width: 380px) { .lp-hero-phones { height: 410px; } }
+/* Sign up, sign in and the other account pages on phones: centred logo, balanced spacing, the card near the top */
+@media (max-width: 700px) {
+  .authpage { padding: 0; }
+  .authpage .auth, .auth { padding: 28px 16px 36px; margin: 0 auto; align-self: start; }
+  .auth .brand.big { justify-content: center; margin-bottom: 18px; }
+  .auth .form.card, .auth > .card { padding: 20px; border-radius: 16px; }
+  .auth h1 { font-size: 21px; text-align: center; }
+}
