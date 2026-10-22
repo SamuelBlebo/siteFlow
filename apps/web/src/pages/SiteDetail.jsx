@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, usePagedQuery, useQuery, useSiteData, useTitle } from '../lib/hooks';
@@ -73,6 +73,7 @@ export default function SiteDetail() {
     <>
     <div className="dtop">
       <p className="crumb" style={{ marginRight: 'auto' }}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
+      {can('sites.manage') && <Link className="btn ghost" to={`/sites/${site.id}?tab=settings&edit=1`}>Edit project</Link>}
       <ReportButton cid={cid} site={site} />
     </div>
     <section className="wrap">
@@ -129,7 +130,7 @@ export default function SiteDetail() {
       {tab === 'labour' && mod('labour') && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
       {tab === 'budget' && money && <BudgetPanel cid={cid} site={site} data={data} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
-      {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} />}
+      {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} edit={params.get('edit') === '1'} />}
       </Tabs>
     </section>
     </>
@@ -236,7 +237,10 @@ function TeamTab({ cid, sid, site }) {
   );
 }
 
-function SettingsTab({ cid, sid, site }) {
+function SettingsTab({ cid, sid, site, edit = false }) {
+  // "Edit project" lands here: bring the details form into view
+  const detailsRef = useRef(null);
+  useEffect(() => { if (edit) detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [edit]);
   const { can } = useAuth();
   const { data: finance } = useDoc(() => can('finance.view') && financeDoc(cid, sid), [cid, sid]);
   const [budget, setBudgetValue] = useState('');
@@ -281,24 +285,7 @@ function SettingsTab({ cid, sid, site }) {
 
   return (
     <>
-      <h3 className="sub">Status</h3>
-      <Choice label="Site status" value={site.status} disabled={statusBusy} onChange={(st) => st !== site.status && changeStatus(st)}
-        options={SITE_STATUSES.map((st) => ({ value: st, label: SITE_STATUS_LABELS[st] }))} />
-      <p className="hint">Active: daily reports expected. On hold: work paused, no report reminders. Closed: finished, read-only for the site team.</p>
-
-      <h3 className="sub">Report days</h3>
-      <ReportDaysSetting cid={cid} site={site} />
-
-      <h3 className="sub">Project image</h3>
-      <CoverSetting cid={cid} site={site} />
-
-      <h3 className="sub">Client emails</h3>
-      <label className="dwg-check"><input type="checkbox" checked={!!site.clientReports} disabled={!site.client?.email}
-        onChange={(e) => save(setClientReports(cid, sid, e.target.checked), 'Client emails').then(() => toast(e.target.checked ? `Each daily report will be emailed to ${site.client.name}.` : 'The client no longer gets daily reports.')).catch((e2) => toast(e2.message, 'err'))} />
-        Email each daily report to the client{site.client?.email ? ` (${site.client.email})` : ''}</label>
-      <p className="hint">{site.client?.email ? 'Reports carry no money figures. The client can unsubscribe from any email.' : 'Add the client’s email in the details below first.'}</p>
-
-      <h3 className="sub">Details</h3>
+      <h3 className="sub" id="st-details" ref={detailsRef}>Project details</h3>
       <SiteForm initial={siteFormValues(site)} submitLabel="Save details" busyLabel="Saving…" onSubmit={saveDetails} />
 
       {can('finance.view') && (
@@ -311,6 +298,23 @@ function SettingsTab({ cid, sid, site }) {
           </form>
         </>
       )}
+      <h3 className="sub">Report days</h3>
+      <ReportDaysSetting cid={cid} site={site} />
+
+      <h3 className="sub">Project image</h3>
+      <CoverSetting cid={cid} site={site} />
+
+      <h3 className="sub">Client emails</h3>
+      <label className="dwg-check"><input type="checkbox" checked={!!site.clientReports} disabled={!site.client?.email}
+        onChange={(e) => save(setClientReports(cid, sid, e.target.checked), 'Client emails').then(() => toast(e.target.checked ? `Each daily report will be emailed to ${site.client.name}.` : 'The client no longer gets daily reports.')).catch((e2) => toast(e2.message, 'err'))} />
+        Email each daily report to the client{site.client?.email ? ` (${site.client.email})` : ''}</label>
+      <p className="hint">{site.client?.email ? 'Reports carry no money figures. The client can unsubscribe from any email.' : 'Add the client’s email in the details below first.'}</p>
+
+      <h3 className="sub">Status</h3>
+      <Choice label="Site status" value={site.status} disabled={statusBusy} onChange={(st) => st !== site.status && changeStatus(st)}
+        options={SITE_STATUSES.map((st) => ({ value: st, label: SITE_STATUS_LABELS[st] }))} />
+      <p className="hint">Active: daily reports expected. On hold: work paused, no report reminders. Closed: finished, read-only for the site team.</p>
+
       {can('company.settings') && <DeleteProject cid={cid} site={site} />}
     </>
   );

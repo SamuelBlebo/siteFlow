@@ -1423,3 +1423,6 @@ body.sheet-open { overflow: hidden; }
 .lp-phone::before, .lp-phone::after { width: 0.9%; background: linear-gradient(90deg, #6d7179, #a4a9b1); }
 .lp-phone::before { right: -1.6%; }
 .lp-phone::after { left: -1.6%; background: linear-gradient(270deg, #6d7179, #a4a9b1); }
+
+/* "Edit project" scrolls to the details form: leave room for the bar at the top */
+#st-details { scroll-margin-top: 90px; }
