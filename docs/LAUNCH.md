@@ -42,11 +42,18 @@ client signs up. Each step says who does it. Nothing on production happens witho
 2. In the console: Auth with email and password plus Google, and the production domain in
    Authorised domains. Storage in europe-west1, with object versioning:
    `gcloud storage buckets update gs://<prod bucket> --versioning`.
-3. Secrets: `EMAIL_API_KEY` (Resend), `ANTHROPIC_API_KEY` (or `none`), `WHATSAPP_TOKEN` and
+3. **Let Storage read the database (cross-service rules).** The storage rules look up each person's role in
+   Firestore, which only works once Storage's service account has the role *Firebase Rules Firestore Service
+   Agent*. Without it every upload (report photos, drawings, project images, 3D models) fails with
+   `storage/unauthorized`. Grant it in the console: IAM & Admin > IAM > Grant access, principal
+   `service-<project number>@gcp-sa-firebasestorage.iam.gserviceaccount.com`, role *Firebase Rules Firestore
+   Service Agent*. (The Firebase CLI offers this on an interactive `firebase deploy --only storage`; a
+   non-interactive deploy skips it.)
+4. Secrets: `EMAIL_API_KEY` (Resend), `ANTHROPIC_API_KEY` (or `none`), `WHATSAPP_TOKEN` and
    `WHATSAPP_PHONE_ID` (`none` until WhatsApp is verified). See OPERATIONS.md.
-4. Deploy with the **Deploy to production** workflow (Actions tab, type "deploy production"). It
+5. Deploy with the **Deploy to production** workflow (Actions tab, type "deploy production"). It
    only deploys a `main` commit that passed CI, waits for an approver and tags the release.
-5. Wait until the Firestore indexes show Enabled.
+6. Wait until the Firestore indexes show Enabled.
 
 ## D. Check before the first client (developer)
 

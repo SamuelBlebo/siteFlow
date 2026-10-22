@@ -889,6 +889,32 @@ describe('project image', () => {
   });
 });
 
+describe('a fully filled-in project', () => {
+  it('managers can still change its image, details and model (the rules stay within Firestore limits)', async () => {
+    const sid = 'busy-site';
+    const days = Array.from({ length: 150 }, (_, i) => `2026-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), paths.site(C1, sid)), {
+        name: 'East Legon office complex', location: 'East Legon, Accra', stage: 'First floor slab', progress: 46, status: 'active',
+        foremanName: 'Yaw Boateng', foremanPhone: '0201234567', foremanEmail: 'yaw@example.com', lastReportDate: '2026-10-21', lastReportTime: '16:10',
+        planStart: '2026-01-05', planEnd: '2027-06-30', client: { name: 'Northgate Properties Ltd', phone: '0302998877', email: 'projects@example.com' },
+        overviewDrawingId: 'd1', clientReports: true, cover: 'https://firebasestorage.googleapis.com/v0/b/x/o/c.jpg', workDays: [1, 2, 3, 4, 5, 6], skipDates: days,
+        model: { file: 'https://firebasestorage.googleapis.com/v0/b/x/o/m.glb', kind: 'glb', name: 'Offices.glb', sizeMb: 12, uploadedBy: USERS.owner, uploadedByName: 'owner user', uploadedAt: Timestamp.now() },
+        createdAt: Timestamp.now(),
+      });
+    });
+    const ref = (r: Role) => doc(asRole(r), paths.site(C1, sid));
+    await assertSucceeds(updateDoc(ref('manager'), { cover: 'https://firebasestorage.googleapis.com/v0/b/x/o/new.jpg', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('manager'), { name: 'East Legon offices', location: 'East Legon', stage: 'Roofing', planEnd: '2027-07-31', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('manager'), { model: { file: 'https://firebasestorage.googleapis.com/v0/b/x/o/m2.ifc', kind: 'ifc', name: 'Offices.ifc', sizeMb: 40, uploadedBy: USERS.manager, uploadedByName: 'manager user', uploadedAt: serverTimestamp() } }));
+    // Still strict about what changes
+    await assertFails(updateDoc(ref('manager'), { name: 'X' }));
+    await assertFails(updateDoc(ref('manager'), { sample: true }));
+    await assertFails(updateDoc(ref('manager'), { surprise: 1 }));
+    await assertFails(updateDoc(ref('manager'), { model: { file: 'https://firebasestorage.googleapis.com/v0/b/x/o/m3.ifc', kind: 'ifc', name: 'A.ifc', sizeMb: 1, uploadedBy: USERS.owner, uploadedByName: 'owner user' } }));
+  });
+});
+
 describe('3D model', () => {
   it('managers set or clear the model; it must be a model file they uploaded; the site team cannot', async () => {
     const ref = (r: Role) => doc(asRole(r), paths.site(C1, S1));
