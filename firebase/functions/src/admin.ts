@@ -1,9 +1,12 @@
 import { onCall, HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { getAuth, type UserRecord } from 'firebase-admin/auth';
-import { getFirestore, type DocumentSnapshot, type Firestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, type DocumentSnapshot, type Firestore } from 'firebase-admin/firestore';
+import { logger } from 'firebase-functions';
 import { checkLimit } from './limits';
+import { EMAIL_KEY, sendEmail } from './notify';
+import { issueInvite, type IssuedInvite } from './invites';
 import {
-  ADMIN_FIELDS, adminCompanyInput, adminFindUserInput, companyLocale, companyStatus, gettingStartedSteps, paths, todayKey, validate,
+  ADMIN_FIELDS, adminCompanyFlagInput, adminCompanyInput, adminDisableInput, adminInviteInput, adminUserActionInput, adminFindUserInput, companyLocale, companyStatus, gettingStartedSteps, paths, todayKey, validate,
   type CompanyStatus, type StepKey,
 } from '@siteflow/shared';
 
@@ -13,6 +16,7 @@ import {
 // answer goes through pick() with its ADMIN_FIELDS list, so no report, issue, finance or activity text leaves.
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const DAY = 86_400_000;
+const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 
 export type CompanyRow = {
   id: string; name: string; country: string; ownerName: string; ownerEmail: string; createdAt: string | null;
@@ -256,8 +260,99 @@ export async function adminLogListHandler(req: CallableRequest): Promise<{ entri
   };
 }
 
+// One line in the admin log for something the admin did. Never goes into a company's own activity feed.
+export async function logAdmin(db: Firestore, admin: { uid: string; name: string }, action: string, target: string) {
+  await db.collection('adminLog').add({ who: admin.name, whoId: admin.uid, action, target, at: FieldValue.serverTimestamp() });
+}
+
+// A login that exists, or a clear "not found"
+async function loginOf(uid: string) {
+  return getAuth().getUser(uid).catch((e) => {
+    if (e?.code === 'auth/user-not-found') throw new HttpsError('not-found', 'That person was not found.');
+    throw e;
+  });
+}
+
+// Email someone a link to choose a new password
+export async function adminSendPasswordResetHandler(req: CallableRequest): Promise<{ email: 'sent' | 'failed' | 'skipped' }> {
+  const admin = await requireAdmin(req);
+  const { uid } = parse(adminUserActionInput, req.data);
+  const user = await loginOf(uid);
+  if (!user.email) throw new HttpsError('failed-precondition', 'That login has no email address.');
+  const link = await getAuth().generatePasswordResetLink(user.email, { url: `${APP_URL}/login` });
+  const text = `Hi,
+
+SiteFlow was asked to send you a link to set a new password.
+
+Set it here:
+${link}
+
+If you didn't expect this, you can ignore this email.
+
+SiteFlow`;
+  const html = `<p>Hi,</p><p>SiteFlow was asked to send you a link to set a new password.</p><p><a href="${link}">Set a new password</a></p><p>If you didn't expect this, you can ignore this email.</p><p>SiteFlow</p>`;
+  const res = await sendEmail(user.email, 'Reset your SiteFlow password', text, { html }).catch((e) => {
+    logger.warn('Password reset email failed', { error: String(e) });
+    return { status: 'failed' as const };
+  });
+  await logAdmin(getFirestore(), admin, 'password reset', user.email);
+  return { email: res.status };
+}
+
+// A fresh invitation for someone who has not accepted yet. The link stays in the email.
+export async function adminResendInviteHandler(req: CallableRequest): Promise<Omit<IssuedInvite, 'link'>> {
+  const admin = await requireAdmin(req);
+  const { cid, uid } = parse(adminInviteInput, req.data);
+  const db = getFirestore();
+  const snap = await db.doc(paths.member(cid, uid)).get();
+  if (!snap.exists) throw new HttpsError('not-found', 'That person was not found in this company.');
+  const m = snap.data()!;
+  if (!m.invitePending) throw new HttpsError('failed-precondition', 'That person has already accepted their invitation.');
+  const { link: _link, ...issued } = await issueInvite(db, { id: uid, companyId: cid, email: m.email, name: m.name, role: m.role }, admin, m.inviteKind === 'reset' ? 'reset' : 'invite');
+  await logAdmin(db, admin, 'resent invite', m.email || uid);
+  return issued;
+}
+
+// Switch a login off (or back on). Switching off also signs the person out everywhere.
+export async function adminSetLoginDisabledHandler(req: CallableRequest): Promise<{ disabled: boolean }> {
+  const admin = await requireAdmin(req);
+  const { uid, disabled } = parse(adminDisableInput, req.data);
+  if (uid === admin.uid) throw new HttpsError('failed-precondition', "You can't switch off your own login.");
+  const user = await loginOf(uid);
+  await getAuth().updateUser(uid, { disabled });
+  if (disabled) await getAuth().revokeRefreshTokens(uid);
+  await logAdmin(getFirestore(), admin, disabled ? 'switched off login' : 'switched on login', user.email || uid);
+  return { disabled };
+}
+
+// Change one flag on a company (suspended or internal), then log it under the company's name
+async function setCompanyFlag(req: CallableRequest, action: [string, string], change: (admin: { name: string }, on: boolean) => Record<string, unknown>) {
+  const admin = await requireAdmin(req);
+  const { cid, on } = parse(adminCompanyFlagInput, req.data);
+  const db = getFirestore();
+  const ref = db.doc(paths.company(cid));
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'That company was not found.');
+  await ref.update(change(admin, on));
+  await logAdmin(db, admin, on ? action[0] : action[1], snap.data()?.name || cid);
+  return { on };
+}
+
+// Pause a company's account (its people see the paused screen), or lift the pause
+export const adminSetCompanySuspendedHandler = (req: CallableRequest) =>
+  setCompanyFlag(req, ['suspended company', 'unsuspended company'], (admin, on) => ({ suspended: on ? { by: admin.name, at: FieldValue.serverTimestamp() } : null }));
+
+// Mark a company as ours (test or demo), so it is left out of every count
+export const adminSetCompanyInternalHandler = (req: CallableRequest) =>
+  setCompanyFlag(req, ['marked company internal', 'unmarked company internal'], (_admin, on) => ({ internal: on }));
+
 export const adminOverview = onCall(callOpts, adminOverviewHandler);
 export const adminCompanies = onCall(callOpts, adminCompaniesHandler);
 export const adminCompany = onCall(callOpts, adminCompanyHandler);
 export const adminFindUser = onCall(callOpts, adminFindUserHandler);
 export const adminLogList = onCall(callOpts, adminLogListHandler);
+export const adminSendPasswordReset = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, adminSendPasswordResetHandler);
+export const adminResendInvite = onCall({ ...callOpts, secrets: [EMAIL_KEY] }, adminResendInviteHandler);
+export const adminSetLoginDisabled = onCall(callOpts, adminSetLoginDisabledHandler);
+export const adminSetCompanySuspended = onCall(callOpts, adminSetCompanySuspendedHandler);
+export const adminSetCompanyInternal = onCall(callOpts, adminSetCompanyInternalHandler);

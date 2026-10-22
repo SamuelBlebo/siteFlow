@@ -14,4 +14,5 @@ export { onIssueComment, emailSettings, saveEmailSettings, unsubscribe } from '.
 export { aiOverview } from './overview';
 export { requestReportChanges, onReportReviewed } from './reviews';
 export { recordWages, onExpenseChanged, onAttendanceChanged, onBudgetChanged, onReportDeleted } from './ledger';
-export { adminOverview, adminCompanies, adminCompany, adminFindUser, adminLogList } from './admin';
+export { adminOverview, adminCompanies, adminCompany, adminFindUser, adminLogList,
+  adminSendPasswordReset, adminResendInvite, adminSetLoginDisabled, adminSetCompanySuspended, adminSetCompanyInternal } from './admin';

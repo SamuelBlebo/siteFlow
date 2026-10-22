@@ -5,7 +5,8 @@ import '../src/setup';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { ADMIN_FIELDS, paths, todayKey } from '@siteflow/shared';
-import { adminCompaniesHandler, adminCompanyHandler, adminFindUserHandler, adminLogListHandler, adminOverviewHandler, lastActiveOf, pick } from '../src/admin';
+import { adminCompaniesHandler, adminCompanyHandler, adminFindUserHandler, adminLogListHandler, adminOverviewHandler, adminResendInviteHandler, adminSendPasswordResetHandler,
+  adminSetCompanyInternalHandler, adminSetCompanySuspendedHandler, adminSetLoginDisabledHandler, lastActiveOf, pick } from '../src/admin';
 
 const db = getFirestore();
 const ADMIN = { uid: 'platform-owner', token: { platformAdmin: true, name: 'Sam Owner' } };
@@ -63,9 +64,14 @@ describe('admin access', () => {
     ['adminCompany', adminCompanyHandler, { cid: 'co-real' }],
     ['adminFindUser', adminFindUserHandler, { email: 'ama@example.com' }],
     ['adminLogList', adminLogListHandler, {}],
+    ['adminSendPasswordReset', adminSendPasswordResetHandler, { uid: 'u-ama' }],
+    ['adminResendInvite', adminResendInviteHandler, { cid: 'co-real', uid: 'u-kofi' }],
+    ['adminSetLoginDisabled', adminSetLoginDisabledHandler, { uid: 'u-kofi', disabled: true }],
+    ['adminSetCompanySuspended', adminSetCompanySuspendedHandler, { cid: 'co-real', on: true }],
+    ['adminSetCompanyInternal', adminSetCompanyInternalHandler, { cid: 'co-real', on: true }],
   ];
   it.each(calls)('%s refuses anyone without the platform admin claim', async (_name, fn, data) => {
-    await expect(fn(req(data, null))).rejects.toMatchObject({ code: 'permission-denied' });
+    await expect(fn(req(data, null))).rejects.toMatchObject({ code: 'permission-denied', message: 'You no longer have admin access.' });
     await expect(fn(req(data, { uid: 'u-ama', token: {} }))).rejects.toMatchObject({ code: 'permission-denied' });
     await expect(fn(req(data, { uid: 'u-ama', token: { platformAdmin: 'true' } }))).rejects.toMatchObject({ code: 'permission-denied' });
   });
@@ -173,5 +179,69 @@ describe('admin log', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ who: 'Sam Owner', action: 'password reset', target: 'kofi@example.com', at: expect.any(String) });
     expect(allowed(entries[0], ADMIN_FIELDS.logEntry)).toBe(true);
+  });
+});
+
+const logs = async () => (await adminLogListHandler(req())).entries;
+
+describe('admin actions', () => {
+  it('suspending and unsuspending a company sets and clears the flag, logs both, and leaves the company activity alone', async () => {
+    const before = (await db.collection(paths.activity('co-real')).get()).size;
+    await adminSetCompanySuspendedHandler(req({ cid: 'co-real', on: true }));
+    const s = (await db.doc(paths.company('co-real')).get()).data()!;
+    expect(s.suspended).toMatchObject({ by: 'Sam Owner' });
+    expect(s.suspended.at).toBeInstanceOf(Timestamp);
+    await adminSetCompanySuspendedHandler(req({ cid: 'co-real', on: false }));
+    expect((await db.doc(paths.company('co-real')).get()).data()!.suspended).toBeNull();
+    const mine = (await logs()).filter((e) => e.target === 'Asante Builders');
+    expect(mine.map((e) => e.action).sort()).toEqual(['suspended company', 'unsuspended company']);
+    expect((await db.collection(paths.activity('co-real')).get()).size).toBe(before);
+  });
+
+  it('marking a company internal sets the flag and logs it; an unknown company is not found', async () => {
+    await adminSetCompanyInternalHandler(req({ cid: 'co-sample', on: true }));
+    expect((await db.doc(paths.company('co-sample')).get()).data()!.internal).toBe(true);
+    await adminSetCompanyInternalHandler(req({ cid: 'co-sample', on: false }));
+    expect((await db.doc(paths.company('co-sample')).get()).data()!.internal).toBe(false);
+    expect((await logs()).filter((e) => e.target === 'Boateng Works')).toHaveLength(2);
+    await expect(adminSetCompanySuspendedHandler(req({ cid: 'nope', on: true }))).rejects.toMatchObject({ code: 'not-found' });
+  });
+
+  it('refuses to switch off your own login, and disables someone else', async () => {
+    await getAuth().createUser({ uid: ADMIN.uid, email: 'owner@siteflow.app' });
+    await expect(adminSetLoginDisabledHandler(req({ uid: ADMIN.uid, disabled: true }))).rejects.toMatchObject({
+      code: 'failed-precondition', message: "You can't switch off your own login.",
+    });
+    expect((await getAuth().getUser(ADMIN.uid)).disabled).toBe(false);
+    await adminSetLoginDisabledHandler(req({ uid: 'u-kofi', disabled: true }));
+    expect((await getAuth().getUser('u-kofi')).disabled).toBe(true);
+    await adminSetLoginDisabledHandler(req({ uid: 'u-kofi', disabled: false }));
+    expect((await getAuth().getUser('u-kofi')).disabled).toBe(false);
+    expect((await logs()).map((e) => e.action)).toEqual(expect.arrayContaining(['switched off login', 'switched on login']));
+  });
+
+  it('sends a password reset (skipped in test mode) and logs the email', async () => {
+    expect(await adminSendPasswordResetHandler(req({ uid: 'u-ama' }))).toEqual({ email: 'skipped' });
+    expect((await logs()).some((e) => e.action === 'password reset' && e.target === 'ama@example.com')).toBe(true);
+    await expect(adminSendPasswordResetHandler(req({ uid: 'nobody' }))).rejects.toMatchObject({ code: 'not-found' });
+  });
+
+  it('resends an invite only to a member who has not accepted yet, without handing back the link', async () => {
+    await expect(adminResendInviteHandler(req({ cid: 'co-real', uid: 'u-kofi' }))).rejects.toMatchObject({ code: 'failed-precondition' });
+    await db.doc(paths.member('co-real', 'u-kofi')).update({ invitePending: true, inviteKind: 'invite' });
+    const r = await adminResendInviteHandler(req({ cid: 'co-real', uid: 'u-kofi' }));
+    expect(r).toEqual({ expiresAt: expect.any(String), email: 'skipped' });
+    expect(r).not.toHaveProperty('link');
+    expect((await logs()).some((e) => e.action === 'resent invite' && e.target === 'kofi@example.com')).toBe(true);
+  });
+
+  it('the log lists the newest entries first', async () => {
+    await db.collection('adminLog').add({ who: 'Sam Owner', whoId: ADMIN.uid, action: 'old', target: 'x', at: Timestamp.fromMillis(1000) });
+    await db.collection('adminLog').add({ who: 'Sam Owner', whoId: ADMIN.uid, action: 'older', target: 'x', at: Timestamp.fromMillis(500) });
+    const e = await logs();
+    const times = e.map((x) => Date.parse(x.at!));
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+    expect(e.slice(-2).map((x) => x.action)).toEqual(['old', 'older']);
+    expect(e.every((x) => allowed(x, ADMIN_FIELDS.logEntry))).toBe(true);
   });
 });
