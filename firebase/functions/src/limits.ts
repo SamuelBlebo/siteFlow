@@ -15,6 +15,7 @@ export const LIMITS = {
   deleteProject: { max: 20, windowMs: 60 * 60 * 1000 },    // projects deleted per hour
   ai: { max: 120, windowMs: 60 * 60 * 1000 },              // AI overviews written (not cached) per hour
   migrate: { max: 20, windowMs: 60 * 60 * 1000 },          // moving an account to company memberships
+  admin: { max: 600, windowMs: 60 * 60 * 1000 },           // platform admin calls (reads and actions) per hour
 } as const;
 export type LimitKey = keyof typeof LIMITS;
 
