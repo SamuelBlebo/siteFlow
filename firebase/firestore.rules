@@ -104,6 +104,7 @@ service cloud.firestore {
       // Team: role, projects and switch per person. Written by Cloud Functions only (they check the
       // role rules and keep the audit trail). Project managers see the team to assign people to sites.
       match /members/{uid} {
+        // Your own seat stays readable while the company is paused: the app needs it to show the paused screen
         allow read: if (signedIn() && request.auth.uid == uid) || siteManager(cid);
         allow write: if false;
       }

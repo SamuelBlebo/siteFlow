@@ -977,6 +977,12 @@ describe('suspended company', () => {
     await assertFails(getDocs(query(collectionGroup(asRole('owner'), 'reports'), where('companyId', '==', C1))));
     await assertFails(sendReport(asRole('supervisor'), C1, S1, USERS.supervisor, 'supervisor user'));
   });
+  it('a paused member can still read their own seat, but not other people seats', async () => {
+    await suspend(env, C1);
+    await assertSucceeds(getDoc(doc(asRole('owner'), paths.member(C1, USERS.owner))));
+    await assertFails(getDoc(doc(asRole('owner'), paths.member(C1, USERS.admin))));
+    await assertFails(getDocs(collection(asRole('owner'), paths.members(C1))));
+  });
   it('the owner cannot change the company or clear the pause', async () => {
     await suspend(env, C1);
     const ref = doc(asRole('owner'), paths.company(C1));
