@@ -151,7 +151,30 @@ Send it by email to the owner.
 - how long it is kept
 - how to ask for deletion
 
-## 4. If something goes wrong
+## 4. Platform admin (SiteFlow staff only)
+
+The admin area shows how companies are using SiteFlow: counts and activity only. It never shows reports, issues, finances, photos or drawings, and the database rules give an admin no extra access to them.
+
+**Grant or remove access.** The admin claim is never set from inside the app. Only this script sets it:
+
+1. Sign in once: `gcloud auth application-default login`
+2. Grant: `node scripts/set-platform-admin.mjs --project <project id> you@your-domain`
+3. Remove: add `--off` to the same command.
+4. The person signs out and back in to pick it up.
+
+The script keeps any other claims the login already has and prints the claims it ends with. It refuses to run without `--project`, so you always choose dev or prod on purpose.
+
+**What each action does.** Every action is written to the admin log (who, what, which target, when). The log is readable only through the admin area.
+
+| Action | Effect |
+| --- | --- |
+| Send password reset | Emails the person a reset link |
+| Resend invite | Sends a fresh invite email to someone who has not joined yet |
+| Disable login | Switches off the person's sign-in. They are blocked from **every company they belong to**, not just one. Enable it again to restore access |
+| Suspend company | Pauses the company: its data, files, functions and scheduled emails, reminders, digests and message retries all stop. Members see "This company's account is paused. Contact SiteFlow." and can still open the company record itself. Nothing is deleted; un-suspend to resume |
+| Mark internal | Leaves the company out of every count and chart (use for test and demo companies) |
+
+## 5. If something goes wrong
 
 1. **Bad release.** Roll back:
    - web: Firebase console > Hosting > previous release > Rollback
