@@ -27,11 +27,18 @@ export async function membershipOf(db: Firestore, uid: string, cid?: string): Pr
   return { ...m, id: uid, companyId: company, name: m.name || account?.name || '', email: m.email || account?.email || '' } as Membership;
 }
 
+// A company SiteFlow has paused (companies/{cid}.suspended is set) is refused by every company callable
+export async function assertNotSuspended(db: Firestore, cid: string): Promise<void> {
+  const company = (await db.doc(paths.company(cid)).get()).data();
+  if (company?.suspended) throw new HttpsError('permission-denied', "This company's account is paused. Contact SiteFlow.");
+}
+
 // The signed-in person in the company they are working in, who must be switched on with a known role
 export async function actorOf(db: Firestore, uid: string | undefined): Promise<Membership> {
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.');
   const me = await membershipOf(db, uid);
   if (!me || me.active === false || !isRole(me.role)) throw new HttpsError('permission-denied', 'You no longer have access to this company.');
+  await assertNotSuspended(db, me.companyId);
   return me;
 }
 
@@ -93,6 +100,7 @@ export const migrateAccount = onCall(callOpts, async (req) => {
   await checkLimit(req.auth.uid, 'migrate');
   const u = (await db.doc(paths.user(req.auth.uid)).get()).data();
   if (!u?.companyId || !('role' in u)) return { moved: 0 };
+  await assertNotSuspended(db, u.companyId);
   const moved = await migrateCompany(db, u.companyId);
   logger.info('Moved accounts to memberships', { cid: u.companyId, moved });
   return { moved };
