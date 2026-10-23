@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
-import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
+import { canAccessSite } from '@siteflow/shared';
 import { auth } from './firebase';
 import { useAuth } from './auth/AuthProvider';
 import Layout from './components/Layout';
@@ -74,9 +75,18 @@ function NoAccess({ title, children }) {
 
 // The platform admin's page, outside the company shell. Everyone else is sent to the home page.
 function AdminRoute() {
-  const { platformAdmin } = useAuth();
+  const { platformAdmin, viewAs } = useAuth();
   if (platformAdmin === null) return <Loading />;
-  return platformAdmin ? <Admin /> : <Navigate to="/" replace />;
+  return platformAdmin && !viewAs ? <Admin /> : <Navigate to="/" replace />;
+}
+
+// View as: a project the previewed role or person is not on looks as it would to them. The owner's
+// own login could read it, so without this the preview would show more than they would see.
+function OnSite({ children }) {
+  const { sid } = useParams();
+  const { profile, viewAs } = useAuth();
+  if (viewAs && !canAccessSite(profile, sid)) return <p className="pad">This project doesn't exist or you don't have access. <Link to="/sites">Back to projects</Link></p>;
+  return children;
 }
 
 function WorkRedirect() {
@@ -107,12 +117,12 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="sites" element={<Sites />} />
           <Route path="reports" element={<Guard perm="sites.all"><Reports /></Guard>} />
-          <Route path="reports/:sid/:rid" element={<ReportDetail />} />
+          <Route path="reports/:sid/:rid" element={<OnSite><ReportDetail /></OnSite>} />
           <Route path="issues" element={<Guard perm="sites.all"><Issues /></Guard>} />
-          <Route path="issues/:sid/:id" element={<IssueDetail />} />
+          <Route path="issues/:sid/:id" element={<OnSite><IssueDetail /></OnSite>} />
           <Route path="finance" element={<Guard perm="finance.view"><Finance /></Guard>} />
           <Route path="sites/new" element={<Guard perm="sites.manage"><NewSite /></Guard>} />
-          <Route path="sites/:sid" element={<SiteDetail />} />
+          <Route path="sites/:sid" element={<OnSite><SiteDetail /></OnSite>} />
           <Route path="team" element={<Guard perm="team.manage"><Team /></Guard>} />
           <Route path="company" element={<Guard perm="company.settings"><Company /></Guard>} />
           <Route path="modules" element={<Guard perm="company.settings"><Modules /></Guard>} />

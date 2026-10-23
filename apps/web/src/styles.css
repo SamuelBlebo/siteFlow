@@ -115,8 +115,8 @@ button { cursor: pointer; }
 .uhead { padding: 6px 8px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .uhead b { display: block; }
 .uhead small { color: var(--muted); }
-.upanel > a, .uout { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; border: 0; background: none; text-align: left; width: 100%; }
-.upanel > a:hover, .uout:hover { background: var(--sunk); }
+.upanel > a, .uout, .uitem { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; border: 0; background: none; text-align: left; width: 100%; }
+.upanel > a:hover, .uout:hover, .uitem:hover { background: var(--sunk); }
 .upanel .ico { width: 16px; height: 16px; color: var(--muted); }
 .ulbl { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 8px 6px; }
 .upanel .theme-switch { margin: 0 4px; }
@@ -1442,3 +1442,33 @@ body.sheet-open { overflow: hidden; }
   .admin-who { display: none; }
 }
 @media (max-width: 700px) { .admin-acts { justify-content: flex-start; } }
+
+/* View as: the preview bar and the chooser */
+.viewas-bar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-bottom: 10px;
+  background: var(--brass); color: var(--brass-ink); border-radius: var(--radius); padding: 8px 10px 8px 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
+.viewas-bar > .ico, .viewas-bar > svg { width: 18px; height: 18px; flex: none; }
+.viewas-bar .grow { flex: 1; min-width: 160px; font-size: 14px; }
+.viewas-bar small { display: block; font-size: 12px; opacity: .85; }
+.viewas-bar .btn { border-color: var(--brass-ink); }
+.viewas-bar .btn:not(.ghost) { background: var(--brass-ink); color: var(--brass); }
+.viewas-bar .btn.ghost { background: transparent; color: var(--brass-ink); }
+.previewing .topbar { position: relative; top: 0; }
+.viewas-bg { position: fixed; inset: 0; z-index: 60; background: rgba(10, 14, 18, .45); display: grid; place-items: center; padding: 16px; color: var(--ink); }
+.viewas-box { width: min(440px, 100%); max-height: min(640px, calc(100dvh - 32px)); overflow-y: auto; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; box-shadow: 0 20px 50px rgba(0, 0, 0, .2); padding: 16px; outline: none; }
+.viewas-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.viewas-h b { font-size: 17px; }
+.viewas-lbl { margin: 14px 0 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.viewas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.viewas-list button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; padding: 9px 10px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; cursor: pointer; }
+.viewas-list button:hover { background: var(--sunk); }
+.viewas-list button[aria-current="true"] { border-color: var(--brass); background: var(--brass-soft); }
+.viewas-list small { color: var(--muted); font-size: 12.5px; }
+.viewas-box .field input { width: 100%; max-width: none; }
+@media (max-width: 640px) {
+  .viewas-bar { border-radius: 0 0 var(--radius) var(--radius); margin: 0 0 10px; }
+  .viewas-bar .btn { flex: 1; }
+  .viewas-bg { align-items: end; padding: 0; }
+  .viewas-box { width: 100%; max-height: 85dvh; border-radius: 18px 18px 0 0; }
+}

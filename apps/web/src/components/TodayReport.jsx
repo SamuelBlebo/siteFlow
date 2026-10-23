@@ -9,7 +9,7 @@ import ReportForm from './ReportForm';
 // Today's report on the Daily reports tab, folded away so the history shows first. It opens
 // straight away when someone came to write it (Make a report, or a link asking for it).
 export default function TodayReport({ cid, site, data, startOpen }) {
-  const { user } = useAuth();
+  const { me } = useAuth();
   const [open, setOpen] = useState(!!startOpen);
   const box = useRef(null);
   const { key } = useLocation();
@@ -19,7 +19,7 @@ export default function TodayReport({ cid, site, data, startOpen }) {
     setOpen(true);
     requestAnimationFrame(() => box.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }, [startOpen, key]);
-  const { data: mine } = useDoc(() => cid && user && reportRef(cid, site.id, reportId(todayKey(), user.uid)), [cid, site.id, user?.uid]);
+  const { data: mine } = useDoc(() => cid && me && reportRef(cid, site.id, reportId(todayKey(), me)), [cid, site.id, me]);
   const id = `today-report-${site.id}`;
   return (
     <section ref={box} className={`today-report ${open ? 'open' : ''} ${mine ? 'sent' : ''}`}>

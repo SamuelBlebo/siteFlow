@@ -8,6 +8,7 @@ import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
 import Icon from './Icons';
 import TopBar, { initials } from './TopBar';
+import { ViewAsBar } from './ViewAs';
 import BottomNav from './BottomNav';
 import { usePins } from './PinButton';
 import { useProfileSkin } from '../lib/skin';
@@ -18,7 +19,7 @@ const late = (s) => reportDay(s, todayKey()) === 'due';
 // The app shell: a white sidebar that stays put (company, menu in groups, projects, you), and beside
 // it the top bar and the page. On phones the sidebar gives way to a bottom bar of icons, like a phone app.
 export default function Layout() {
-  const { cid, profile, role, can, companies, switchCompany } = useAuth();
+  const { cid, profile, role, can, companies, switchCompany, viewAs } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const main = useRef(null);
@@ -102,7 +103,7 @@ export default function Layout() {
         </div>
       </aside>
       {/* A crash in one page keeps the menu working; moving to another page clears it */}
-      <main id="main" className="main" ref={main} tabIndex={-1}><TopBar /><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
+      <main id="main" className={`main${viewAs ? ' previewing' : ''}`} ref={main} tabIndex={-1}><ViewAsBar /><TopBar /><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
       <BottomNav items={items} projects={projectLinks} companyPick={companyPick} siteIds={all ? null : profile?.siteIds || []} />
     </div>
   );

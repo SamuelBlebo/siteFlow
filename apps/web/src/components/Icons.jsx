@@ -9,6 +9,7 @@ const P = {
   modules: <><rect x="2" y="2" width="5" height="5" rx="1" /><rect x="9" y="9" width="5" height="5" rx="1" /><path d="M11.5 2v5M9 4.5h5M2 11.5h5" /></>,
   reminders: <><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 2h-11z" /><path d="M6.5 14.5a1.6 1.6 0 0 0 3 0" /></>,
   company: <><path d="M2.5 14V3.5h7V14M9.5 7h4v7M1.5 14h13" /><path d="M5 6h2M5 8.5h2M5 11h2" /></>,
+  eye: <><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z" /><circle cx="8" cy="8" r="2" /></>,
   clock: <><circle cx="8" cy="8" r="6" /><path d="M8 4.5V8l2.5 1.5" /></>,
   calendar: <><rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 6.5h12M5 1.5v3M11 1.5v3" /></>,
   account: <><circle cx="8" cy="5.5" r="2.8" /><path d="M2.5 14c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5" /></>,

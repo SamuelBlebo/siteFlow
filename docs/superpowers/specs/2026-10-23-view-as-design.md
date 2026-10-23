@@ -1,6 +1,6 @@
 # View as: see the app as another role or person
 
-Date: 2026-10-23. Status: design, awaiting approval.
+Date: 2026-10-23. Status: approved and built (feat/view-as).
 
 ## Why
 

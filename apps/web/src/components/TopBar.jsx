@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ROLE_LABELS, longToday } from '@siteflow/shared';
+import { ROLE_LABELS, canViewAs, longToday } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { logOut } from '../lib/account';
 import Brand from './Brand';
 import Icon from './Icons';
 import SkinPicker from './SkinPicker';
 import ThemeSwitch from './ThemeSwitch';
+import { ViewAsChooser } from './ViewAs';
 
 export const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 const clock = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -28,8 +29,9 @@ export default function TopBar() {
 }
 
 function UserMenu() {
-  const { user, profile, role, platformAdmin } = useAuth();
+  const { user, profile, role, platformAdmin, realRole, viewAs } = useAuth();
   const [open, setOpen] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const box = useRef(null);
   useEffect(() => {
     if (!open) return undefined;
@@ -52,8 +54,11 @@ function UserMenu() {
           <div className="uhead"><b>{profile?.name}</b><small>{user?.email}</small></div>
           <Link to="/account" onClick={close}><Icon name="account" />Your account</Link>
           <Link to="/account#emails" onClick={close}><Icon name="mail" />Email settings</Link>
-          {/* Only the person who runs SiteFlow (the platformAdmin claim). The server checks it again on every call. */}
-          {platformAdmin && <Link to="/admin" onClick={close}><Icon name="admin" />Admin</Link>}
+          {/* Owners and admins: see the app as a role or a person (a preview, nothing is saved) */}
+          {canViewAs(realRole) && <button type="button" className="uitem" onClick={() => { close(); setChoosing(true); }}><Icon name="eye" />View as…</button>}
+          {/* Only the person who runs SiteFlow (the platformAdmin claim). The server checks it again on every call.
+              Hidden while previewing, so a demo looks real. */}
+          {platformAdmin && !viewAs && <Link to="/admin" onClick={close}><Icon name="admin" />Admin</Link>}
           <div className="ulbl">Skin</div>
           <SkinPicker />
           <div className="ulbl">Light or dark</div>
@@ -61,6 +66,7 @@ function UserMenu() {
           <button type="button" className="uout" onClick={logOut}><Icon name="signout" />Sign out</button>
         </div>
       )}
+      {choosing && <ViewAsChooser onClose={() => setChoosing(false)} />}
     </div>
   );
 }

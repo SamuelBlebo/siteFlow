@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, onIdTokenChanged, signOut } from 'firebase/auth';
 import { getDoc, onSnapshot } from 'firebase/firestore';
-import { can as roleCan, isRole, setLocale } from '@siteflow/shared';
+import { ROLE_LABELS, applyViewAs, can as roleCan, isRole, isSiteScoped, setLocale } from '@siteflow/shared';
 import { auth } from '../firebase';
-import { companyDoc, memberDoc, switchCompany as saveSwitch, userDoc } from '../lib/db';
+import { companyDoc, memberDoc, sitesCol, switchCompany as saveSwitch, userDoc } from '../lib/db';
+import { setPreview } from '../lib/preview';
 import { migrateAccount } from '../lib/account';
 
 const AuthCtx = createContext(null);
@@ -25,6 +26,10 @@ export function AuthProvider({ children }) {
   // The person who runs SiteFlow (not a client's owner): the platformAdmin claim on their login, set
   // only from the command line. null until the token has been read.
   const [platformAdmin, setPlatformAdmin] = useState(null);
+  // View as (owners and admins): { kind: 'role', role } or { kind: 'person', uid, name, role, siteIds },
+  // plus the company it was started in. Memory only: a reload, sign-out or company switch ends it.
+  const [viewAsState, setViewAs] = useState(null);
+  const [allSiteIds, setAllSiteIds] = useState([]);
 
   // Read on sign-in and every time the token is refreshed, so a claim added or removed shows up
   // within the hour (or straight away after refreshAdmin)
@@ -103,8 +108,29 @@ export function AuthProvider({ children }) {
 
   // A switched-off membership or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);
-  const role = active ? profile.role : null;
   const cid = active ? profile.companyId : null;
+
+  // View as: the screens get the previewed role and projects; user, cid, company and the account
+  // fields stay real. "By role" for a site team shows every project, so nothing is hidden by accident.
+  const wantsAll = !!cid && viewAsState?.kind === 'role' && viewAsState.cid === cid && isSiteScoped(viewAsState.role);
+  useEffect(() => {
+    if (!wantsAll) { setAllSiteIds([]); return undefined; }
+    return onSnapshot(sitesCol(cid), (s) => setAllSiteIds(s.docs.map((d) => d.id)), () => setAllSiteIds([]));
+  }, [wantsAll, cid]);
+  useEffect(() => { if (viewAsState && viewAsState.cid !== cid) setViewAs(null); }, [cid, uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const preview = useMemo(() => (active ? applyViewAs(profile, viewAsState, allSiteIds) : { profile, previewing: false }), [active, profile, viewAsState, allSiteIds]);
+  const shown = preview.profile;
+  const role = active ? shown.role : null;
+  const viewAs = useMemo(() => (preview.previewing
+    ? { ...viewAsState, label: viewAsState.kind === 'person' ? `${viewAsState.name} (${ROLE_LABELS[viewAsState.role]})` : ROLE_LABELS[viewAsState.role] }
+    : null), [preview.previewing, viewAsState]);
+  // lib/ refuses company writes while this is set
+  const label = viewAs?.label || null;
+  useEffect(() => { setPreview(label); }, [label]);
+  // "My" things (today's report, issues assigned to me, requests sent to me) follow the previewed person
+  const me = viewAs?.kind === 'person' ? viewAs.uid : uid || null;
+  const startViewAs = useCallback((v) => { setPreview(null); setViewAs(v && cid ? { ...v, cid } : null); }, [cid]);
+  const stopViewAs = useCallback(() => { setPreview(null); setViewAs(null); }, []);
   // Pages wait for the company document too: it says whether the company is paused (the rules then
   // refuse everything else), so nothing opens and then fails before the paused screen shows
   const loading = !ready || (!!user && !error && (account === undefined || legacy || (!!current && member === undefined) || (!!cid && companyFor !== cid)));
@@ -122,9 +148,10 @@ export function AuthProvider({ children }) {
   const refreshAdmin = useCallback(() => auth.currentUser?.getIdToken(true).catch(() => {}), []);
   // One value object per change, so screens using it only re-render when something in it changes
   const value = useMemo(() => ({
-    user, profile, loading, error, active, role, cid, company, companies, switchCompany, platformAdmin, refreshAdmin,
+    user, profile: shown, loading, error, active, role, cid, company, companies, switchCompany, platformAdmin, refreshAdmin,
     can: (permission) => roleCan(role, permission),
-  }), [user, profile, loading, error, active, role, cid, company, companies, switchCompany, platformAdmin, refreshAdmin]);
+    viewAs, startViewAs, stopViewAs, me, realRole: active ? profile.role : null,
+  }), [user, shown, loading, error, active, role, cid, company, companies, switchCompany, platformAdmin, refreshAdmin, viewAs, startViewAs, stopViewAs, me, profile?.role]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <AuthCtx.Provider value={value}>
       {children}

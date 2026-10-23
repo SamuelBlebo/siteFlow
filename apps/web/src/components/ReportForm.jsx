@@ -17,11 +17,12 @@ const writeDraft = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v));
 const clearDraft = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
 export default function ReportForm({ cid, site, presentCount, logs }) {
-  const { user, profile, company } = useAuth();
+  const { user, me, profile, company } = useAuth();
   // Materials module off: no material lines in the report
   const withMaterials = isOn(company, 'materials');
-  const key = draftKey(cid, site.id, user.uid);
-  const { data: mine, loading } = useDoc(() => reportRef(cid, site.id, myReportId(user.uid)), [cid, site.id, user.uid]);
+  // me: the person being previewed with View as, otherwise the signed-in person
+  const key = draftKey(cid, site.id, me);
+  const { data: mine, loading } = useDoc(() => reportRef(cid, site.id, myReportId(me)), [cid, site.id, me]);
   const { data: milestones } = useQuery(() => milestonesQuery(cid, site.id), [cid, site.id]);
   const fromMilestones = milestones.length > 0;
   const blank = { text: '', notes: '', issues: '', weather: '', stage: site.stage || STAGES[0], progress: site.progress || 0, workersPresent: '' };

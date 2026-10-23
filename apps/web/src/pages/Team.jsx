@@ -16,7 +16,7 @@ import { InviteForm, IssuedLogin } from '../components/Invite';
 
 export default function Team() {
   useTitle('Team');
-  const { cid, role: myRole, user, can } = useAuth();
+  const { cid, role: myRole, me, can } = useAuth();
   const roles = assignableRoles(myRole);
   const { data: members, loading, error } = useQuery(() => cid && teamQuery(cid), [cid]);
   const { data: sites } = useQuery(() => cid && sitesCol(cid), [cid]);
@@ -67,13 +67,13 @@ export default function Team() {
             <thead><tr><th>Name</th><th>Role</th><th>Sites</th><th>Access</th><th /></tr></thead>
             <tbody>
               {sorted.map((m) => {
-                const editable = m.id !== user.uid && canChangeMember(myRole, m.role, m.role);
+                const editable = m.id !== me && canChangeMember(myRole, m.role, m.role);
                 const off = m.active === false;
                 return (
                   <tr key={m.id} className={off ? 'muted' : ''}>
-                    <td><b>{m.name}</b>{m.id === user.uid && <span className="muted small"> (you)</span>}<div className="muted small">{m.email}{m.phone ? `, WhatsApp ${m.phone}` : ''}{m.callPhone ? `, calls ${m.callPhone}` : ''}</div>
+                    <td><b>{m.name}</b>{m.id === me && <span className="muted small"> (you)</span>}<div className="muted small">{m.email}{m.phone ? `, WhatsApp ${m.phone}` : ''}{m.callPhone ? `, calls ${m.callPhone}` : ''}</div>
                       <InviteStatus m={m} />
-                      {m.id !== user.uid && <div className="mt-xs"><ContactLinks person={m} compact /></div>}
+                      {m.id !== me && <div className="mt-xs"><ContactLinks person={m} compact /></div>}
                       {!m.phone && m.active !== false && <span className="pill" title="Add a WhatsApp number on their account to send them alerts">No WhatsApp number</span>}</td>
                     <td>{ROLE_LABELS[m.role] || m.role}</td>
                     <td>{isSiteScoped(m.role)
