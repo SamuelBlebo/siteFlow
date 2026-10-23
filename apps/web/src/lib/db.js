@@ -1,11 +1,13 @@
 import {
-  collection, collectionGroup, doc, getDoc, increment, query, serverTimestamp, setDoc, updateDoc, where, orderBy, limit, writeBatch,
+  collection, collectionGroup, doc, getDoc, increment, query, serverTimestamp, where, orderBy, limit,
 } from 'firebase/firestore';
 import { auth, db, getStorage } from '../firebase';
 import {
   countDifference, withSkip, issueDoc, milestoneProgress, overallProgress, paths, reportDoc, reportId, siteFields, standardMilestones, stockDelta, thumbName, todayKey, timeHM,
 } from '@siteflow/shared';
 import { resizePhoto, thumbnail } from './photos';
+// Writes go through the View as check (refused while previewing, except the person's own settings)
+import { guardWrite, setDoc, updateDoc, writeBatch } from './preview';
 
 // ---------- references (all paths come from @siteflow/shared) ----------
 export const userDoc = (uid) => doc(db, paths.user(uid));
@@ -177,6 +179,7 @@ export const attendanceRangeQuery = (cid, sid, from, to) =>
 // Photos are resized on the device, then stored with a small copy for lists (thumbName in shared).
 // Returns { photos, thumbs }: matching lists of links ('' where no small copy could be made).
 async function uploadWithThumbs(files, pathFor) {
+  guardWrite();
   const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
   const storage = await getStorage();
   const photos = [];

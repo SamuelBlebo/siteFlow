@@ -1,6 +1,7 @@
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { checkModelFile, paths } from '@siteflow/shared';
 import { db, getStorage } from '../firebase';
+import { guardWrite, updateDoc } from './preview';
 
 // The architect's 3D model (IFC or GLB / glTF), one per project. A new upload replaces the old one;
 // the old file is removed only once the project points at the new one.
@@ -8,6 +9,7 @@ import { db, getStorage } from '../firebase';
 const isOurs = (url, cid, sid) => typeof url === 'string' && url.includes(encodeURIComponent(paths.modelFile(cid, sid, '')));
 
 export async function uploadModel(cid, sid, file, previous, { uid, name }, onProgress) {
+  guardWrite();
   const check = checkModelFile(file.name, file.size);
   if ('error' in check) throw Object.assign(new Error(check.error), { code: 'invalid-argument' });
   const { ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
