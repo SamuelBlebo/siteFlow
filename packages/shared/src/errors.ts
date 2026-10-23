@@ -37,6 +37,11 @@ export function errorCode(e: unknown): string {
 export function friendlyError(e: unknown, fallback = GENERIC_ERROR): string {
   const raw = (e as { code?: unknown } | null)?.code;
   const code = errorCode(e);
+  // The web app's View as preview refuses writes with its own message
+  if (raw === 'preview') {
+    const msg = (e as { message?: unknown }).message;
+    if (typeof msg === 'string' && msg) return msg;
+  }
   // Our own Cloud Functions already throw user-facing messages, except for internal errors
   if (typeof raw === 'string' && raw.startsWith('functions/') && code !== 'internal' && code !== 'unknown') {
     const msg = (e as { message?: unknown }).message;
