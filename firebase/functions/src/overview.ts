@@ -5,7 +5,7 @@ import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firesto
 import { createHash } from 'node:crypto';
 import {
   OVERVIEW_SYSTEM, can, companyLocale, isOn, materialStatus, materialsUsed, overviewPrompt, paths, plainOverview, presentCount, reportAuthor,
-  reportDay, scheduleStatus, todayKey, usageByMaterial,
+  reportDay, scheduleStatus, shapedRole, todayKey, usageByMaterial,
   type Company, type Issue, type Material, type MaterialLog, type Milestone, type OverviewFacts, type OverviewKind, type Report, type Site,
 } from '@siteflow/shared';
 import { actorOf } from './members';
@@ -106,8 +106,9 @@ export const aiOverview = onCall(callOpts, async (req) => {
   if (!siteSnap.exists) throw new HttpsError('not-found', 'That project was not found.');
   const site = { id: siteId, ...siteSnap.data() } as Site & { id: string };
 
-  // People who can see money get the version that mentions it; everyone else never does
-  const withMoney = can(me.role, 'finance.view') && isOn(company, 'budget');
+  // People who can see money get the version that mentions it; everyone else never does. A View as
+  // preview sends the previewed role, used only when it is narrower than the caller's own.
+  const withMoney = can(shapedRole(me.role, req.data?.asRole), 'finance.view') && isOn(company, 'budget');
   const facts = await overviewFacts(db, company, site, kind, withMoney);
   const stamp = createHash('sha256').update(JSON.stringify(facts)).digest('hex').slice(0, 24);
   const ref = db.doc(`${paths.site(cid, siteId)}/ai/${kind}-${withMoney ? 'money' : 'plain'}`);
