@@ -19,6 +19,7 @@ const P = {
   more: <><circle cx="3.5" cy="8" r=".9" /><circle cx="8" cy="8" r=".9" /><circle cx="12.5" cy="8" r=".9" /></>,
   write: <><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z" /><path d="M9 4l3 3" /></>,
   close: <path d="m4 4 8 8M12 4l-8 8" />,
+  admin: <><path d="M8 1.8 13 3.8v4c0 3-2.1 5.3-5 6.4-2.9-1.1-5-3.4-5-6.4v-4z" /><path d="m5.8 8 1.6 1.6 3-3.2" /></>,
 };
 
 export default function Icon({ name, className = 'ico' }) {

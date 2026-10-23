@@ -1426,3 +1426,19 @@ body.sheet-open { overflow: hidden; }
 
 /* "Edit project" scrolls to the details form: leave room for the bar at the top */
 #st-details { scroll-margin-top: 90px; }
+
+/* Platform admin page (pages/Admin.jsx): its own shell, outside the company sidebar */
+.admin { max-width: 1400px; margin: 0 auto; padding: 12px; }
+.admin-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin tr.picked td { background: var(--sunk); }
+.admin-pills { gap: 4px; }
+.admin-steps { list-style: none; margin: 0; padding: 0; }
+.admin-panel .list { margin: 4px 0 16px; }
+.admin-acts { justify-content: flex-end; }
+@media (max-width: 860px) {
+  .admin { padding: 0; }
+  .admin .topbar { flex-wrap: wrap; row-gap: 6px; }
+  .admin .topbar .brand { font-size: 16px; }
+  .admin-who { display: none; }
+}
+@media (max-width: 700px) { .admin-acts { justify-content: flex-start; } }

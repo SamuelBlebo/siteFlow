@@ -34,34 +34,49 @@ const IssueDetail = lazy(() => import('./pages/IssueDetail'));
 const Finance = lazy(() => import('./pages/Finance'));
 const SiteDetail = lazy(() => import('./pages/SiteDetail'));
 const Team = lazy(() => import('./pages/Team'));
+const Admin = lazy(() => import('./pages/Admin'));
 
 // Signed in, with an active profile, and (optionally) a permission.
 // Hiding a page is only convenience: the security rules enforce the same permissions.
 function Guard({ perm, children }) {
-  const { user, profile, loading, error, active, can, companies, switchCompany } = useAuth();
+  const { user, profile, loading, error, active, company, can } = useAuth();
   const { pathname } = useLocation();
   if (loading) return <Loading />;
   // Visitors who are not signed in see the public front page at the home address
   if (!user) return pathname === '/' ? <Landing /> : <Navigate to="/login" replace />;
   if (error) return <section className="wrap narrow"><ErrorState error={error} what="your account" onRetry={() => window.location.reload()} /></section>;
   if (!profile) return <FinishSetup />;
-  if (!active) {
-    return (
-      <section className="wrap narrow">
-        <h1>Access switched off</h1>
-        <p className="muted lead">Your access to this company has been switched off. Ask its owner or admin.</p>
-        {companies.length > 1 && (
-          <div className="actions mb">{companies.filter((c) => c.id !== profile.companyId).map((c) => (
-            <button key={c.id} type="button" className="btn gold" onClick={() => switchCompany(c.id)}>Go to {c.name}</button>
-          ))}</div>
-        )}
-        <button type="button" className="btn ghost" onClick={() => signOut(auth)}>Sign out</button>
-      </section>
-    );
-  }
+  if (!active) return <NoAccess title="Access switched off">Your access to this company has been switched off. Ask its owner or admin.</NoAccess>;
+  // Paused by SiteFlow: the rules refuse the company's data, so no page is opened at all
+  if (company?.suspended) return <NoAccess title="Account paused">This company's account is paused. Contact SiteFlow.</NoAccess>;
   if (profile.mustChangePassword) return <SetPassword />;
   if (perm && !can(perm)) return <Navigate to="/sites" replace />;
   return children;
+}
+
+// This company can't be opened (access switched off, or the account paused). People who belong to
+// other companies can go to one of those instead.
+function NoAccess({ title, children }) {
+  const { profile, companies, switchCompany } = useAuth();
+  return (
+    <section className="wrap narrow">
+      <h1>{title}</h1>
+      <p className="muted lead">{children}</p>
+      {companies.length > 1 && (
+        <div className="actions mb">{companies.filter((c) => c.id !== profile.companyId).map((c) => (
+          <button key={c.id} type="button" className="btn gold" onClick={() => switchCompany(c.id)}>Go to {c.name}</button>
+        ))}</div>
+      )}
+      <button type="button" className="btn ghost" onClick={() => signOut(auth)}>Sign out</button>
+    </section>
+  );
+}
+
+// The platform admin's page, outside the company shell. Everyone else is sent to the home page.
+function AdminRoute() {
+  const { platformAdmin } = useAuth();
+  if (platformAdmin === null) return <Loading />;
+  return platformAdmin ? <Admin /> : <Navigate to="/" replace />;
 }
 
 function WorkRedirect() {
@@ -87,6 +102,7 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route path="/email-settings" element={<EmailSettings />} />
+        <Route path="/admin" element={<AdminRoute />} />
         <Route element={<Guard><Layout /></Guard>}>
           <Route index element={<Home />} />
           <Route path="sites" element={<Sites />} />

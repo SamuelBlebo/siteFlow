@@ -28,7 +28,7 @@ export default function TopBar() {
 }
 
 function UserMenu() {
-  const { user, profile, role } = useAuth();
+  const { user, profile, role, platformAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const box = useRef(null);
   useEffect(() => {
@@ -52,6 +52,8 @@ function UserMenu() {
           <div className="uhead"><b>{profile?.name}</b><small>{user?.email}</small></div>
           <Link to="/account" onClick={close}><Icon name="account" />Your account</Link>
           <Link to="/account#emails" onClick={close}><Icon name="mail" />Email settings</Link>
+          {/* Only the person who runs SiteFlow (the platformAdmin claim). The server checks it again on every call. */}
+          {platformAdmin && <Link to="/admin" onClick={close}><Icon name="admin" />Admin</Link>}
           <div className="ulbl">Skin</div>
           <SkinPicker />
           <div className="ulbl">Light or dark</div>

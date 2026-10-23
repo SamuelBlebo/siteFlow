@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, onIdTokenChanged, signOut } from 'firebase/auth';
 import { getDoc, onSnapshot } from 'firebase/firestore';
 import { can as roleCan, isRole, setLocale } from '@siteflow/shared';
 import { auth } from '../firebase';
@@ -20,7 +20,24 @@ export function AuthProvider({ children }) {
   const [member, setMember] = useState(undefined);
   const [error, setError] = useState(null);
   const [company, setCompany] = useState(null);
+  const [companyFor, setCompanyFor] = useState(null); // the company id whose document has arrived
   const [companies, setCompanies] = useState([]);
+  // The person who runs SiteFlow (not a client's owner): the platformAdmin claim on their login, set
+  // only from the command line. null until the token has been read.
+  const [platformAdmin, setPlatformAdmin] = useState(null);
+
+  // Read on sign-in and every time the token is refreshed, so a claim added or removed shows up
+  // within the hour (or straight away after refreshAdmin)
+  useEffect(() => {
+    let n = 0;
+    return onIdTokenChanged(auth, (u) => {
+      const mine = ++n;
+      if (!u) { setPlatformAdmin(false); return; }
+      u.getIdTokenResult()
+        .then((r) => { if (mine === n) setPlatformAdmin(r.claims.platformAdmin === true); })
+        .catch(() => { if (mine === n) setPlatformAdmin(false); });
+    });
+  }, []);
 
   useEffect(() => {
     let unsubAccount = () => {};
@@ -83,27 +100,31 @@ export function AuthProvider({ children }) {
     name: member.name || account.name, email: member.email || account.email || '', phone: member.phone ?? account.phone, callPhone: member.callPhone ?? account.callPhone,
     mustChangePassword: account.mustChangePassword, emailPrefs: account.emailPrefs ?? null, pinned: account.pinned || [], skin: account.skin ?? null,
   } : null), [account, member, current, companyIds]);
-  const loading = !ready || (!!user && !error && (account === undefined || legacy || (!!current && member === undefined)));
 
   // A switched-off membership or an unknown role gets no access
   const active = !!profile && profile.active !== false && isRole(profile.role);
   const role = active ? profile.role : null;
   const cid = active ? profile.companyId : null;
+  // Pages wait for the company document too: it says whether the company is paused (the rules then
+  // refuse everything else), so nothing opens and then fails before the paused screen shows
+  const loading = !ready || (!!user && !error && (account === undefined || legacy || (!!current && member === undefined) || (!!cid && companyFor !== cid)));
 
   // The company's country sets currency, time zone and phone format everywhere. The locale is set
   // before the state changes, so every screen re-renders with it.
   useEffect(() => {
-    if (!cid) { setLocale(null); setCompany(null); return undefined; }
-    return onSnapshot(companyDoc(cid), (s) => { const c = s.exists() ? { id: s.id, ...s.data() } : null; setLocale(c); setCompany(c); },
-      (e) => console.error('Could not load company', e));
+    if (!cid) { setLocale(null); setCompany(null); setCompanyFor(null); return undefined; }
+    return onSnapshot(companyDoc(cid), (s) => { const c = s.exists() ? { id: s.id, ...s.data() } : null; setLocale(c); setCompany(c); setCompanyFor(cid); },
+      (e) => { console.error('Could not load company', e); setCompanyFor(cid); });
   }, [cid]);
 
   const switchCompany = useCallback((to) => (uid && to !== current ? saveSwitch(uid, to) : Promise.resolve()), [uid, current]);
+  // A fresh token from the server, with the current claims (after the admin pages are refused)
+  const refreshAdmin = useCallback(() => auth.currentUser?.getIdToken(true).catch(() => {}), []);
   // One value object per change, so screens using it only re-render when something in it changes
   const value = useMemo(() => ({
-    user, profile, loading, error, active, role, cid, company, companies, switchCompany,
+    user, profile, loading, error, active, role, cid, company, companies, switchCompany, platformAdmin, refreshAdmin,
     can: (permission) => roleCan(role, permission),
-  }), [user, profile, loading, error, active, role, cid, company, companies, switchCompany]);
+  }), [user, profile, loading, error, active, role, cid, company, companies, switchCompany, platformAdmin, refreshAdmin]);
   return (
     <AuthCtx.Provider value={value}>
       {children}
