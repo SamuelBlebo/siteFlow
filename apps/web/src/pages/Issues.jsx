@@ -13,7 +13,7 @@ import SearchBox from '../components/SearchBox';
 // Every issue in the company, for roles that see every site. Critical ones at the top.
 export default function Issues() {
   useTitle('Issues');
-  const { cid, can, user } = useAuth();
+  const { cid, can, me } = useAuth();
   const nav = useNavigate();
   const [status, setStatus] = useState('open');
   const [priority, setPriority] = useState('');
@@ -29,7 +29,7 @@ export default function Issues() {
   const open = useQuery(() => cid && openIssuesQuery(cid), [cid]);
   const all = useQuery(() => cid && status !== 'open' && companyIssuesQuery(cid), [cid, status !== 'open']);
   const source = status === 'open' ? open : all;
-  const shown = sortIssues(filterIssues(source.data, { status, priority, siteId, category, q, assignedTo: mine ? user.uid : '' }));
+  const shown = sortIssues(filterIssues(source.data, { status, priority, siteId, category, q, assignedTo: mine ? me : '' }));
   const critical = open.data.filter((i) => i.priority === 'critical');
 
   return (

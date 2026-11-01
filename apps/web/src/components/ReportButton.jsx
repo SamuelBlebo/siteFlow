@@ -7,9 +7,9 @@ import { reportRef } from '../lib/db';
 // "Make a report": straight to today's report form for a project. Once you have sent today's
 // report it says so and opens it instead. Shown to everyone who can send reports, on open projects.
 export default function ReportButton({ cid, site, size = '' }) {
-  const { user, can } = useAuth();
+  const { me, can } = useAuth();
   const allowed = can('site.work') && isSiteOpen(site);
-  const { data: mine } = useDoc(() => allowed && cid && user && reportRef(cid, site.id, reportId(todayKey(), user.uid)), [cid, site.id, user?.uid, allowed]);
+  const { data: mine } = useDoc(() => allowed && cid && me && reportRef(cid, site.id, reportId(todayKey(), me)), [cid, site.id, me, allowed]);
   if (!allowed) return null;
   const stop = (e) => e.stopPropagation(); // inside clickable table rows
   return mine

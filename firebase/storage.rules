@@ -6,8 +6,10 @@ service firebase.storage {
     // The person's role, projects and switch in this company (companies/{cid}/members/{uid})
     function memberPath(cid) { return /databases/(default)/documents/companies/$(cid)/members/$(request.auth.uid); }
     function profile(cid) { return firestore.get(memberPath(cid)).data; }
+    // Not switched off, and the company is not paused (companies/{cid}.suspended)
     function member(cid) {
-      return request.auth != null && firestore.exists(memberPath(cid)) && profile(cid).get('active', true) != false;
+      return request.auth != null && firestore.exists(memberPath(cid)) && profile(cid).get('active', true) != false
+        && firestore.get(/databases/(default)/documents/companies/$(cid)).data.get('suspended', null) == null;
     }
     function onSite(cid, sid) {
       return member(cid) && (profile(cid).role in ['owner', 'admin', 'manager', 'finance'] || sid in profile(cid).siteIds);

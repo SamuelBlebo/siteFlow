@@ -11,11 +11,13 @@ import { sendReportDigests } from './mail';
 
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 
-// Runs fn for every company. One company failing is logged and does not stop the others.
+// Runs fn for every company except paused ones (suspended by SiteFlow). One company failing is logged and does not stop the others.
 export async function eachCompany(db: Firestore, job: string, fn: (company: Company) => Promise<void>) {
   const companies = await db.collection(paths.companies()).get();
   let failed = 0;
+  let skipped = 0;
   for (const cDoc of companies.docs) {
+    if (cDoc.data().suspended) { skipped++; continue; }
     try {
       await fn({ id: cDoc.id, ...cDoc.data() } as Company);
     } catch (e) {
@@ -23,7 +25,7 @@ export async function eachCompany(db: Firestore, job: string, fn: (company: Comp
       logger.error(`${job} failed for company`, { companyId: cDoc.id, error: String(e) });
     }
   }
-  logger.info(`${job} finished`, { companies: companies.size, failed });
+  logger.info(`${job} finished`, { companies: companies.size, skipped, failed });
 }
 
 // One company's missing-report reminders

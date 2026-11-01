@@ -13,7 +13,7 @@ import { toast } from '../lib/save';
 // was asked, by whom, and whether it has been done.
 
 export function ReviewBox({ r, onEdit }) {
-  const { user } = useAuth();
+  const { me } = useAuth();
   if (!r.review) return null;
   const v = r.review;
   const asked = <><b>{v.byName}</b> ({ROLE_LABELS[v.byRole] || v.byRole})</>;
@@ -24,7 +24,7 @@ export function ReviewBox({ r, onEdit }) {
     </>
   );
   if (v.status === 'changes_requested') {
-    const mine = r.createdBy === user?.uid;
+    const mine = r.createdBy === me;
     return (
       <div className="review-box warn" role="status">
         <p><b>Changes requested</b> by {asked}:</p>
@@ -137,8 +137,8 @@ export function ReportUpdateForm({ cid, r, onDone }) {
 
 // The author's reports on this project that were sent back for changes (Today tab and Daily reports)
 export function MyChangeRequests({ cid, site }) {
-  const { user } = useAuth();
-  const { data } = useQuery(() => cid && user && myChangeRequestsQuery(cid, site.id, user.uid), [cid, site.id, user?.uid]);
+  const { me } = useAuth();
+  const { data } = useQuery(() => cid && me && myChangeRequestsQuery(cid, site.id, me), [cid, site.id, me]);
   if (!data.length) return null;
   return (
     <div className="notice warn request-banner" role="status">

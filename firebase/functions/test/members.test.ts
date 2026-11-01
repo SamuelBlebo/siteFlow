@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import '../src/setup';
 import { getFirestore } from 'firebase-admin/firestore';
 import { paths } from '@siteflow/shared';
-import { joinCompany, leaveCompany, membershipOf, migrateCompany } from '../src/members';
+import { actorOf, assertNotSuspended, joinCompany, leaveCompany, membershipOf, migrateCompany } from '../src/members';
 import { companyMembers } from '../src/deliver';
 
 const db = () => getFirestore();
@@ -47,5 +47,21 @@ describe('joining and leaving companies', () => {
     expect(u).toMatchObject({ companyId: 'jl-b', companyIds: ['jl-b'] });
     expect(await leaveCompany(db(), uid, 'jl-b')).toEqual([]);
     expect((await db().doc(paths.user(uid)).get()).data()?.companyId).toBeUndefined();
+  });
+});
+
+describe('paused companies', () => {
+  const PAUSED = "This company's account is paused. Contact SiteFlow.";
+  it('actorOf refuses a member of a suspended company, and works for the same person in another company', async () => {
+    const uid = 'sus-1';
+    await db().doc(paths.user(uid)).set({ name: 'Ama', email: 'a@x.com', companyId: 'sus-a', companyIds: ['sus-a', 'sus-b'] });
+    await db().doc(paths.company('sus-a')).set({ name: 'A', suspended: { by: 'admin', at: new Date() } });
+    await db().doc(paths.company('sus-b')).set({ name: 'B', suspended: null });
+    await db().doc(paths.member('sus-a', uid)).set({ role: 'owner', active: true });
+    await db().doc(paths.member('sus-b', uid)).set({ role: 'owner', active: true });
+    await expect(actorOf(db(), uid)).rejects.toMatchObject({ code: 'permission-denied', message: PAUSED });
+    await expect(assertNotSuspended(db(), 'sus-a')).rejects.toMatchObject({ message: PAUSED });
+    await db().doc(paths.user(uid)).update({ companyId: 'sus-b' });
+    await expect(actorOf(db(), uid)).resolves.toMatchObject({ companyId: 'sus-b', role: 'owner' });
   });
 });

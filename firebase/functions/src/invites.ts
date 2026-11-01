@@ -8,7 +8,7 @@ import {
   type Company, type Role, type UserProfile,
 } from '@siteflow/shared';
 import { EMAIL_KEY, sendEmail } from './notify';
-import { migrateCompany } from './members';
+import { assertNotSuspended, migrateCompany } from './members';
 
 // Invitation links. A new team member (or someone who needs a new password) gets a one-time link,
 // valid for INVITE_DAYS, to set their own password. The invitation belongs to the membership in the
@@ -66,6 +66,7 @@ export const inviteInfo = onCall(callOpts, async (req) => {
   const snap = await invitesCol(db).doc(hashOf(token)).get();
   if (!snap.exists) throw new HttpsError('not-found', 'This link has already been used or was replaced by a newer one. Ask for a new invitation.');
   const inv = snap.data()!;
+  await assertNotSuspended(db, inv.companyId);
   const company = (await db.doc(paths.company(inv.companyId)).get()).data();
   return {
     kind: inv.kind, name: inv.name, email: inv.email, role: ROLE_LABELS[inv.role as Role] ?? inv.role, companyName: company?.name ?? '',
@@ -81,6 +82,7 @@ export const acceptInvite = onCall(callOpts, async (req) => {
   const ref = invitesCol(db).doc(hash);
   // Links sent before memberships: move that company to the new layout first
   const pending = (await ref.get()).data();
+  if (pending) await assertNotSuspended(db, pending.companyId); // nobody joins a paused company
   if (pending && 'role' in ((await db.doc(paths.user(pending.uid)).get()).data() || {})) await migrateCompany(db, pending.companyId);
   const result = await db.runTransaction(async (t) => {
     const snap = await t.get(ref);

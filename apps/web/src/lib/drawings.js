@@ -1,6 +1,7 @@
-import { collection, deleteDoc, doc, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import { DRAWING_TYPES, fitSize, paths } from '@siteflow/shared';
 import { db, getStorage } from '../firebase';
+import { deleteDoc, guardWrite, setDoc, updateDoc } from './preview';
 
 // Project drawings: files in Storage (paths.drawingFile), one document per sheet with its marked areas
 
@@ -58,6 +59,7 @@ export async function prepareDrawing(file) {
 }
 
 async function upload(path, blob, contentType) {
+  guardWrite();
   const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
   const r = ref(await getStorage(), path);
   await uploadBytes(r, blob, { contentType });

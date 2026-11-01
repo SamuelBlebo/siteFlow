@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { friendlyError } from '@siteflow/shared';
+import { friendlyError, gettingStartedSteps } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery } from '../lib/hooks';
 import { teamQuery } from '../lib/db';
@@ -17,13 +17,17 @@ export function GettingStarted({ company, sites, budgetSet }) {
   const [gone, setGone] = useState(hidden);
   const { data: members } = useQuery(() => can('team.manage') && cid && teamQuery(cid), [cid]);
   const real = sites.filter((s) => !s.sample);
-  const steps = [
-    { done: !!(company?.phone || company?.location), title: 'Company details', why: 'Shown on reports and messages', to: can('company.settings') ? '/welcome' : null, go: 'Add details' },
-    { done: real.length > 0, title: 'First project', why: 'Name, place, foreman and budget', to: '/sites/new', go: 'Add project' },
-    { done: members.length > 1, title: 'Your team', why: 'Managers, accounts and foremen', to: '/team?add=1', go: 'Invite' },
-    { done: real.some((s) => s.lastReportDate), title: 'First daily report', why: 'Sent from site on the phone', to: '/sites', go: 'Open site work' },
-    { done: budgetSet, title: 'Project budget', why: 'So spending can be tracked', to: can('finance.view') && budgetSet !== null ? (real[0] ? `/sites/${real[0].id}?tab=budget` : '/sites/new') : null, go: 'Set budget' },
-  ].filter((s) => s.to);
+  const extra = {
+    details: { why: 'Shown on reports and messages', to: can('company.settings') ? '/welcome' : null, go: 'Add details' },
+    project: { why: 'Name, place, foreman and budget', to: '/sites/new', go: 'Add project' },
+    team: { why: 'Managers, accounts and foremen', to: '/team?add=1', go: 'Invite' },
+    report: { why: 'Sent from site on the phone', to: '/sites', go: 'Open site work' },
+    budget: { why: 'So spending can be tracked', to: can('finance.view') && budgetSet !== null ? (real[0] ? `/sites/${real[0].id}?tab=budget` : '/sites/new') : null, go: 'Set budget' },
+  };
+  const steps = gettingStartedSteps({
+    hasDetails: !!(company?.phone || company?.location), realProjects: real.length, members: members.length,
+    reported: real.some((s) => s.lastReportDate), budgetSet: budgetSet ?? false,
+  }).map((s) => ({ ...s, ...extra[s.key] })).filter((s) => s.to);
   const left = steps.filter((s) => !s.done).length;
   if (gone || !left || !can('team.manage')) return null;
   const hide = () => { try { localStorage.setItem(HIDE_KEY, '1'); } catch { /* private window: hide for this visit only */ } setGone(true); };

@@ -8,16 +8,17 @@ import { aiOverview } from '../lib/account';
 // Written on the server from the project's records and kept until something changes; Refresh
 // writes it again. stamp: changes when today's report or progress changes, so the card asks again.
 export default function AiOverview({ site, kind, stamp }) {
-  const { company, can } = useAuth();
+  const { company, can, role, viewAs } = useAuth();
   const on = isOn(company, 'ai');
   const [state, setState] = useState({ loading: true });
   const load = (refresh = false) => {
     setState((s) => ({ ...s, loading: true, error: '' }));
-    aiOverview({ siteId: site.id, kind, refresh })
+    // While previewing, the server shapes the answer by the previewed role (never a wider one)
+    aiOverview({ siteId: site.id, kind, refresh, ...(viewAs ? { asRole: role } : {}) })
       .then((r) => setState({ loading: false, ...r }))
       .catch((e) => setState({ loading: false, error: friendlyError(e, 'The overview could not be written just now.') }));
   };
-  useEffect(() => { if (on) load(); }, [on, site.id, kind, stamp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (on) load(); }, [on, site.id, kind, stamp, role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!on) {
     return can('company.settings')

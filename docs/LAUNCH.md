@@ -63,6 +63,9 @@ client signs up. Each step says who does it. Nothing on production happens witho
 3. Run one backup by hand, restore it into a second database, compare document counts, then delete
    the copy. Record how long the restore took.
 4. Remove the test company and its sample data.
+5. Grant your own admin access on production: run
+   `node scripts/set-platform-admin.mjs --project siteflow-dp-prod you@your-domain`, sign out and
+   back in, and check the admin area opens. See OPERATIONS.md, "Platform admin".
 
 ## E. First clients
 

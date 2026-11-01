@@ -2,6 +2,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail
 import { httpsCallable } from 'firebase/functions';
 import { auth, functions } from '../firebase';
 import { clearMustChangePassword } from './db';
+import { callAllowed, previewError } from './preview';
 
 // Firebase needs a recent sign-in to change a password, so we confirm the current one first
 export async function changePassword(currentPassword, newPassword) {
@@ -16,7 +17,8 @@ export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email)
 export const logOut = () => signOut(auth);
 
 // Team management goes through Cloud Functions: they check the role rules and log every change
-export const call = (name) => (data) => httpsCallable(functions, name)(data).then((r) => r.data);
+// While previewing (View as) only the callables that read are allowed
+export const call = (name) => (data) => (callAllowed(name) ? httpsCallable(functions, name)(data).then((r) => r.data) : Promise.reject(previewError()));
 export const team = {
   invite: call('inviteMember'),
   update: call('updateMember'),

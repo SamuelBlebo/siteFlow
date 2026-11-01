@@ -10,7 +10,7 @@ const STATUS = { open: ['warn', 'Waiting'], done: ['ok', 'Report sent'], cancell
 
 // Project page: ask people for a report (WhatsApp and/or email), and see what was asked and what came in
 export default function ReportRequests({ cid, site, startOpen }) {
-  const { user, can } = useAuth();
+  const { me, can } = useAuth();
   const [open, setOpen] = useState(!!startOpen);
   const { data: requests } = useQuery(() => cid && reportRequestsQuery(cid, site.id), [cid, site.id]);
   if (!can('sites.manage')) return null;
@@ -29,7 +29,7 @@ export default function ReportRequests({ cid, site, startOpen }) {
               <span className="grow"><b>{r.toName}, {ROLE_LABELS[r.toRole]}</b>
                 <small>Report for {prettyDate(r.due)}. Asked by {r.byName}{r.note ? `: “${r.note}”` : ''}. {[r.channels?.whatsapp && 'WhatsApp', r.channels?.email && 'email'].filter(Boolean).join(' and ') || 'In the app only'}.</small></span>
               <span className={`pill ${STATUS[r.status][0]}`}>{STATUS[r.status][1]}</span>
-              {r.status === 'open' && (r.by === user.uid || can('team.manage')) && (
+              {r.status === 'open' && (r.by === me || can('team.manage')) && (
                 <button type="button" className="btn ghost sm" onClick={async () => {
                   try { await cancelReportRequest({ siteId: site.id, id: r.id }); toast('Request cancelled.'); } catch (e) { toast(friendlyError(e), 'err'); }
                 }}>Cancel</button>
@@ -43,10 +43,10 @@ export default function ReportRequests({ cid, site, startOpen }) {
 }
 
 function RequestForm({ cid, site, onDone }) {
-  const { user } = useAuth();
+  const { me } = useAuth();
   const { data: members, loading } = useQuery(() => cid && teamQuery(cid), [cid]);
   // People who can send reports on this project (not the person asking)
-  const people = members.filter((m) => m.id !== user.uid && m.active !== false && roleCan(m.role, 'site.work')
+  const people = members.filter((m) => m.id !== me && m.active !== false && roleCan(m.role, 'site.work')
     && (!isSiteScoped(m.role) || m.siteIds?.includes(site.id))).sort((a, b) => a.name.localeCompare(b.name));
   const [f, setF] = useState({ uids: [], due: todayKey(), note: '', whatsapp: true, email: true });
   const [busy, setBusy] = useState(false);
@@ -92,8 +92,8 @@ function RequestForm({ cid, site, onDone }) {
 
 // Site team: requests waiting for me on this project
 export function MyRequests({ cid, site }) {
-  const { user } = useAuth();
-  const { data } = useQuery(() => cid && user && myReportRequestsQuery(cid, site.id, user.uid), [cid, site.id, user?.uid]);
+  const { me } = useAuth();
+  const { data } = useQuery(() => cid && me && myReportRequestsQuery(cid, site.id, me), [cid, site.id, me]);
   const open = data.filter((r) => r.status === 'open');
   if (!open.length) return null;
   return (

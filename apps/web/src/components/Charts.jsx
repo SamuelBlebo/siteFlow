@@ -98,6 +98,37 @@ export function CostDonut({ parts }) {
   );
 }
 
+// Sign-ups per week (platform admin): new companies in the accent and new people in grey, side by side.
+// weeks: [{ week: 'YYYY-MM-DD' (its Monday), companies, people }], oldest first.
+export function SignupChart({ weeks }) {
+  const W = 640, H = 230, L = 36, B = 28, T = 14;
+  const top = niceTop(Math.max(4, ...weeks.flatMap((w) => [w.companies, w.people])));
+  const ticks = [0, top / 4, top / 2, (top * 3) / 4, top].filter(Number.isInteger); // whole numbers only
+  const cw = (W - L - 10) / weeks.length;
+  const y = (v) => T + (H - T - B) * (1 - v / top);
+  const label = (w) => new Date(`${w.week}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const bw = cw * 0.3;
+  return (
+    <svg className="chart2" viewBox={`0 0 ${W} ${H}`} role="img"
+      aria-label={`Sign-ups per week for the last ${weeks.length} weeks: ${weeks.map((w) => `week of ${label(w)} ${w.companies} compan${w.companies === 1 ? 'y' : 'ies'}, ${w.people} ${w.people === 1 ? 'person' : 'people'}`).join('; ')}`}>
+      {ticks.map((v) => (
+        <g key={v}><line x1={L} x2={W - 6} y1={y(v)} y2={y(v)} stroke="var(--line)" /><text x={L - 8} y={y(v) + 3.5} textAnchor="end">{v}</text></g>
+      ))}
+      {weeks.map((w, i) => {
+        const x = L + i * cw + cw * 0.18;
+        return (
+          <g key={w.week}>
+            {w.companies > 0 && <path d={bar(x, y(w.companies), bw, y(0) - y(w.companies))} fill="var(--brass)"><title>{`Week of ${label(w)}: ${w.companies} new compan${w.companies === 1 ? 'y' : 'ies'}`}</title></path>}
+            {w.people > 0 && <path d={bar(x + bw + 2, y(w.people), bw, y(0) - y(w.people))} fill="var(--c-done)"><title>{`Week of ${label(w)}: ${w.people} new ${w.people === 1 ? 'person' : 'people'}`}</title></path>}
+            {/* Every other week's date, so the labels never run into each other */}
+            {i % 2 === 0 && <text x={x + bw + 1} y={H - 10} textAnchor="middle">{label(w)}</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 // Round the axis top up to 1, 2 or 5 times a power of ten
 function niceTop(v) {
   const p = Math.pow(10, Math.floor(Math.log10(v)));

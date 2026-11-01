@@ -88,14 +88,19 @@ export async function deliver(d: {
 export async function retryFailedNotifications() {
   const snap = await getFirestore().collectionGroup('notifications').where('status', '==', 'failed').where('retry', '==', true).limit(200).get();
   let retried = 0;
+  let held = 0;
+  const paused = new Map<string, boolean>(); // each company's pause flag, read once per run
   for (const doc of snap.docs) {
+    const cid = doc.ref.parent.parent!.id;
+    if (!paused.has(cid)) paused.set(cid, !!(await getFirestore().doc(paths.company(cid)).get()).data()?.suspended);
+    if (paused.get(cid)) { held++; continue; } // left as it is, so it can retry once the company is unpaused
     const n = doc.data();
     if ((n.attempts || 0) >= MAX_ATTEMPTS || !n.address) { await doc.ref.update({ retry: false, address: FieldValue.delete() }); continue; }
     // Report and issue emails keep their HTML and thread headers for the retry
     await attempt(doc.ref, sender(n.channel, n.address, n.kind, n.params || [], n.subject || 'SiteFlow', n.text, n.html ? { html: n.html, headers: n.headers } : undefined), n.attempts || 0);
     retried++;
   }
-  logger.info('Notification retries', { found: snap.size, retried });
+  logger.info('Notification retries', { found: snap.size, retried, held });
   return retried;
 }
 export const retryNotifications = onSchedule({ timeoutSeconds: 540, retryCount: 1, schedule: 'every 30 minutes', secrets: SECRETS }, async () => { await retryFailedNotifications(); });

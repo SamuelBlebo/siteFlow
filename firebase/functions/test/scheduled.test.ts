@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import '../src/setup';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { paths, type Company } from '@siteflow/shared';
-import { remindMissingReports, sendWeeklySummary } from '../src/reminders';
+import { eachCompany, remindMissingReports, sendWeeklySummary } from '../src/reminders';
 import { retryFailedNotifications } from '../src/deliver';
 
 const db = getFirestore();
@@ -101,5 +101,30 @@ describe('retrying failed messages', () => {
     expect(byId.enough).toMatchObject({ status: 'failed', retry: false, attempts: 3 });
     expect(byId.enough.address).toBeUndefined();
     expect(byId.final).toMatchObject({ status: 'failed', attempts: 1 });
+  });
+});
+
+describe('paused companies in scheduled jobs', () => {
+  it('eachCompany runs for normal companies only', async () => {
+    await db.doc(paths.company('sched-paused')).set({ name: 'Paused Ltd', suspended: { by: 'admin', at: Timestamp.now() } });
+    await db.doc(paths.company('sched-freed')).set({ name: 'Freed Ltd', suspended: null });
+    const seen: string[] = [];
+    await eachCompany(db, 'test', async (c) => { seen.push(c.id); });
+    expect(seen).toContain(CID);
+    expect(seen).toContain('sched-freed');
+    expect(seen).not.toContain('sched-paused');
+  });
+});
+
+describe('retrying messages for paused companies', () => {
+  it('leaves a paused company failed message alone, and still retries a normal one', async () => {
+    const base = { kind: 'critical_issue', channel: 'whatsapp', address: '0241234567', params: ['Adenta', 'Leak', 'Kofi'], text: 'x', status: 'failed', retry: true, attempts: 1, createdAt: Timestamp.now() };
+    await db.doc(paths.company('retry-paused')).set({ name: 'Paused Ltd', suspended: { by: 'admin', at: Timestamp.now() } });
+    await db.doc(`${paths.notifications('retry-paused')}/held`).set(base);
+    await db.doc(`${paths.notifications(CID)}/again`).set(base);
+    await retryFailedNotifications();
+    const held = (await db.doc(`${paths.notifications('retry-paused')}/held`).get()).data()!;
+    expect(held).toMatchObject({ status: 'failed', retry: true, attempts: 1, address: '0241234567' });
+    expect((await db.doc(`${paths.notifications(CID)}/again`).get()).data()).toMatchObject({ status: 'skipped', attempts: 2 });
   });
 });

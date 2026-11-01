@@ -24,7 +24,7 @@
     "test:shared": "pnpm --filter @siteflow/shared test",
     "test:rules": "node scripts/test-emulators.mjs firestore,storage \"vitest run --config firebase/tests/vitest.config.ts\"",
     "test:web": "pnpm run build:functions && node scripts/test-emulators.mjs auth,firestore,storage,functions \"pnpm --filter @siteflow/web test:integration\"",
-    "test:functions": "node scripts/test-emulators.mjs firestore \"vitest run --config firebase/functions/vitest.config.ts\"",
+    "test:functions": "node scripts/test-emulators.mjs auth,firestore \"vitest run --config firebase/functions/vitest.config.ts\"",
     "coverage": "pnpm run test:shared --coverage && pnpm --filter @siteflow/mobile test --coverage --coverage.include=src/lib/**",
     "config:dev": "node scripts/fetch-firebase-config.mjs dev",
     "config:prod": "node scripts/fetch-firebase-config.mjs prod",

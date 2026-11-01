@@ -1,7 +1,8 @@
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { paths } from '@siteflow/shared';
 import { db, getStorage } from '../firebase';
 import { coverImage } from './photos';
+import { guardWrite, updateDoc } from './preview';
 
 // The project image: a visualization (render) or photo, shown on project cards and the project page.
 // A new upload replaces the old one; the old file is removed.
@@ -9,6 +10,7 @@ import { coverImage } from './photos';
 const isOurs = (url, cid, sid) => typeof url === 'string' && url.includes(encodeURIComponent(paths.coverFile(cid, sid, '')));
 
 export async function uploadCover(cid, sid, file, previous) {
+  guardWrite();
   if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw Object.assign(new Error('Choose a JPG, PNG or WebP image.'), { code: 'invalid-argument' });
   const small = await coverImage(file);
   const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');

@@ -18,7 +18,7 @@ const when = (t) => (t?.toDate ? t.toDate().toLocaleString('en-GB', { dateStyle:
 // One issue: details, photos, what can be done next, and the timeline of comments and changes
 export default function IssueDetail() {
   const { sid, id } = useParams();
-  const { cid, user, profile, role, can } = useAuth();
+  const { cid, user, me: myUid, profile, role, can } = useAuth();
   const nav = useNavigate();
   const { data: issue, loading, error } = useDoc(() => cid && issueRef(cid, sid, id), [cid, sid, id]);
   const { data: site } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
@@ -31,7 +31,7 @@ export default function IssueDetail() {
   if (error) return <section className="wrap narrow"><ErrorState error={error} what="this issue" /></section>;
   if (!issue) return <p className="pad">This issue doesn't exist. <Link to={back}>Back</Link></p>;
 
-  const act = issueActions(issue, { uid: user.uid, role }, isSiteOpen(site));
+  const act = issueActions(issue, { uid: myUid, role }, isSiteOpen(site));
   const me = { uid: user.uid, name: profile.name };
   const change = async (patch, note, label = 'Issue') => {
     try { await save(updateIssue(cid, sid, id, patch, { note, ...me }), label); return true; } catch (e) { toast(e.message, 'err'); return false; }

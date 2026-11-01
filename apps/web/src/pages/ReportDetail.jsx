@@ -13,7 +13,7 @@ import { ErrorState, Loading } from '../components/States';
 export default function ReportDetail() {
   useTitle('Daily report');
   const { sid, rid } = useParams();
-  const { cid, user, can } = useAuth();
+  const { cid, me, can } = useAuth();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const { data: r, loading, error } = useDoc(() => cid && reportRef(cid, sid, rid), [cid, sid, rid]);
@@ -25,7 +25,7 @@ export default function ReportDetail() {
 
   if (loading) return <Loading what="report" />;
   const report = r && { ...r, id: rid, siteId: sid };
-  const mine = report?.createdBy === user?.uid;
+  const mine = report?.createdBy === me;
   const open = isSiteOpen(site);
   const canFix = mine && open && report?.review?.status === 'changes_requested';
   const canAsk = can('sites.manage') && open && !mine && report?.review?.status !== 'changes_requested';

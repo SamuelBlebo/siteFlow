@@ -31,4 +31,6 @@ export * from './logic/gallery';
 export * from './logic/programme';
 export * from './logic/mail';
 export * from './logic/overview';
+export * from './logic/admin';
+export * from './logic/viewAs';
 export * from './demo';
