@@ -4,11 +4,11 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } f
 import { getDoc, getDocs, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import {
-  activityFeed, dailyTotals, issueFlow, rankAlerts, recentWorkDays, reportCompliance, siteAlerts, siteInput, todayKey, validate,
+  activityFeed, dailyTotals, issueFlow, rankAlerts, recentWorkDays, reportCompliance, siteAlerts, siteInput, validate,
 } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
 import {
-  companyIssuesQuery, companyReportsQuery, createIssue, createSite, newIssueId, openIssuesQuery, sendReport, siteDoc, sitesCol,
+  companyIssuesQuery, companyReportsQuery, createIssue, createSite, newIssueId, openIssuesQuery, sendReport, setWorkDays, siteDoc, sitesCol,
 } from '../src/lib/db';
 import { team } from '../src/lib/account';
 import { save } from '../src/lib/save';
@@ -32,11 +32,13 @@ beforeAll(async () => {
   const mk = async (name) => { const v = validate(siteInput, { name, location: 'Kumasi', stage: 'Blockwork', budget: 200000, foremanPhone: '0241234567', foremanName: 'Kojo' }); const r = createSite(cid, v.data); await r.done; return r.id; };
   a = await mk('Ahodwo villa');
   b = await mk('Suame shops');
+  // Site B works every day, so its missing report is due whatever weekday the tests run on
+  await setWorkDays(cid, b, [0, 1, 2, 3, 4, 5, 6]);
   const res = await team.invite({ name: 'Kofi Mensah', email: email('super'), role: 'supervisor', siteIds: [a, b] });
   pw.super = await join(res, 'super-own-pass');
   const u = await as('super');
   me = { uid: u.uid, name: 'Kofi Mensah' };
-  // Site A reports on three of the last working days (today included); site B on one
+  // Site A reports on three of the last working days (the latest included); site B on one
   const report = (workers) => ({ text: 'Blockwork continues', stage: 'Blockwork', progress: 30, workersPresent: workers });
   for (const [i, d] of [days[0], days[1], days[3]].entries()) await save(sendReport(cid, await siteOf(a), report(5 + i), { ...me, date: d, time: '17:00' }).done);
   await save(sendReport(cid, await siteOf(b), report(9), { ...me, date: days[2], time: '16:00' }).done);
@@ -68,6 +70,6 @@ describe('owner dashboard', () => {
     const open = (await getDocs(openIssuesQuery(cid))).docs.map((d) => d.data());
     const alerts = rankAlerts(sites.flatMap((s) => siteAlerts(s, [], {}, { openIssues: open.filter((i) => i.siteId === s.id) }).map((x) => ({ ...x, site: s }))));
     expect(alerts.map((x) => `${x.kind}:${x.site.name}`)).toEqual(['issue:Suame shops', 'report:Suame shops']);
-    expect(sites.find((s) => s.id === a).lastReportDate).toBe(todayKey());
+    expect(sites.find((s) => s.id === a).lastReportDate).toBe(days[0]);
   });
 });
