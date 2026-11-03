@@ -37,6 +37,8 @@ join -a1 -a2 -e0 -o 0,1.2,2.2 -t $'\t' <(sort /tmp/copy.txt) <(sort /tmp/live.tx
 echo "(live can be higher: it includes everything added since the backup was taken)"
 
 echo "== Deleting the temporary copy"
+# A restored database inherits delete protection from the backup's source, so turn it off on the copy only.
+gcloud firestore databases update --database=$COPY --no-delete-protection --project=$P --format=none
 gcloud firestore databases delete --database=$COPY --project=$P --quiet --format=none
 echo
 echo "Restore test finished. Backup had data: $HAS_DATA. Restore time is above: note it in the incident log."
