@@ -89,13 +89,18 @@ firebase functions:secrets:set EMAIL_API_KEY --project prod
 
 **Budget alert.** Google Cloud console > Billing > Budgets. Set an alert at a monthly amount you would notice (for example GH₵ equivalent of $50, then $100).
 
-**Error alerts.** Cloud Monitoring > Alerting. Create a policy on the log-based metric "functions errors":
+**Error alerts.** `bash scripts/launch/4-prod-error-alerts.sh you@your-domain` creates an email channel
+and a Cloud Monitoring alert policy, "SiteFlow: function errors", that matches:
 
 ```
-resource.type="cloud_run_revision" severity>=ERROR
+severity>=ERROR AND (resource.type="cloud_run_revision" OR resource.type="cloud_function" OR logName:"siteflow-alert-test")
 ```
 
-Send it by email to the owner.
+It sends at most one email per 30 minutes while errors continue, and closes itself after 7 days without
+one. To test it, write an entry to the test log:
+`gcloud logging write siteflow-alert-test 'SiteFlow alert test' --severity=ERROR --project=siteflow-dp-prod`.
+To change the recipient, delete the policy in Monitoring > Alerting and run the script again. Errors in the
+web app stay in the browser and are not covered.
 
 **Which log messages matter:**
 

@@ -54,6 +54,9 @@ client signs up. Each step says who does it. Nothing on production happens witho
 5. Deploy with the **Deploy to production** workflow (Actions tab, type "deploy production"). It
    only deploys a `main` commit that passed CI, waits for an approver and tags the release.
 6. Wait until the Firestore indexes show Enabled.
+7. **Error alerts.** Run `bash scripts/launch/4-prod-error-alerts.sh you@your-domain`. It emails the
+   owner (at most every 30 minutes) when a function logs an error. Send the test entry it prints and
+   check the email arrives. See OPERATIONS.md, "Monitoring and cost alerts".
 
 ## D. Check before the first client (developer)
 
