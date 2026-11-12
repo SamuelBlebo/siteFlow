@@ -4,14 +4,14 @@ import { useTitle } from '../lib/hooks';
 import Brand from '../components/Brand';
 
 // The Terms of Service and the Privacy Policy, open to everyone (linked from sign-up and the landing page).
-// A plain-language draft: the bracketed details are filled in and a lawyer reads both before launch.
+// A plain-language draft: a lawyer reads both before launch.
 // A change that matters to customers gets a new TERMS_VERSION (shared/schemas), so new agreements are recorded against it.
 
 const WHO = {
-  company: '[Company legal name]',
-  address: '[Registered address]',
-  email: '[privacy@your-domain]',
-  law: '[Ghana]',
+  company: 'OG Digital Prime',
+  address: '20 Fiapa Close, Spintex, Accra, Ghana',
+  email: 'info@digitalprimegh.com',
+  law: 'Ghana',
 };
 
 const updated = `Last updated ${prettyDate(TERMS_VERSION)} ${TERMS_VERSION.slice(0, 4)}`;
