@@ -98,7 +98,8 @@ describe('resolveProjectAddress', () => {
     expect(go('money', 'photos')).toEqual({ tab: 'money', view: null });
   });
   it('switched-off modules and missing permissions fall back to Today', () => {
-    expect(go('labour', null, ctx('owner', ALL_OFF))).toEqual({ tab: 'resources', view: 'drawings' });
+    expect(go('labour', null, ctx('owner', ALL_OFF))).toEqual({ tab: 'today', view: null });
+    expect(go('resources', 'materials', ctx('owner', ALL_OFF))).toEqual({ tab: 'today', view: null });
     expect(go('budget', null, ctx('supervisor'))).toEqual({ tab: 'today', view: null });
     expect(go('money', null, ctx('owner', null))).toEqual({ tab: 'today', view: null });
     expect(go('settings', null, ctx('supervisor'))).toEqual({ tab: 'today', view: null });

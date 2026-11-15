@@ -98,8 +98,10 @@ export function resolveProjectAddress(ctx: NavContext, tab: string | null | unde
   const found = projectTabs(ctx).find((t) => t.key === asked);
   if (!found) return today;
   if (!found.sections.length) return { tab: found.key, view: null };
-  const section = found.sections.find((s) => s.key === askedView) || found.sections[0];
-  return { tab: found.key, view: section.key };
+  const section = found.sections.find((s) => s.key === askedView);
+  // A section whose module is off opens Today; an unknown view opens the tab's first section
+  if (!section && found.key === 'resources' && (askedView === 'materials' || askedView === 'labour')) return today;
+  return { tab: found.key, view: (section || found.sections[0]).key };
 }
 
 export type NewChoiceKey = 'report' | 'issue' | 'attendance' | 'delivery' | 'expense' | 'project';
