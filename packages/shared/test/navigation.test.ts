@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityTabs, navItems, projectMenu, projectTabs, resolveProjectAddress, settingsTabs, type NavContext, type Role } from '../src';
+import { activityTabs, navItems, newChoiceHref, newChoices, pickProject, projectMenu, projectTabs, resolveProjectAddress, settingsTabs, type NavContext, type Role, type Site } from '../src';
 
 const ALL_ON = { modules: { materials: true, labour: true, budget: true } };
 const ALL_OFF = { modules: {} };
@@ -103,5 +103,56 @@ describe('resolveProjectAddress', () => {
     expect(go('money', null, ctx('owner', null))).toEqual({ tab: 'today', view: null });
     expect(go('settings', null, ctx('supervisor'))).toEqual({ tab: 'today', view: null });
     expect(go('team', null, ctx(null))).toEqual({ tab: 'today', view: null });
+  });
+});
+
+describe('newChoices', () => {
+  const keys = (c: NavContext) => newChoices(c).map((n) => n.key);
+  it('per role, every module on', () => {
+    expect(keys(ctx('owner'))).toEqual(['report', 'issue', 'attendance', 'delivery', 'expense', 'project']);
+    expect(keys(ctx('manager'))).toEqual(['report', 'issue', 'attendance', 'delivery', 'expense', 'project']);
+    expect(keys(ctx('finance'))).toEqual(['expense']);
+    expect(keys(ctx('supervisor'))).toEqual(['report', 'issue', 'attendance', 'delivery']);
+  });
+  it('viewers and unknown roles get nothing, so no ＋ button', () => {
+    for (const r of ['viewer', null, undefined, 'site'] as (Role | null | undefined)[]) expect(keys(ctx(r))).toEqual([]);
+  });
+  it('modules off hide their choices', () => {
+    expect(keys(ctx('owner', ALL_OFF))).toEqual(['report', 'issue', 'project']);
+    expect(keys(ctx('owner', null))).toEqual(['report', 'issue', 'project']);
+  });
+  it('only Project needs no project', () => {
+    expect(newChoices(ctx('owner')).filter((n) => !n.needsProject).map((n) => n.key)).toEqual(['project']);
+  });
+});
+
+describe('newChoiceHref', () => {
+  it.each([
+    ['report', '/sites/s1?tab=reports&write=1'],
+    ['issue', '/sites/s1?tab=progress&view=issues&new=issue'],
+    ['attendance', '/sites/s1?tab=resources&view=labour&new=attendance'],
+    ['delivery', '/sites/s1?tab=resources&view=materials&new=delivery'],
+    ['expense', '/sites/s1?tab=money&new=expense'],
+  ] as const)('%s', (key, href) => expect(newChoiceHref(key, 's1')).toBe(href));
+  it('project', () => expect(newChoiceHref('project')).toBe('/sites/new'));
+});
+
+describe('pickProject', () => {
+  const s = (id: string, name: string, status: Site['status'] = 'active') => ({ id, name, status });
+  const sites = [s('b', 'Bravo'), s('a', 'Alpha'), s('c', 'Closed one', 'closed'), s('h', 'Hold', 'on_hold')];
+  it('uses the project page you are on', () => {
+    expect(pickProject(sites, { currentSiteId: 'h' })).toEqual({ siteId: 'h' });
+  });
+  it('ignores a closed current project', () => {
+    expect(pickProject(sites, { currentSiteId: 'c' })).toEqual({ choose: ['a', 'b', 'h'] });
+  });
+  it('uses the only open project', () => {
+    expect(pickProject([s('a', 'Alpha'), s('c', 'C', 'closed')], {})).toEqual({ siteId: 'a' });
+  });
+  it('lists open projects, pinned first, then by name', () => {
+    expect(pickProject(sites, { pinned: (id) => id === 'h' })).toEqual({ choose: ['h', 'a', 'b'] });
+  });
+  it('no open projects', () => {
+    expect(pickProject([s('c', 'C', 'closed')], {})).toEqual({ choose: [] });
   });
 });

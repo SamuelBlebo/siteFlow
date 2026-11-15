@@ -1,6 +1,7 @@
-import type { Company, Role } from './types';
+import type { Company, Role, Site } from './types';
 import { can } from './permissions';
 import { isOn } from './modules';
+import { isSiteOpen } from './logic/sites';
 
 // Where things live in the web app: the sidebar, the settings and activity tabs, the project tabs and the + New menu.
 // The menus read from here, so a role sees the same choices everywhere.
@@ -99,4 +100,46 @@ export function resolveProjectAddress(ctx: NavContext, tab: string | null | unde
   if (!found.sections.length) return { tab: found.key, view: null };
   const section = found.sections.find((s) => s.key === askedView) || found.sections[0];
   return { tab: found.key, view: section.key };
+}
+
+export type NewChoiceKey = 'report' | 'issue' | 'attendance' | 'delivery' | 'expense' | 'project';
+export interface NewChoice { key: NewChoiceKey; label: string; needsProject: boolean }
+
+// The + New menu: only what the person can add, with its module on
+export function newChoices({ role, company }: NavContext): NewChoice[] {
+  const work = can(role, 'site.work');
+  const choices: (NewChoice | false)[] = [
+    work && { key: 'report', label: 'Daily report', needsProject: true },
+    work && { key: 'issue', label: 'Issue', needsProject: true },
+    work && isOn(company, 'labour') && { key: 'attendance', label: 'Attendance', needsProject: true },
+    work && isOn(company, 'materials') && { key: 'delivery', label: 'Material delivery', needsProject: true },
+    can(role, 'finance.edit') && isOn(company, 'budget') && { key: 'expense', label: 'Expense', needsProject: true },
+    can(role, 'sites.manage') && { key: 'project', label: 'Project', needsProject: false },
+  ];
+  return choices.filter((c): c is NewChoice => !!c);
+}
+
+const NEW_CHOICE_QUERY: Record<Exclude<NewChoiceKey, 'project'>, string> = {
+  report: 'tab=reports&write=1',
+  issue: 'tab=progress&view=issues&new=issue',
+  attendance: 'tab=resources&view=labour&new=attendance',
+  delivery: 'tab=resources&view=materials&new=delivery',
+  expense: 'tab=money&new=expense',
+};
+
+export function newChoiceHref(key: NewChoiceKey, siteId?: string): string {
+  return key === 'project' ? '/sites/new' : `/sites/${siteId}?${NEW_CHOICE_QUERY[key]}`;
+}
+
+// Which project a + New choice goes to: the one you're on, your only open one, or a list to pick from.
+// Closed projects can't take new records, so they never count.
+export function pickProject(
+  sites: Pick<Site, 'id' | 'name' | 'status'>[],
+  { currentSiteId, pinned = () => false }: { currentSiteId?: string | null; pinned?: (siteId: string) => boolean },
+): { siteId: string } | { choose: string[] } {
+  const open = sites.filter(isSiteOpen);
+  if (currentSiteId && open.some((s) => s.id === currentSiteId)) return { siteId: currentSiteId };
+  if (open.length === 1) return { siteId: open[0].id };
+  const order = [...open].sort((a, b) => (Number(pinned(b.id)) - Number(pinned(a.id))) || a.name.localeCompare(b.name));
+  return { choose: order.map((s) => s.id) };
 }
