@@ -93,7 +93,7 @@ export default function SiteDetail() {
     </div>
     <section className="wrap">
       <div className="panel">
-        <div className={`sitehead${site.cover ? ' with-cover' : ''}${tab !== 'overview' ? ' compact-m' : ''}`}>
+        <div className={`sitehead${site.cover ? ' with-cover' : ''}${tab !== 'today' ? ' compact-m' : ''}`}>
           {site.cover && <ProjectCover site={site} className="head" />}
           <Ring pct={site.progress || 0} size={84} />
           <div>
@@ -124,10 +124,10 @@ export default function SiteDetail() {
           {can('sites.manage') ? ' Reopen it from Settings.' : ''}
         </p>
       )}
-      <Tabs value={tab} onChange={(t) => go(t)} tabs={allTabs.map((t) => [t.key, t.label])} label="Project sections">
+      <Tabs value={tab} onChange={(t) => go(t)} tabs={allTabs.map((t) => [t.key, t.label])} label="Project sections" fit>
       {(tab === 'team' || tab === 'settings') && <p className="mt-sm"><Link to={`/sites/${site.id}`}>← Back to project</Link></p>}
       {sections.length > 1 && (
-        <div className="seg" role="group" aria-label={`${allTabs.find((t) => t.key === tab).label} sections`}>
+        <div className="seg sections" role="group" aria-label={`${allTabs.find((t) => t.key === tab).label} sections`}>
           {sections.map((s) => <button key={s.key} type="button" aria-pressed={view === s.key} onClick={() => go(tab, s.key)}>{s.label}</button>)}
         </div>
       )}
