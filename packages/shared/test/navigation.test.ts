@@ -105,6 +105,15 @@ describe('resolveProjectAddress', () => {
     expect(go('settings', null, ctx('supervisor'))).toEqual({ tab: 'today', view: null });
     expect(go('team', null, ctx(null))).toEqual({ tab: 'today', view: null });
   });
+
+  it('old drawing links (a sheet or a pin on the overview) open Resources, Drawings', () => {
+    const drawings = { tab: 'resources', view: 'drawings' };
+    expect(resolveProjectAddress(ctx('manager'), 'overview', null, { sheet: 'd1' })).toEqual(drawings);
+    expect(resolveProjectAddress(ctx('manager'), 'overview', null, { pin: 'i1' })).toEqual(drawings);
+    expect(resolveProjectAddress(ctx('supervisor'), 'today', null, { sheet: 'd1', pin: 'i1' })).toEqual(drawings);
+    expect(resolveProjectAddress(ctx('manager'), 'overview', null, {})).toEqual({ tab: 'today', view: null });
+    expect(resolveProjectAddress(ctx('manager'), 'progress', 'issues', { pin: 'i1' })).toEqual({ tab: 'progress', view: 'issues' });
+  });
 });
 
 describe('newChoices', () => {

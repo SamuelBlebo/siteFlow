@@ -88,9 +88,14 @@ const OLD_PROJECT_TABS: Record<string, { tab: ProjectTabKey; view: ProjectViewKe
 };
 
 // Turns ?tab= and ?view= into what the project page shows. Anything that can't be shown opens Today.
-export function resolveProjectAddress(ctx: NavContext, tab: string | null | undefined, view: string | null | undefined): { tab: ProjectTabKey | 'team' | 'settings'; view: ProjectViewKey | null } {
+// A sheet or pin on the overview is an old drawing link (issue pins, emails): drawings now live under Resources.
+export function resolveProjectAddress(
+  ctx: NavContext, tab: string | null | undefined, view: string | null | undefined,
+  extra: { sheet?: string | null; pin?: string | null } = {},
+): { tab: ProjectTabKey | 'team' | 'settings'; view: ProjectViewKey | null } {
   const today = { tab: 'today' as const, view: null };
   if (!tab) return today;
+  if ((tab === 'overview' || tab === 'today') && (extra.sheet || extra.pin)) return { tab: 'resources', view: 'drawings' };
   const old = Object.prototype.hasOwnProperty.call(OLD_PROJECT_TABS, tab) ? OLD_PROJECT_TABS[tab] : null;
   const asked = old ? old.tab : tab;
   const askedView = old ? old.view : view;
