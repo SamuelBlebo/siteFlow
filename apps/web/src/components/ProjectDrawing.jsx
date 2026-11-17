@@ -232,7 +232,7 @@ function ZoneInfo({ zone, milestones, today, site, onClose }) {
         ? 'Not linked to a programme stage yet.'
         : <>Stage <b>{st.stage}</b>: {st.pct}% done. <span className={`pill ${st.state === 'done' ? 'ok' : st.state === 'behind' ? 'bad' : st.state === 'progress' ? 'warn' : ''}`}>{ZONE_LABELS[st.state]}</span></>}</p>
       <div className="actions mt-sm">
-        <Link className="btn sm ghost" to={`/sites/${site.id}?tab=progress`}>Programme</Link>
+        <Link className="btn sm ghost" to={`/sites/${site.id}?tab=progress&view=programme`}>Programme</Link>
         <button type="button" className="btn sm ghost" onClick={onClose}>Close</button>
       </div>
     </div>

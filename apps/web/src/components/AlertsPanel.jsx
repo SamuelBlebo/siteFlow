@@ -58,8 +58,8 @@ function Action({ a }) {
     );
   }
   if (a.kind === 'issue') return <Link className="btn sm ghost" to={`/issues?site=${a.site.id}`}>See issue</Link>;
-  if (a.kind === 'stock' || a.kind === 'usage') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=materials`}>Materials</Link>;
-  if (a.kind === 'budget') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=budget`}>Budget</Link>;
-  if (a.kind === 'schedule') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=progress`}>Progress</Link>;
+  if (a.kind === 'stock' || a.kind === 'usage') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=resources&view=materials`}>Materials</Link>;
+  if (a.kind === 'budget') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=money`}>Budget</Link>;
+  if (a.kind === 'schedule') return <Link className="btn sm ghost" to={`/sites/${a.site.id}?tab=progress&view=programme`}>Progress</Link>;
   return null;
 }

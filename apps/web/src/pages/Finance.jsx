@@ -69,7 +69,7 @@ export default function Finance() {
           <tbody>
             {rows.map(({ site: s, sum }) => (
               <tr key={s.id}>
-                <td><Link to={`/sites/${s.id}?tab=budget`}>{s.name}</Link> {s.status !== 'active' && <StatusPill status={s.status} />}</td>
+                <td><Link to={`/sites/${s.id}?tab=money`}>{s.name}</Link> {s.status !== 'active' && <StatusPill status={s.status} />}</td>
                 <td className="num">{cedi(sum.budget)}</td><td className="num">{cedi(sum.spent)}</td><td className={`num${sum.remaining < 0 ? ' overrun' : ''}`}>{cedi(sum.remaining)}</td>
                 <td><div className={`meter ${sum.overspendRisk ? 'hot' : ''}`}><span style={{ width: `${Math.min(sum.usedPct, 100)}%` }} /></div><small className="muted">{sum.usedPct}% used, {sum.progress}% done</small></td>
                 <td className="num">{sum.forecast == null ? '–' : cedi(sum.forecast)}{sum.forecastOver > 0 && <div className="overrun">{cedi(sum.forecastOver)} over</div>}</td>

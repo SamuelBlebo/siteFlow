@@ -25,7 +25,7 @@ export default function IssueDetail() {
   useTitle(issue ? `Issue: ${issue.title}` : 'Issue');
   const { data: comments } = useQuery(() => cid && commentsQuery(cid, sid, id), [cid, sid, id]);
   const { data: members } = useQuery(() => cid && can('sites.manage') && teamQuery(cid), [cid]);
-  const back = can('sites.all') ? '/issues' : `/sites/${sid}?tab=issues`;
+  const back = can('sites.all') ? '/issues' : `/sites/${sid}?tab=progress&view=issues`;
 
   if (loading) return <Loading what="issue" />;
   if (error) return <section className="wrap narrow"><ErrorState error={error} what="this issue" /></section>;
@@ -47,9 +47,9 @@ export default function IssueDetail() {
           <span className="tags"><PriorityPill p={issue.priority} /> <IssueStatusPill s={issue.status} /> {overdue && <span className="pill bad">Overdue</span>}</span>
         </div>
         <dl className="facts mt-sm">
-          <dt>Site</dt><dd>{can('sites.all') ? <Link to={`/sites/${issue.siteId}?tab=issues`}>{issue.siteName}</Link> : issue.siteName}</dd>
+          <dt>Site</dt><dd>{can('sites.all') ? <Link to={`/sites/${issue.siteId}?tab=progress&view=issues`}>{issue.siteName}</Link> : issue.siteName}</dd>
           <dt>About</dt><dd>{issue.category}{issue.location ? `, ${issue.location}` : ''}
-            {issue.pin && <> · <Link to={`/sites/${issue.siteId}?tab=overview&sheet=${issue.pin.drawingId}&pin=${issue.id}`}>Show on drawing</Link></>}</dd>
+            {issue.pin && <> · <Link to={`/sites/${issue.siteId}?tab=resources&view=drawings&sheet=${issue.pin.drawingId}&pin=${issue.id}`}>Show on drawing</Link></>}</dd>
           <dt>Reported</dt><dd>{prettyDate(issue.date)} by {issue.createdByName}</dd>
           <dt>Given to</dt><dd>{issue.assignedToName || 'Nobody yet'}</dd>
           <dt>Fix by</dt><dd>{issue.dueDate ? prettyDate(issue.dueDate) : '–'}</dd>

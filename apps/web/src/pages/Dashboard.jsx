@@ -238,7 +238,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                       )}
                       <td>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill ok skipped">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[reportDay(s, today)]}</td>
                       {mod('labour') && <td className="num">{present[s.id] || 0} / {crew[s.id] || 0}</td>}
-                      <td className="num">{iss.length ? <Link to={`/sites/${s.id}?tab=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
+                      <td className="num">{iss.length ? <Link to={`/sites/${s.id}?tab=progress&view=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
                     </tr>
                   );
                 })}
