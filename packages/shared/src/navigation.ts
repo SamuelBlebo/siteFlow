@@ -25,6 +25,17 @@ export function navItems({ role, company }: NavContext): NavItem[] {
   return items.filter((i): i is NavItem => !!i);
 }
 
+// Which menu item a page belongs to, so detail pages (a report, an issue) keep their item lit
+const SECTION_OF: Record<string, NavKey | 'settings'> = {
+  sites: 'projects', reports: 'activity', issues: 'activity', finance: 'money', team: 'team',
+  company: 'settings', modules: 'settings', reminders: 'settings',
+};
+export function navSection(pathname: string): NavKey | 'settings' | null {
+  const first = pathname.split('/')[1] || '';
+  if (!first) return 'home';
+  return Object.prototype.hasOwnProperty.call(SECTION_OF, first) ? SECTION_OF[first] : null;
+}
+
 export type SettingsTabKey = 'company' | 'modules' | 'reminders';
 
 export function settingsTabs({ role }: NavContext): { key: SettingsTabKey; to: string; label: string }[] {
