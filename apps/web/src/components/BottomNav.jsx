@@ -7,7 +7,7 @@ import Icon from './Icons';
 // wider screens, where the sidebar shows). The main pages are on the bar; "More" slides up the rest:
 // the other pages, your projects, the company switcher and your account.
 // siteIds: a site team's projects (null for roles that see every project).
-export default function BottomNav({ items, projects, companyPick, siteIds }) {
+export default function BottomNav({ items, lit, projects, companyPick, siteIds }) {
   const { can } = useAuth();
   const { pathname } = useLocation();
   const [more, setMore] = useState(false);
@@ -30,7 +30,7 @@ export default function BottomNav({ items, projects, companyPick, siteIds }) {
     <>
       <nav className="bnav" aria-label="Main">
         {bar.map((i) => (
-          <NavLink key={i.to} to={i.to} end={i.end}><Icon name={i.barIcon || i.icon} /><span>{i.short || i.label}</span></NavLink>
+          <NavLink key={i.key} to={i.to} className={lit(i.key)}><Icon name={i.barIcon || i.icon} /><span>{i.short || i.label}</span></NavLink>
         ))}
         {report && <Link to={report}><Icon name="write" /><span>Report</span></Link>}
         {siteIds && <NavLink to="/account"><Icon name="account" /><span>Account</span></NavLink>}
@@ -43,7 +43,7 @@ export default function BottomNav({ items, projects, companyPick, siteIds }) {
           <div id="bnav-more" className="bsheet" role="dialog" aria-modal="true" aria-label="More" onClick={(e) => e.stopPropagation()}>
             <div className="bsheet-h"><b>More</b><button type="button" className="iconbtn" aria-label="Close" onClick={() => setMore(false)}><Icon name="close" /></button></div>
             {companyPick && <div className="field bsheet-pick"><label htmlFor="org-pick-m">Company</label>{companyPick}</div>}
-            {rest.length > 0 && <div className="bsheet-grid">{rest.map((i) => <NavLink key={i.to} to={i.to}><Icon name={i.icon} /><span>{i.label}</span></NavLink>)}
+            {rest.length > 0 && <div className="bsheet-grid">{rest.map((i) => <NavLink key={i.key} to={i.to} className={lit(i.key)}><Icon name={i.icon} /><span>{i.label}</span></NavLink>)}
               {!siteIds && <NavLink to="/account"><Icon name="account" /><span>Account</span></NavLink>}</div>}
             {!rest.length && !siteIds && <div className="bsheet-grid"><NavLink to="/account"><Icon name="account" /><span>Account</span></NavLink></div>}
             {projects?.length > 0 && <><p className="bsheet-lbl">Projects</p><div className="bsheet-list">{projects}</div></>}

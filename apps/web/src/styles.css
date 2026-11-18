@@ -126,6 +126,10 @@ button { cursor: pointer; }
 /* skin picker */
 .skin-pick { display: flex; gap: 6px; flex-wrap: wrap; }
 .upanel .skin-pick { margin: 0 4px; }
+/* Tabs above pages that share a menu item (Site activity, Settings): links styled like .tabs buttons */
+.tabs.section-tabs { margin: 18px 16px 0; }
+.section-tabs a { display: inline-flex; align-items: center; padding: 10px 14px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-size: 14px; text-decoration: none; }
+.section-tabs a.active { color: var(--ink); border-color: var(--brass); }
 /* The ⋯ project menu (Team, Settings) */
 .pmenu { width: 200px; }
 .btn.icon-btn { padding-left: 10px; padding-right: 10px; }
@@ -427,7 +431,7 @@ input[type="search"] { border: 1px solid var(--line); border-radius: 9px; backgr
 main:focus { outline: none; }
 /* fingers, not mouse pointers: bigger targets on touch screens */
 @media (pointer: coarse) {
-  .btn, .btn.sm, .seg button, .tabs button, button.chip, label.chip { min-height: 44px; }
+  .btn, .btn.sm, .seg button, .tabs button, .section-tabs a, button.chip, label.chip { min-height: 44px; }
   .btn.sm { padding: 9px 14px; }
 }
 .scroll:focus-visible { outline: 2px solid var(--steel); }
@@ -1197,6 +1201,8 @@ body.sheet-open { overflow: hidden; }
   .tabs { margin-left: -16px; margin-right: -16px; padding: 0 16px; scrollbar-width: none;
     -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
   .tabs::-webkit-scrollbar { display: none; }
+  /* Site activity and Settings tabs: on the page gutter, not past the screen edge */
+  .tabs.section-tabs { margin: 12px 0 0; padding: 0 16px; }
   /* Project tabs: all five fit on a phone. Sections fill their rows instead of wrapping ragged */
   .tabs button { padding: 10px 7px; font-size: 13.5px; }
   /* fit: tab rows that always fit (the project tabs) need no fade at the edge */

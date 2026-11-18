@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityTabs, navItems, newChoiceHref, newChoices, pickProject, projectMenu, projectTabs, resolveProjectAddress, settingsTabs, type NavContext, type Role, type Site } from '../src';
+import { activityTabs, navItems, navSection, newChoiceHref, newChoices, pickProject, projectMenu, projectTabs, resolveProjectAddress, settingsTabs, type NavContext, type Role, type Site } from '../src';
 
 const ALL_ON = { modules: { materials: true, labour: true, budget: true } };
 const ALL_OFF = { modules: {} };
@@ -164,5 +164,26 @@ describe('pickProject', () => {
   });
   it('no open projects', () => {
     expect(pickProject([s('c', 'C', 'closed')], {})).toEqual({ choose: [] });
+  });
+});
+
+describe('navSection', () => {
+  it('says which menu item a page belongs to, detail pages included', () => {
+    expect(navSection('/')).toBe('home');
+    expect(navSection('/sites')).toBe('projects');
+    expect(navSection('/sites/new')).toBe('projects');
+    expect(navSection('/sites/s1')).toBe('projects');
+    expect(navSection('/reports')).toBe('activity');
+    expect(navSection('/reports/s1/r1')).toBe('activity');
+    expect(navSection('/issues')).toBe('activity');
+    expect(navSection('/issues/s1/i1')).toBe('activity');
+    expect(navSection('/finance')).toBe('money');
+    expect(navSection('/team')).toBe('team');
+    expect(navSection('/company')).toBe('settings');
+    expect(navSection('/modules')).toBe('settings');
+    expect(navSection('/reminders')).toBe('settings');
+    expect(navSection('/account')).toBeNull();
+    expect(navSection('/photo-credits')).toBeNull();
+    expect(navSection('/reportsx')).toBeNull();
   });
 });

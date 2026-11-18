@@ -5,6 +5,7 @@ import { canAccessSite } from '@siteflow/shared';
 import { auth } from './firebase';
 import { useAuth } from './auth/AuthProvider';
 import Layout from './components/Layout';
+import { ActivityTabs, SettingsTabs } from './components/SectionTabs';
 import Toaster from './components/Toaster';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ErrorState, Loading } from './components/States';
@@ -116,17 +117,21 @@ export default function App() {
         <Route element={<Guard><Layout /></Guard>}>
           <Route index element={<Home />} />
           <Route path="sites" element={<Sites />} />
-          <Route path="reports" element={<Guard perm="sites.all"><Reports /></Guard>} />
+          <Route element={<ActivityTabs />}>
+            <Route path="reports" element={<Guard perm="sites.all"><Reports /></Guard>} />
+            <Route path="issues" element={<Guard perm="sites.all"><Issues /></Guard>} />
+          </Route>
           <Route path="reports/:sid/:rid" element={<OnSite><ReportDetail /></OnSite>} />
-          <Route path="issues" element={<Guard perm="sites.all"><Issues /></Guard>} />
           <Route path="issues/:sid/:id" element={<OnSite><IssueDetail /></OnSite>} />
           <Route path="finance" element={<Guard perm="finance.view"><Finance /></Guard>} />
           <Route path="sites/new" element={<Guard perm="sites.manage"><NewSite /></Guard>} />
           <Route path="sites/:sid" element={<OnSite><SiteDetail /></OnSite>} />
           <Route path="team" element={<Guard perm="team.manage"><Team /></Guard>} />
-          <Route path="company" element={<Guard perm="company.settings"><Company /></Guard>} />
-          <Route path="modules" element={<Guard perm="company.settings"><Modules /></Guard>} />
-          <Route path="reminders" element={<Guard perm="company.settings"><Reminders /></Guard>} />
+          <Route element={<SettingsTabs />}>
+            <Route path="company" element={<Guard perm="company.settings"><Company /></Guard>} />
+            <Route path="modules" element={<Guard perm="company.settings"><Modules /></Guard>} />
+            <Route path="reminders" element={<Guard perm="company.settings"><Reminders /></Guard>} />
+          </Route>
           <Route path="welcome" element={<Guard perm="company.settings"><Welcome /></Guard>} />
           <Route path="photo-credits" element={<PhotoCredits />} />
           <Route path="account" element={<Account />} />
