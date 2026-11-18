@@ -130,6 +130,18 @@ button { cursor: pointer; }
 .tabs.section-tabs { margin: 18px 16px 0; }
 .section-tabs a { display: inline-flex; align-items: center; padding: 10px 14px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-size: 14px; text-decoration: none; }
 .section-tabs a.active { color: var(--ink); border-color: var(--brass); }
+/* + New: a button and menu in the top bar; on phones a round + in the middle of the bottom bar */
+.new-btn { display: inline-flex; align-items: center; gap: 6px; }
+.new-btn .ico { width: 16px; height: 16px; }
+.new-panel { width: 250px; }
+.new-step { margin: 4px 8px 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.new-panel .hint, .new-sheet .hint { margin: 4px 8px; }
+.uitem.muted { color: var(--muted); }
+.new-fab-wrap { display: flex; align-items: center; justify-content: center; }
+.bnav .new-fab { width: 48px; height: 48px; min-height: 0; border-radius: 50%; background: var(--brass); color: var(--brass-ink); border: 0; box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.bnav .new-fab .ico { width: 24px; height: 24px; color: inherit; }
+.new-sheet .uitem { min-height: 48px; font-size: 15px; }
+@media (max-width: 860px) { .new-top { display: none; } }
 /* The ⋯ project menu (Team, Settings) */
 .pmenu { width: 200px; }
 .btn.icon-btn { padding-left: 10px; padding-right: 10px; }
