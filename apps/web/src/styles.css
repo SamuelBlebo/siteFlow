@@ -100,6 +100,14 @@ button { cursor: pointer; }
   .shell:not(.side-open) .snav a .ico { width: 18px; height: 18px; }
   .shell:not(.side-open) .me { padding: 4px; border: 0; display: flex; justify-content: center; }
   .shell.side-open .side { position: fixed; left: 12px; top: 12px; width: var(--side-w); z-index: 60; box-shadow: 0 20px 50px rgba(0, 0, 0, .18); }
+  /* The page keeps its column while the menu is opened out over it */
+  .main { grid-column: 2; }
+  /* Room is short beside the icons: the top bar keeps the time, + New and your picture */
+  .tchip.date, .ubtn .who-text { display: none; }
+  /* The project header stacks its status under the picture and name, as on phones */
+  .sitehead { grid-template-columns: auto 1fr; }
+  .sitehead > .pill { grid-column: 1 / -1; justify-self: start; }
+  .statrow div + div { border-left: 0; padding-left: 0; }
 }
 .org { padding: 9px 11px; border: 1px solid var(--line); border-radius: 11px; background: var(--sunk); }
 .org b { display: block; font-weight: 600; font-size: 14px; }
@@ -1491,7 +1499,7 @@ body.sheet-open { overflow: hidden; }
 .admin-steps { list-style: none; margin: 0; padding: 0; }
 .admin-panel .list { margin: 4px 0 16px; }
 .admin-acts { justify-content: flex-end; }
-@media (max-width: 639px) {
+@media (max-width: 1023px) {
   .admin { padding: 0; }
   .admin .topbar { flex-wrap: wrap; row-gap: 6px; }
   .admin .topbar .brand { font-size: 16px; }
