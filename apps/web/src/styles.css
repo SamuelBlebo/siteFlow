@@ -126,6 +126,10 @@ button { cursor: pointer; }
 /* skin picker */
 .skin-pick { display: flex; gap: 6px; flex-wrap: wrap; }
 .upanel .skin-pick { margin: 0 4px; }
+/* Tabs above pages that share a menu item (Site activity, Settings): links styled like .tabs buttons */
+.section-tabs { margin: 18px 16px 0; }
+.section-tabs a { padding: 10px 14px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-size: 14px; text-decoration: none; }
+.section-tabs a.active { color: var(--ink); border-color: var(--brass); }
 /* The ⋯ project menu (Team, Settings) */
 .pmenu { width: 200px; }
 .btn.icon-btn { padding-left: 10px; padding-right: 10px; }

@@ -1,9 +1,9 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
 import { companyDoc, siteDoc, sitesCol } from '../lib/db';
-import { PLAN_LABELS, ROLE_LABELS, isOn, planFor, reportDay, todayKey } from '@siteflow/shared';
+import { PLAN_LABELS, ROLE_LABELS, navItems, navSection, planFor, reportDay, settingsTabs, todayKey } from '@siteflow/shared';
 import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
 import Icon from './Icons';
@@ -13,7 +13,14 @@ import BottomNav from './BottomNav';
 import { usePins } from './PinButton';
 import { useProfileSkin } from '../lib/skin';
 // Red dot: an active site whose daily report hasn't come in today
-const GROUPS = ['Overview', 'On site', 'Money and people'];
+// How each menu item looks: its icon, and its short name on the phone's bottom bar
+const MENU_LOOK = {
+  home: { icon: 'dashboard', barIcon: 'home', bar: true },
+  projects: { icon: 'projects', short: 'Projects', bar: true },
+  activity: { icon: 'reports', short: 'Activity', bar: true },
+  money: { icon: 'finance' },
+  team: { icon: 'team' },
+};
 const late = (s) => reportDay(s, todayKey()) === 'due';
 
 // The app shell: a white sidebar that stays put (company, menu in groups, projects, you), and beside
@@ -28,7 +35,6 @@ export default function Layout() {
   const { data: sites } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
   const pinned = usePins();
   const open = sites.filter((s) => s.status !== 'closed').sort((a, b) => (pinned(b.id) - pinned(a.id)) || a.name.localeCompare(b.name));
-  const mod = (k) => isOn(company, k);
   useProfileSkin(profile?.skin);
 
   // A new page starts at the top, and screen readers start reading it from its heading
@@ -39,21 +45,13 @@ export default function Layout() {
     main.current?.focus({ preventScroll: true });
   }, [pathname]);
 
-  // The menu, used by the sidebar and (on phones) the bottom bar. bar: one of the bottom bar's icons.
-  const items = [
-    all && { to: '/', end: true, icon: 'dashboard', label: 'Dashboard', short: 'Home', barIcon: 'home', group: 'Overview', bar: true },
-    { to: '/sites', end: true, icon: 'projects', label: all ? 'Projects' : 'My projects', short: 'Projects', group: 'Overview', bar: true },
-    all && { to: '/reports', icon: 'reports', label: 'Daily reports', short: 'Reports', group: 'On site', bar: true },
-    all && { to: '/issues', icon: 'issues', label: 'Issues', group: 'On site', bar: true },
-    can('finance.view') && mod('budget') && { to: '/finance', icon: 'finance', label: 'Finance', group: 'Money and people' },
-    can('team.manage') && { to: '/team', icon: 'team', label: 'Team', group: 'Money and people' },
-    ...(can('company.settings') ? [
-      { to: '/modules', icon: 'modules', label: 'Modules', group: 'Settings' },
-      { to: '/reminders', icon: 'reminders', label: 'Reminders', group: 'Settings' },
-      { to: '/company', icon: 'company', label: 'Company', group: 'Settings' },
-    ] : []),
-  ].filter(Boolean);
-  const settings = items.filter((i) => i.group === 'Settings');
+  // The menu (shared navItems), used by the sidebar and (on phones) the bottom bar. bar: one of the
+  // bottom bar's icons. Settings is one link at the bottom; its page has tabs for the rest.
+  const nav = { role, company };
+  const items = navItems(nav).map((i) => ({ ...i, ...MENU_LOOK[i.key] }));
+  const settings = settingsTabs(nav).length ? { key: 'settings', to: '/company', label: 'Settings', icon: 'modules' } : null;
+  // Lit for every page the item covers, detail pages included (a report, an issue, a Settings tab)
+  const lit = (key) => () => (navSection(pathname) === key ? 'active' : '');
   const projectLinks = all
     ? open.map((s) => (
       <NavLink key={s.id} to={`/sites/${s.id}`} className="site-link" title={late(s) ? `${s.name}: today's report is missing` : s.name}>
@@ -87,13 +85,10 @@ export default function Layout() {
             <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">
-          {GROUPS.map((g) => {
-            const list = items.filter((i) => i.group === g);
-            return list.length ? <Fragment key={g}><span className="lbl">{g}</span>{list.map((i) => <NavLink key={i.to} to={i.to} end={i.end}><Icon name={i.icon} />{i.label}</NavLink>)}</Fragment> : null;
-          })}
+          {items.map((i) => <NavLink key={i.key} to={i.to} className={lit(i.key)}><Icon name={i.icon} />{i.label}</NavLink>)}
           {(all ? !!open.length : !!(profile?.siteIds || []).length) && <span className="lbl">Projects</span>}
           {projectLinks}
-          {settings.length > 0 && <><span className="lbl">Settings</span>{settings.map((i) => <NavLink key={i.to} to={i.to}><Icon name={i.icon} />{i.label}</NavLink>)}</>}
+          {settings && <NavLink to={settings.to} className={lit('settings')}><Icon name={settings.icon} />{settings.label}</NavLink>}
         </nav>
         <div className="me">
           <NavLink to="/account" title="Your account">
@@ -104,7 +99,7 @@ export default function Layout() {
       </aside>
       {/* A crash in one page keeps the menu working; moving to another page clears it */}
       <main id="main" className={`main${viewAs ? ' previewing' : ''}`} ref={main} tabIndex={-1}><ViewAsBar /><TopBar /><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>
-      <BottomNav items={items} projects={projectLinks} companyPick={companyPick} siteIds={all ? null : profile?.siteIds || []} />
+      <BottomNav items={settings ? [...items, settings] : items} lit={lit} projects={projectLinks} companyPick={companyPick} siteIds={all ? null : profile?.siteIds || []} />
     </div>
   );
 }
