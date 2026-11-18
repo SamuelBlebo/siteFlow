@@ -23,9 +23,10 @@ export default function NewMenu({ variant = 'top' }) {
   const sheet = useRef(null); // the phone sheet lives outside the bar (createPortal), so outside clicks check it too
   const all = can('sites.all');
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
-  const { data: allSites } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
+  const { data: allSites, loading: allLoading } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
   const mine = useDocsByIds((sid) => siteDoc(cid, sid), all || !cid ? [] : profile?.siteIds || [], [cid]);
   const sites = all ? allSites : mine.data;
+  const loadingSites = all ? allLoading : mine.loading;
   const pinned = usePins();
   const choices = newChoices({ role, company });
 
@@ -35,6 +36,12 @@ export default function NewMenu({ variant = 'top' }) {
     if (refocus) button.current?.focus();
   };
   useEffect(() => { setOpen(false); setChoice(null); }, [pathname]);
+  // The phone sheet holds the page still behind it, like the More sheet
+  useEffect(() => {
+    if (!open || variant !== 'bar') return undefined;
+    document.body.classList.add('sheet-open');
+    return () => document.body.classList.remove('sheet-open');
+  }, [open, variant]);
   // Keyboard: the first choice (or project) gets focus when the menu opens or moves to the project list
   useEffect(() => {
     if (open) (sheet.current || box.current)?.querySelector('.uitem')?.focus();
@@ -48,22 +55,31 @@ export default function NewMenu({ variant = 'top' }) {
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!choices.length) return null;
-
   const currentSiteId = pathname.match(/^\/sites\/([^/]+)$/)?.[1] ?? null;
   const go = (to) => { close(false); navigate(to); };
+  const here = currentSiteId === 'new' ? null : currentSiteId;
+  // A choice made while projects were still loading: pick the project as soon as they arrive
+  useEffect(() => {
+    if (!choice || loadingSites) return;
+    const picked = pickProject(sites, { currentSiteId: here, pinned });
+    if ('siteId' in picked) go(newChoiceHref(choice.key, picked.siteId));
+  }, [loadingSites]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!choices.length) return null;
+
   function choose(c) {
     if (!c.needsProject) return go(newChoiceHref(c.key));
-    const picked = pickProject(sites, { currentSiteId: currentSiteId === 'new' ? null : currentSiteId, pinned });
-    if ('siteId' in picked) return go(newChoiceHref(c.key, picked.siteId));
     setChoice(c);
+    if (loadingSites) return; // the effect above picks once the projects are in
+    const picked = pickProject(sites, { currentSiteId: here, pinned });
+    if ('siteId' in picked) go(newChoiceHref(c.key, picked.siteId));
   }
   const byId = Object.fromEntries(sites.map((s) => [s.id, s]));
   const picking = choice && pickProject(sites, { pinned });
   const list = choice ? (
     <>
       <p className="new-step">{choice.label}: which project?</p>
-      {'choose' in picking && picking.choose.length
+      {loadingSites ? <p className="hint">Loading your projects…</p> : 'choose' in picking && picking.choose.length
         ? picking.choose.map((id) => <button key={id} type="button" className="uitem" onClick={() => go(newChoiceHref(choice.key, id))}><Icon name="projects" />{byId[id]?.name}</button>)
         : <p className="hint">You have no open projects to add this to.</p>}
       <button type="button" className="uitem muted" onClick={() => setChoice(null)}>← Back</button>
@@ -90,10 +106,13 @@ export default function NewMenu({ variant = 'top' }) {
   }
   return (
     <div className="umenu new-top" ref={box}>
-      <button type="button" ref={button} className="btn gold new-btn" aria-haspopup="true" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
+      <button type="button" ref={button} className="btn gold new-btn" aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
         <Icon name="plus" />New
       </button>
-      {open && <div className="upanel new-panel" aria-label="Add new">{list}</div>}
+      {open && (
+        // Closes when keyboard focus moves on past it
+        <div className="upanel new-panel" role="dialog" aria-label="Add new" onBlur={(e) => { if (!box.current?.contains(e.relatedTarget)) close(false); }}>{list}</div>
+      )}
     </div>
   );
 }
