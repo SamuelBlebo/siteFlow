@@ -36,24 +36,24 @@ export default function Layout() {
   const { pathname } = useLocation();
   const main = useRef(null);
   const side = useRef(null);
-  // icons: folded on a laptop by choice. open: a tablet's icon sidebar shown in full for now.
+  // icons: folded on a laptop by choice. sideOpen: a tablet's icon sidebar shown in full for now.
   const [icons, setIcons] = useState(readIcons);
-  const [open, setOpen] = useState(false);
+  const [sideOpen, setSideOpen] = useState(false);
   const tablet = () => window.matchMedia?.(TABLET).matches;
   const fold = () => {
-    if (tablet()) return setOpen(!open);
+    if (tablet()) return setSideOpen(!sideOpen);
     setIcons(!icons);
     saveIcons(!icons);
   };
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => { setSideOpen(false); }, [pathname]);
   useEffect(() => {
-    if (!open) return undefined;
-    const away = (e) => { if (!side.current?.contains(e.target)) setOpen(false); };
-    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    if (!sideOpen) return undefined;
+    const away = (e) => { if (!side.current?.contains(e.target)) setSideOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setSideOpen(false); };
     document.addEventListener('mousedown', away);
     document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
-  }, [open]);
+  }, [sideOpen]);
   const all = can('sites.all');
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
   const { data: sites } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
@@ -91,14 +91,14 @@ export default function Layout() {
 
   const plan = company ? PLAN_LABELS[company.plan] || PLAN_LABELS[planFor(company.modules || {})] : '';
   return (
-    <div className={`shell${icons ? ' side-icons' : ''}${open ? ' side-open' : ''}`}>
+    <div className={`shell${icons ? ' side-icons' : ''}${sideOpen ? ' side-open' : ''}`}>
       <a className="skip" href="#main">Skip to content</a>
       <aside className="side" ref={side}>
         <div className="side-top">
           <Brand />
           {/* Laptop: fold to icons (remembered). Tablet: the icons open out over the page for now. */}
-          <button type="button" className="side-fold" onClick={fold} aria-expanded={tablet() ? open : !icons}
-            aria-label={(tablet() ? !open : icons) ? 'Show the menu names' : 'Fold the menu'} title={(tablet() ? !open : icons) ? 'Show the menu names' : 'Fold the menu'}>
+          <button type="button" className="side-fold" onClick={fold} aria-expanded={tablet() ? sideOpen : !icons}
+            aria-label={(tablet() ? !sideOpen : icons) ? 'Show the menu names' : 'Fold the menu'} title={(tablet() ? !sideOpen : icons) ? 'Show the menu names' : 'Fold the menu'}>
             <Icon name="sidebar" />
           </button>
         </div>
