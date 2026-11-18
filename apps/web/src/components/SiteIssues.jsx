@@ -9,15 +9,16 @@ import IssueForm from './IssueForm';
 import { ErrorState, Loading } from './States';
 
 // One site's issues (site page and site workspace)
-export default function SiteIssues({ cid, site }) {
+// startOpen: open the form straight away (+ New, Issue)
+export default function SiteIssues({ cid, site, startOpen = false }) {
   const { can } = useAuth();
   const nav = useNavigate();
   const [showAll, setShowAll] = useState(false);
-  const [reporting, setReporting] = useState(false);
+  const canReport = can('site.work') && isSiteOpen(site);
+  const [reporting, setReporting] = useState(startOpen && canReport);
   const { data, loading, error } = useQuery(() => cid && siteIssuesQuery(cid, site.id), [cid, site.id]);
   const shown = sortIssues(filterIssues(data, { status: showAll ? 'all' : 'open' }));
   const finished = data.length - filterIssues(data, { status: 'open' }).length;
-  const canReport = can('site.work') && isSiteOpen(site);
 
   return (
     <>

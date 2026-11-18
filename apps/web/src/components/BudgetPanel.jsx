@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
 import {
@@ -21,7 +21,8 @@ function download(name, text) {
 }
 
 // Money for one site (finance roles). Totals come from the server; calculations from shared.
-export default function BudgetPanel({ cid, site, data }) {
+// focusExpense: bring the expense form into view and put the cursor in it (+ New, Expense)
+export default function BudgetPanel({ cid, site, data, focusExpense = false }) {
   const { can } = useAuth();
   const { data: f, loading, error } = useDoc(() => financeDoc(cid, site.id), [cid, site.id]);
   // Only the last six months are downloaded; "All" in the list fetches older ones when asked
@@ -84,7 +85,7 @@ export default function BudgetPanel({ cid, site, data }) {
       )}
 
       <Wages cid={cid} site={site} data={data} expenses={expenses} />
-      {can('finance.edit') && <ExpenseForm cid={cid} sid={site.id} />}
+      {can('finance.edit') && <ExpenseForm cid={cid} sid={site.id} focus={focusExpense} />}
       {eLoading ? <Loading what="expenses" /> : <ExpenseList cid={cid} site={site} expenses={expenses} />}
     </>
   );
@@ -186,8 +187,14 @@ function expenseFields(f, set, prefix) {
   );
 }
 
-function ExpenseForm({ cid, sid }) {
+function ExpenseForm({ cid, sid, focus = false }) {
   const { user, profile } = useAuth();
+  const formRef = useRef(null);
+  useEffect(() => {
+    if (!focus || !formRef.current) return;
+    formRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    formRef.current.querySelector('input, select, textarea')?.focus({ preventScroll: true });
+  }, [focus]);
   const [f, setF] = useState(blankExpense());
   const [msg, setMsg] = useState({});
   const [busy, setBusy] = useState(false);
@@ -208,7 +215,7 @@ function ExpenseForm({ cid, sid }) {
     } catch (e2) { setMsg({ kind: 'err', text: e2.message }); } finally { setBusy(false); }
   }
   return (
-    <form className="form inline" onSubmit={submit}>
+    <form className="form inline" onSubmit={submit} ref={formRef}>
       <h3>Record an expense</h3>
       {msg.text && <p className={msg.kind === 'err' ? 'err' : 'notice ok'} role={msg.kind === 'err' ? 'alert' : 'status'}>{msg.text}</p>}
       {expenseFields(f, set, 'ne')}

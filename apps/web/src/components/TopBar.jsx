@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { logOut } from '../lib/account';
 import Brand from './Brand';
 import Icon from './Icons';
+import NewMenu from './NewMenu';
 import SkinPicker from './SkinPicker';
 import ThemeSwitch from './ThemeSwitch';
 import { ViewAsChooser } from './ViewAs';
@@ -23,6 +24,7 @@ export default function TopBar() {
       <span className="tchip time"><Icon name="clock" />{time}</span>
       <span className="tchip date"><Icon name="calendar" />{longToday()}</span>
       <span className="grow" />
+      <NewMenu />
       <UserMenu />
     </div>
   );

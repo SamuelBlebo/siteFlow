@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, usePagedQuery, useQuery, useSiteData, useTitle } from '../lib/hooks';
 import {
@@ -42,6 +42,11 @@ export default function SiteDetail() {
   const { sid } = useParams();
   const { cid, can, role } = useAuth();
   const [params, setParams] = useSearchParams();
+  // + New opens a form here with new=issue|attendance|delivery|expense. Each choice is a fresh
+  // navigation (a new location key), so choosing it again while already here reopens the form.
+  const { key: navKey } = useLocation();
+  const asked = params.get('new');
+  const fresh = (kind) => (asked === kind ? `${kind}-${navKey}` : undefined);
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const data = useSiteData(cid, sid, { withPay: can('finance.view') });
   const { data: company, loading: companyLoading } = useDoc(() => cid && companyDoc(cid), [cid]);
@@ -144,11 +149,11 @@ export default function SiteDetail() {
       )}
       {view === 'photos' && <SitePhotos cid={cid} site={site} />}
       {view === 'programme' && <ProgressPanel cid={cid} site={site} canWork={work} />}
-      {view === 'issues' && <SiteIssues cid={cid} site={site} />}
-      {view === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
-      {view === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
+      {view === 'issues' && <SiteIssues key={fresh('issue')} cid={cid} site={site} startOpen={asked === 'issue'} />}
+      {view === 'materials' && <MaterialsPanel key={fresh('delivery')} cid={cid} site={site} data={data} canWork={work} startRecord={asked === 'delivery'} />}
+      {view === 'labour' && <LabourPanel key={fresh('attendance')} cid={cid} site={site} data={data} canWork={work} focusAttendance={asked === 'attendance'} />}
       {view === 'drawings' && <><ProjectDrawing cid={cid} site={site} /><ModelCard cid={cid} site={site} /></>}
-      {tab === 'money' && <BudgetPanel cid={cid} site={site} data={data} />}
+      {tab === 'money' && <BudgetPanel key={fresh('expense')} cid={cid} site={site} data={data} focusExpense={asked === 'expense'} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
       {tab === 'settings' && <SettingsTab cid={cid} sid={sid} site={site} edit={params.get('edit') === '1'} />}
       </Tabs>
