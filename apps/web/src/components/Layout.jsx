@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useQuery } from '../lib/hooks';
@@ -22,6 +22,11 @@ const MENU_LOOK = {
   team: { icon: 'team' },
 };
 const late = (s) => reportDay(s, todayKey()) === 'due';
+// Laptops: the sidebar can be folded to icons; the choice is kept on this device
+const ICONS_KEY = 'sf.sideIcons';
+const readIcons = () => { try { return localStorage.getItem(ICONS_KEY) === '1'; } catch { return false; } };
+const saveIcons = (on) => { try { localStorage.setItem(ICONS_KEY, on ? '1' : '0'); } catch { /* private window: this session only */ } };
+const TABLET = '(min-width: 640px) and (max-width: 1023px)';
 
 // The app shell: a white sidebar that stays put (company, menu in groups, projects, you), and beside
 // it the top bar and the page. On phones the sidebar gives way to a bottom bar of icons, like a phone app.
@@ -30,6 +35,25 @@ export default function Layout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const main = useRef(null);
+  const side = useRef(null);
+  // icons: folded on a laptop by choice. sideOpen: a tablet's icon sidebar shown in full for now.
+  const [icons, setIcons] = useState(readIcons);
+  const [sideOpen, setSideOpen] = useState(false);
+  const tablet = () => window.matchMedia?.(TABLET).matches;
+  const fold = () => {
+    if (tablet()) return setSideOpen(!sideOpen);
+    setIcons(!icons);
+    saveIcons(!icons);
+  };
+  useEffect(() => { setSideOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!sideOpen) return undefined;
+    const away = (e) => { if (!side.current?.contains(e.target)) setSideOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setSideOpen(false); };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+  }, [sideOpen]);
   const all = can('sites.all');
   const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
   const { data: sites } = useQuery(() => all && cid && sitesCol(cid), [cid, all]);
@@ -67,10 +91,17 @@ export default function Layout() {
 
   const plan = company ? PLAN_LABELS[company.plan] || PLAN_LABELS[planFor(company.modules || {})] : '';
   return (
-    <div className="shell">
+    <div className={`shell${icons ? ' side-icons' : ''}${sideOpen ? ' side-open' : ''}`}>
       <a className="skip" href="#main">Skip to content</a>
-      <aside className="side">
-        <Brand />
+      <aside className="side" ref={side}>
+        <div className="side-top">
+          <Brand />
+          {/* Laptop: fold to icons (remembered). Tablet: the icons open out over the page for now. */}
+          <button type="button" className="side-fold" onClick={fold} aria-expanded={tablet() ? sideOpen : !icons}
+            aria-label={(tablet() ? !sideOpen : icons) ? 'Show the menu names' : 'Fold the menu'} title={(tablet() ? !sideOpen : icons) ? 'Show the menu names' : 'Fold the menu'}>
+            <Icon name="sidebar" />
+          </button>
+        </div>
         {company && (companies.length > 1 ? (
           // People in more than one company: pick which one to work in. Each keeps its own role and projects.
           <div className="org pick">
@@ -85,10 +116,10 @@ export default function Layout() {
             <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">
-          {items.map((i) => <NavLink key={i.key} to={i.to} className={lit(i.key)}><Icon name={i.icon} />{i.label}</NavLink>)}
+          {items.map((i) => <NavLink key={i.key} to={i.to} className={lit(i.key)} title={i.label}><Icon name={i.icon} /><span className="snav-t">{i.label}</span></NavLink>)}
           {(all ? !!open.length : !!(profile?.siteIds || []).length) && <span className="lbl">Projects</span>}
           {projectLinks}
-          {settings && <NavLink to={settings.to} className={lit('settings')}><Icon name={settings.icon} />{settings.label}</NavLink>}
+          {settings && <NavLink to={settings.to} className={lit('settings')} title={settings.label}><Icon name={settings.icon} /><span className="snav-t">{settings.label}</span></NavLink>}
         </nav>
         <div className="me">
           <NavLink to="/account" title="Your account">

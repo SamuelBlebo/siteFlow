@@ -17,6 +17,7 @@ const P = {
   signout: <><path d="M6 2.5H3v11h3M10.5 5l3 3-3 3M13.5 8H6" /></>,
   chevron: <path d="m4 6 4 4 4-4" />,
   home: <><path d="M2 7.5 8 2.5l6 5" /><path d="M3.5 6.5V14h9V6.5" /><path d="M6.5 14v-4h3v4" /></>,
+  sidebar: <><rect x="2" y="3" width="12" height="10" rx="2" /><path d="M6 3v10" /></>,
   plus: <path d="M8 3v10M3 8h10" />,
   more: <><circle cx="3.5" cy="8" r=".9" /><circle cx="8" cy="8" r=".9" /><circle cx="12.5" cy="8" r=".9" /></>,
   write: <><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z" /><path d="M9 4l3 3" /></>,
