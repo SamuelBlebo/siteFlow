@@ -20,9 +20,10 @@ function download(name, text) {
 }
 
 // Stock, recording, history and set-up for one site's materials
-export default function MaterialsPanel({ cid, site, data, canWork }) {
+// startRecord: open the Record form with Delivery chosen (+ New, Material delivery)
+export default function MaterialsPanel({ cid, site, data, canWork, startRecord = false }) {
   const { can } = useAuth();
-  const [view, setView] = useState('stock');
+  const [view, setView] = useState(startRecord && canWork ? 'record' : 'stock');
   // The last two weeks of entries give each material's average daily use
   const { data: recent } = useQuery(() => cid && materialLogsQuery(cid, site.id, { from: ago(RATE_DAYS - 1) }), [cid, site.id]);
   const rates = useMemo(() => {
@@ -40,7 +41,7 @@ export default function MaterialsPanel({ cid, site, data, canWork }) {
           <p className="hint">Average a day is from the last {RATE_DAYS} days of recorded use. Days left assumes the same rate.</p>
         </>
       )}
-      {view === 'record' && canWork && <MaterialLogForm cid={cid} sid={site.id} materials={data.materials} />}
+      {view === 'record' && canWork && <MaterialLogForm cid={cid} sid={site.id} materials={data.materials} startType={startRecord ? 'delivery' : 'usage'} />}
       {view === 'history' && <MaterialHistory cid={cid} site={site} materials={data.allMaterials} />}
       {view === 'setup' && can('sites.manage') && <MaterialSetup cid={cid} sid={site.id} materials={data.allMaterials} canCount={canWork} />}
     </>

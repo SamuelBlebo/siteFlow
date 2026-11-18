@@ -7,11 +7,11 @@ import { Empty } from './States';
 import Choice from './Choice';
 
 // Record what was used or received. Deliveries take supplier, waybill and (finance roles) cost.
-export default function MaterialLogForm({ cid, sid, materials }) {
+export default function MaterialLogForm({ cid, sid, materials, startType = 'usage' }) {
   const { user, profile, can } = useAuth();
   const withCost = can('finance.edit');
   const blank = { qty: '', supplier: '', ref: '', cost: '', note: '' };
-  const [type, setType] = useState('usage');
+  const [type, setType] = useState(startType);
   const [mid, setMid] = useState('');
   const [f, setF] = useState(blank);
   const [msg, setMsg] = useState({ kind: '', text: '' });
