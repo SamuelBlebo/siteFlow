@@ -141,6 +141,7 @@ button { cursor: pointer; }
 .bnav .new-fab { width: 48px; height: 48px; min-height: 0; border-radius: 50%; background: var(--brass); color: var(--brass-ink); border: 0; box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
 .bnav .new-fab .ico { width: 24px; height: 24px; color: inherit; }
 .new-sheet .uitem { min-height: 48px; font-size: 15px; }
+.new-sheet .uitem .ico { width: 20px; height: 20px; flex: none; color: var(--muted); }
 @media (max-width: 860px) { .new-top { display: none; } }
 /* The ⋯ project menu (Team, Settings) */
 .pmenu { width: 200px; }
