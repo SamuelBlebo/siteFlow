@@ -10,7 +10,8 @@ import { deleteProject, team } from '../lib/account';
 import {
   ROLE_LABELS, SITE_STATUSES, SITE_STATUS_LABELS, big, budgetInput, budgetUsedPct, cedi, isOn,
   friendlyError, isSiteOpen, isSiteScoped, materialStatus, reportDay, plannedPct, prettyDate, siteFormValues, siteTeam, todayKey,
-  validate, waPhone, currencySymbol } from '@siteflow/shared';
+  validate, waPhone, currencySymbol, projectMenu, projectTabs, resolveProjectAddress } from '@siteflow/shared';
+import Icon from '../components/Icons';
 import Tabs from '../components/Tabs';
 import TodayPanel from '../components/TodayPanel';
 import TodayReport from '../components/TodayReport';
@@ -41,44 +42,58 @@ export default function SiteDetail() {
   const { sid } = useParams();
   const { cid, can, role } = useAuth();
   const [params, setParams] = useSearchParams();
-  // write: open today's report form straight away (Make a report, the Today checklist)
-  const setTab = (t, write = false) => setParams(write ? { tab: t, write: '1' } : { tab: t }, { replace: true });
   const { data: site, loading, error } = useDoc(() => cid && siteDoc(cid, sid), [cid, sid]);
   const data = useSiteData(cid, sid, { withPay: can('finance.view') });
-  const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
+  const { data: company, loading: companyLoading } = useDoc(() => cid && companyDoc(cid), [cid]);
+  const nav = { role, company };
+  // Opens a tab (and section). Older tab names (the Today checklist, alerts) still work.
+  // write: open today's report form straight away (Make a report, the Today checklist)
+  const go = (t, v = null, write = false) => {
+    const to = resolveProjectAddress(nav, t, v);
+    setParams({ tab: to.tab, ...(to.view ? { view: to.view } : {}), ...(write ? { write: '1' } : {}) }, { replace: true });
+  };
   const mod = (k) => isOn(company, k);
   const money = can('finance.view') && mod('budget');
   const { data: fin } = useDoc(() => money && cid && financeDoc(cid, sid), [cid, sid, money]);
   useTitle(site?.name || 'Project');
 
-  if (loading) return <Loading />;
+  // Wait for the company too: its modules decide which tabs exist
+  if (loading || (cid && companyLoading)) return <Loading />;
   if (error) return <section className="wrap"><ErrorState error={error} what="this site" /></section>;
   if (!site) return <p className="pad">This project doesn't exist or you don't have access. <Link to="/sites">Back to projects</Link></p>;
 
   const open = isSiteOpen(site);
   const work = can('site.work') && open;
-  // One page per project for everyone. The site team starts on Today; managers on Overview.
-  // Older addresses (the site workspace's tab names) still land on the right tab.
-  const OLD_TABS = { report: 'reports', history: 'reports', drawing: 'overview', workers: 'labour' };
-  const asked = params.get('tab');
-  const tab = OLD_TABS[asked] || asked || (can('site.work') && isSiteScoped(role) ? 'today' : 'overview');
-  const tabs = [...(can('site.work') ? [['today', 'Live today']] : []), ['overview', 'Overview'], ['reports', 'Daily reports'], ['photos', 'Photos'], ['progress', 'Progress'], ['issues', 'Issues']];
-  if (mod('materials')) tabs.push(['materials', 'Materials']);
-  if (mod('labour')) tabs.push(['labour', 'Labour']);
-  if (money) tabs.push(['budget', 'Budget']);
-  if (can('team.manage') || can('sites.manage')) tabs.push(['team', 'Team']);
-  if (can('sites.manage')) tabs.push(['settings', 'Settings']);
+  // One page per project, five tabs, everyone opens on Today. Old addresses (emails, WhatsApp,
+  // bookmarks) are mapped by resolveProjectAddress in shared; anything that can't be shown opens Today.
+  const { tab, view } = resolveProjectAddress(nav, params.get('tab'), params.get('view'), { sheet: params.get('sheet'), pin: params.get('pin') });
+  const allTabs = projectTabs(nav);
+  const sections = allTabs.find((t) => t.key === tab)?.sections || [];
+  const siteStaff = can('site.work') && isSiteScoped(role);
+  const overview = (
+    <>
+      <AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} />
+      <OverviewTab site={site} data={data} materialsOn={mod('materials')} />
+    </>
+  );
+  const liveToday = can('site.work') && (
+    <>
+      <AiOverview site={site} kind="today" stamp={`${site.lastReportDate}|${site.lastReportTime}|${data.presentCount}`} />
+      <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={(t, write) => go(t, null, write)} />
+    </>
+  );
 
   return (
     <>
     <div className="dtop">
       <p className="crumb" style={{ marginRight: 'auto' }}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
       {can('sites.manage') && <Link className="btn ghost" to={`/sites/${site.id}?tab=settings&edit=1`}>Edit project</Link>}
+      <ProjectMenu siteId={site.id} items={projectMenu(nav)} />
       <ReportButton cid={cid} site={site} />
     </div>
     <section className="wrap">
       <div className="panel">
-        <div className={`sitehead${site.cover ? ' with-cover' : ''}${tab !== 'overview' ? ' compact-m' : ''}`}>
+        <div className={`sitehead${site.cover ? ' with-cover' : ''}${tab !== 'today' ? ' compact-m' : ''}`}>
           {site.cover && <ProjectCover site={site} className="head" />}
           <Ring pct={site.progress || 0} size={84} />
           <div>
@@ -109,31 +124,63 @@ export default function SiteDetail() {
           {can('sites.manage') ? ' Reopen it from Settings.' : ''}
         </p>
       )}
-      <Tabs value={tab} onChange={setTab} tabs={tabs} label="Site sections">
-      {data.error && ['materials', 'labour', 'overview'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'overview' && <><AiOverview site={site} kind="project" stamp={`${site.lastReportDate}|${site.lastReportTime}|${site.progress}|${site.stage}`} /><ProjectDrawing cid={cid} site={site} /><ModelCard cid={cid} site={site} /><OverviewTab site={site} data={data} materialsOn={mod('materials')} /></>}
-      {tab === 'today' && <AiOverview site={site} kind="today" stamp={`${site.lastReportDate}|${site.lastReportTime}|${data.presentCount}`} />}
-      {tab === 'today' && <TodayPanel cid={cid} site={site} data={data} mod={mod} work={work} onGo={setTab} />}
-      {tab === 'reports' && (
+      <Tabs value={tab} onChange={(t) => go(t)} tabs={allTabs.map((t) => [t.key, t.label])} label="Project sections" fit>
+      {(tab === 'team' || tab === 'settings') && <p className="mt-sm"><Link to={`/sites/${site.id}`}>← Back to project</Link></p>}
+      {sections.length > 1 && (
+        <div className="seg sections" role="group" aria-label={`${allTabs.find((t) => t.key === tab).label} sections`}>
+          {sections.map((s) => <button key={s.key} type="button" aria-pressed={view === s.key} onClick={() => go(tab, s.key)}>{s.label}</button>)}
+        </div>
+      )}
+      {data.error && ['today', 'resources'].includes(tab) && <ErrorState error={data.error} what="site data" />}
+      {tab === 'today' && (siteStaff ? <>{liveToday}{overview}</> : <>{overview}{liveToday}</>)}
+      {view === 'reports' && (
         <>
           {work && <MyChangeRequests cid={cid} site={site} />}
-          {work && <TodayReport cid={cid} site={site} data={data} startOpen={params.get('write') === '1' || asked === 'report'} />}
+          {work && <TodayReport cid={cid} site={site} data={data} startOpen={params.get('write') === '1' || params.get('tab') === 'report'} />}
           <ReportRequests cid={cid} site={site} startOpen={params.get('request') === '1'} />
           <h3 className="sub">Report history</h3>
           <ReportHistory cid={cid} site={site} />
         </>
       )}
-      {tab === 'photos' && <SitePhotos cid={cid} site={site} />}
-      {tab === 'issues' && <SiteIssues cid={cid} site={site} />}
-      {tab === 'progress' && <ProgressPanel cid={cid} site={site} canWork={work} />}
-      {tab === 'materials' && mod('materials') && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
-      {tab === 'labour' && mod('labour') && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
-      {tab === 'budget' && money && <BudgetPanel cid={cid} site={site} data={data} />}
+      {view === 'photos' && <SitePhotos cid={cid} site={site} />}
+      {view === 'programme' && <ProgressPanel cid={cid} site={site} canWork={work} />}
+      {view === 'issues' && <SiteIssues cid={cid} site={site} />}
+      {view === 'materials' && <MaterialsPanel cid={cid} site={site} data={data} canWork={work} />}
+      {view === 'labour' && <LabourPanel cid={cid} site={site} data={data} canWork={work} />}
+      {view === 'drawings' && <><ProjectDrawing cid={cid} site={site} /><ModelCard cid={cid} site={site} /></>}
+      {tab === 'money' && <BudgetPanel cid={cid} site={site} data={data} />}
       {tab === 'team' && <TeamTab cid={cid} sid={sid} site={site} />}
-      {tab === 'settings' && can('sites.manage') && <SettingsTab cid={cid} sid={sid} site={site} edit={params.get('edit') === '1'} />}
+      {tab === 'settings' && <SettingsTab cid={cid} sid={sid} site={site} edit={params.get('edit') === '1'} />}
       </Tabs>
     </section>
     </>
+  );
+}
+
+// The ⋯ menu next to Edit project: Team and Settings, for the roles that have them
+function ProjectMenu({ siteId, items }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const away = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  if (!items.length) return null;
+  const close = () => setOpen(false);
+  const labels = { team: ['team', 'Team'], settings: ['modules', 'Settings'] };
+  return (
+    <div className="umenu" ref={box}>
+      <button type="button" className="btn ghost icon-btn" aria-label="More project options" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}><Icon name="more" /></button>
+      {open && (
+        <div className="upanel pmenu" role="menu">
+          {items.map((k) => <Link key={k} role="menuitem" to={`/sites/${siteId}?tab=${k}`} onClick={close}><Icon name={labels[k][0]} />{labels[k][1]}</Link>)}
+        </div>
+      )}
+    </div>
   );
 }
 

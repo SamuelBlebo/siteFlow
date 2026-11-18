@@ -22,7 +22,7 @@ export function GettingStarted({ company, sites, budgetSet }) {
     project: { why: 'Name, place, foreman and budget', to: '/sites/new', go: 'Add project' },
     team: { why: 'Managers, accounts and foremen', to: '/team?add=1', go: 'Invite' },
     report: { why: 'Sent from site on the phone', to: '/sites', go: 'Open site work' },
-    budget: { why: 'So spending can be tracked', to: can('finance.view') && budgetSet !== null ? (real[0] ? `/sites/${real[0].id}?tab=budget` : '/sites/new') : null, go: 'Set budget' },
+    budget: { why: 'So spending can be tracked', to: can('finance.view') && budgetSet !== null ? (real[0] ? `/sites/${real[0].id}?tab=money` : '/sites/new') : null, go: 'Set budget' },
   };
   const steps = gettingStartedSteps({
     hasDetails: !!(company?.phone || company?.location), realProjects: real.length, members: members.length,
