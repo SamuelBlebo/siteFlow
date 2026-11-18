@@ -73,7 +73,34 @@ button { cursor: pointer; }
 /* app shell: a white sidebar card that stays put, and the main column (top bar, then the page) */
 .shell { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); gap: 12px; padding: 12px; min-height: 100dvh; align-items: start; }
 .side { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 10px 10px; display: flex; flex-direction: column; gap: 10px; position: sticky; top: 12px; height: calc(100dvh - 24px); overflow: hidden; }
-.side .brand { padding: 4px 8px 14px; border-bottom: 1px solid var(--line); }
+.side-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.side .brand { padding: 4px 8px; }
+.side-fold { border: 0; background: none; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); flex: none; cursor: pointer; }
+.side-fold:hover { background: var(--sunk); color: var(--ink); }
+.side-fold .ico { width: 17px; height: 17px; }
+/* The sidebar as icons: folded by choice on a laptop or wider (kept on the device), and always on a
+   tablet unless its button has opened it out over the page. Names show on hover (title). */
+@media (min-width: 1024px) {
+  .shell.side-icons { grid-template-columns: 68px minmax(0, 1fr); }
+  .shell.side-icons .side { padding: 12px 8px 10px; }
+  .shell.side-icons .side-top { flex-direction: column; gap: 8px; }
+  .shell.side-icons .side .brand { font-size: 0; gap: 0; padding: 4px 0; }
+  .shell.side-icons .org, .shell.side-icons .snav .lbl, .shell.side-icons .snav .site-link, .shell.side-icons .snav-t, .shell.side-icons .me .who-text { display: none; }
+  .shell.side-icons .snav a { justify-content: center; padding: 9px 0; }
+  .shell.side-icons .snav a .ico { width: 18px; height: 18px; }
+  .shell.side-icons .me { padding: 4px; border: 0; display: flex; justify-content: center; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .shell { grid-template-columns: 68px minmax(0, 1fr); }
+  .shell:not(.side-open) .side { padding: 12px 8px 10px; }
+  .shell:not(.side-open) .side-top { flex-direction: column; gap: 8px; }
+  .shell:not(.side-open) .side .brand { font-size: 0; gap: 0; padding: 4px 0; }
+  .shell:not(.side-open) .org, .shell:not(.side-open) .snav .lbl, .shell:not(.side-open) .snav .site-link, .shell:not(.side-open) .snav-t, .shell:not(.side-open) .me .who-text { display: none; }
+  .shell:not(.side-open) .snav a { justify-content: center; padding: 9px 0; }
+  .shell:not(.side-open) .snav a .ico { width: 18px; height: 18px; }
+  .shell:not(.side-open) .me { padding: 4px; border: 0; display: flex; justify-content: center; }
+  .shell.side-open .side { position: fixed; left: 12px; top: 12px; width: var(--side-w); z-index: 60; box-shadow: 0 20px 50px rgba(0, 0, 0, .18); }
+}
 .org { padding: 9px 11px; border: 1px solid var(--line); border-radius: 11px; background: var(--sunk); }
 .org b { display: block; font-weight: 600; font-size: 14px; }
 .org span { font-size: 12px; color: var(--muted); }
