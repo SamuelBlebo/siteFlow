@@ -112,7 +112,7 @@ export default function Layout() {
             <span>{role ? ROLE_LABELS[role] : ''}, {companies.length} companies</span>
           </div>
         ) : (
-          <div className="org"><b>{company.name}</b>
+          <div className="org"><b title={company.name}>{company.name}</b>
             <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">

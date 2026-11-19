@@ -91,7 +91,7 @@ export default function SiteDetail() {
   return (
     <>
     <div className="dtop">
-      <p className="crumb" style={{ marginRight: 'auto' }}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
+      <p className="crumb" style={{ marginRight: 'auto' }} title={site.name}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
       {can('sites.manage') && <Link className="btn ghost" to={`/sites/${site.id}?tab=settings&edit=1`}>Edit project</Link>}
       <ProjectMenu siteId={site.id} items={projectMenu(nav)} />
       <ReportButton cid={cid} site={site} />
@@ -137,7 +137,12 @@ export default function SiteDetail() {
         </div>
       )}
       {data.error && ['today', 'resources'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'today' && (siteStaff ? <>{liveToday}{overview}</> : <>{overview}{liveToday}</>)}
+      {/* Wide screens put the live Today panel (the checklist) in a side column; narrower ones stack them */}
+      {tab === 'today' && (liveToday
+        ? <div className="today-cols">{siteStaff
+          ? <><div className="today-side">{liveToday}</div><div className="today-main">{overview}</div></>
+          : <><div className="today-main">{overview}</div><div className="today-side">{liveToday}</div></>}</div>
+        : overview)}
       {view === 'reports' && (
         <>
           {work && <MyChangeRequests cid={cid} site={site} />}

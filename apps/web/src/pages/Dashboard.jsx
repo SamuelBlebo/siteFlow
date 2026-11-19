@@ -164,7 +164,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         </dl>
 
         <div className="dgrid">
-          <AlertsPanel alerts={alerts} className={money ? 'c7' : 'c12'} />
+          <AlertsPanel alerts={alerts} className={`${money ? 'c7' : 'c12'} dside`} />
 
           {money && (
             <section className="panel c5" aria-labelledby="bvp-h">

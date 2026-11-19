@@ -58,7 +58,7 @@ export default function AttendanceHistory({ cid, site, workers, pay }) {
         : !shown.length ? <Empty title="No workers yet." /> : (
           <>
             <p className="hint">{prettyDate(from)} to {prettyDate(to)}. P present, L late, A absent, LV leave. Present and late count as days worked.</p>
-            <div className="scroll"><table className="grid-att">
+            <div className="scroll keep-table"><table className="grid-att">
               <thead><tr><th>Worker</th>{days.map((d) => <th key={d} title={prettyDate(d)}>{prettyDate(d).split(' ').slice(0, 2).join(' ')}</th>)}<th>Worked</th><th>Late</th><th>Absent</th><th>Leave</th>{wages && <th>Wages</th>}</tr></thead>
               <tbody>
                 {shown.map((w, i) => (
