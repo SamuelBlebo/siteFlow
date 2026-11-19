@@ -11,9 +11,10 @@ import { Loading } from './States';
 // doesn't hide the others.
 async function loadOne(cid, uid) {
   try {
-    const [c, m] = await Promise.all([getDoc(companyDoc(cid)), getDoc(memberDoc(cid, uid))]);
+    // A switched-off seat can't read the company itself, so that read may fail: the row still shows the role
+    const [c, m] = await Promise.all([getDoc(companyDoc(cid)).catch(() => null), getDoc(memberDoc(cid, uid))]);
     if (!m.exists()) return null;
-    const company = c.exists() ? c.data() : null;
+    const company = c?.exists() ? c.data() : null;
     const member = m.data();
     let sites = [];
     // A paused company or a switched-off seat can't read its projects

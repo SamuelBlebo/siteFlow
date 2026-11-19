@@ -18,6 +18,7 @@ describe('membershipSummary', () => {
 
   it('a site role with no projects says so', () => {
     expect(membershipSummary({ role: 'supervisor', siteIds: [] }, [], null).projects).toBe('No projects yet');
+    expect(membershipSummary({ role: 'owner' }, [], null).projects).toBe('No projects yet');
   });
 
   it('a switched-off membership is off, a paused company is paused', () => {

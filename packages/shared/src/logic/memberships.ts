@@ -10,7 +10,7 @@ export function membershipSummary(
 ): { roleLabel: string; state: 'ok' | 'off' | 'paused'; projects: string } {
   const state = m.active === false ? 'off' : company?.suspended ? 'paused' : 'ok';
   const roleLabel = ROLE_LABELS[m.role] || m.role;
-  if (!isSiteScoped(m.role)) return { roleLabel, state, projects: `All projects (${sites.length})` };
+  if (!isSiteScoped(m.role)) return { roleLabel, state, projects: sites.length ? `All projects (${sites.length})` : 'No projects yet' };
   const mine = sites.filter((s) => (m.siteIds || []).includes(s.id));
   if (!mine.length) return { roleLabel, state, projects: 'No projects yet' };
   const order = [...mine.filter(isSiteOpen), ...mine.filter((s) => !isSiteOpen(s))].map((s) => s.name);
