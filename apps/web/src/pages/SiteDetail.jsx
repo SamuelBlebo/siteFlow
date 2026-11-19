@@ -91,7 +91,7 @@ export default function SiteDetail() {
   return (
     <>
     <div className="dtop">
-      <p className="crumb" style={{ marginRight: 'auto' }}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
+      <p className="crumb" style={{ marginRight: 'auto' }} title={site.name}>{can('sites.all') && <><Link to="/">Dashboard</Link> / </>}<Link to="/sites">{can('sites.all') ? 'Projects' : 'My projects'}</Link> / {site.name}</p>
       {can('sites.manage') && <Link className="btn ghost" to={`/sites/${site.id}?tab=settings&edit=1`}>Edit project</Link>}
       <ProjectMenu siteId={site.id} items={projectMenu(nav)} />
       <ReportButton cid={cid} site={site} />
