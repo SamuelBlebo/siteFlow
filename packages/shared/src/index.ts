@@ -33,5 +33,6 @@ export * from './logic/mail';
 export * from './logic/overview';
 export * from './logic/admin';
 export * from './logic/viewAs';
+export * from './logic/memberships';
 export * from './navigation';
 export * from './demo';
