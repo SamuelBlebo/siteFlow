@@ -137,7 +137,12 @@ export default function SiteDetail() {
         </div>
       )}
       {data.error && ['today', 'resources'].includes(tab) && <ErrorState error={data.error} what="site data" />}
-      {tab === 'today' && (siteStaff ? <>{liveToday}{overview}</> : <>{overview}{liveToday}</>)}
+      {/* Wide screens put the live Today panel (the checklist) in a side column; narrower ones stack them */}
+      {tab === 'today' && (liveToday
+        ? <div className="today-cols">{siteStaff
+          ? <><div className="today-side">{liveToday}</div><div className="today-main">{overview}</div></>
+          : <><div className="today-main">{overview}</div><div className="today-side">{liveToday}</div></>}</div>
+        : overview)}
       {view === 'reports' && (
         <>
           {work && <MyChangeRequests cid={cid} site={site} />}

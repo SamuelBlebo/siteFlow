@@ -1536,3 +1536,15 @@ body.sheet-open { overflow: hidden; }
   .viewas-bg { align-items: end; padding: 0; }
   .viewas-box { width: 100%; max-height: 85dvh; border-radius: 18px 18px 0 0; }
 }
+
+/* Wide screens: a side column for what needs attention (Home alerts, the project's live Today panel) */
+@media (min-width: 1440px) {
+  .dgrid { grid-template-columns: repeat(12, minmax(0, 1fr)) 360px; }
+  /* Alerts span every row of the grid: 4 with money panels, 2 without */
+  .dgrid > .dside { grid-column: 13; grid-row: 1 / span 2; }
+  .dgrid > .dside.c7 { grid-row: 1 / span 4; }
+  .dgrid > .dside + .c5 { grid-column: span 12; }
+  .today-cols { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+  .today-main { grid-column: 1; grid-row: 1; min-width: 0; }
+  .today-side { grid-column: 2; grid-row: 1; min-width: 0; }
+}
