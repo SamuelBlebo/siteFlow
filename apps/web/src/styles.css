@@ -1283,7 +1283,7 @@ body.sheet-open { overflow: hidden; }
 
 /* Dashboard projects on phones: cards instead of the wide table */
 .pcards-m { display: none; list-style: none; margin: 8px 0 0; padding: 0; }
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .panel:has(> .pcards-m) > .scroll { display: none; }
   .pcards-m { display: flex; flex-direction: column; gap: 10px; }
   .pcm { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
@@ -1339,9 +1339,9 @@ body.sheet-open { overflow: hidden; }
   .report-row .rthumbs img, .report-row .rthumbs .more { width: 60px; height: 48px; }
 }
 
-/* Tables on phones: each row is a card. The first cell is its title; every other value sits on its own
+/* Tables on phones and small tablets (below 768): each row is a card. The first cell is its title; every other value sits on its own
    line next to its column name (data-label, from lib/tableLabels.js). .scroll.keep-table opts out. */
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .scroll:not(.keep-table) { overflow: visible; border: 0; background: none; box-shadow: none; border-radius: 0; }
   .scroll:not(.keep-table) table { min-width: 0; border-collapse: separate; }
   .scroll:not(.keep-table) thead { display: none; }
