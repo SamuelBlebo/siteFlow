@@ -13,6 +13,7 @@ import ThemeSwitch from '../components/ThemeSwitch';
 import SkinPicker from '../components/SkinPicker';
 import { initials } from '../components/TopBar';
 import CompanySetupForm from '../components/CompanySetupForm';
+import MyCompanies from '../components/MyCompanies';
 
 export default function Account() {
   useTitle('Your account');
@@ -57,7 +58,7 @@ export default function Account() {
       </div>
 
       <nav className="acct-nav" aria-label="On this page">
-        <a href="#details">Details</a><a href="#emails">Emails</a><a href="#appearance">Appearance</a><a href="#password">Password</a>
+        <a href="#details">Details</a><a href="#companies">Companies</a><a href="#emails">Emails</a><a href="#appearance">Appearance</a><a href="#password">Password</a>
       </nav>
 
       <section className="acct-sec" aria-labelledby="details">
@@ -92,6 +93,11 @@ export default function Account() {
             <ThemeSwitch />
           </div>
         </div>
+      </section>
+
+      <section className="acct-sec" aria-labelledby="companies">
+        <div className="acct-sec-h"><h2 id="companies">Your companies and projects</h2><p className="muted">Every company you're part of, your role there and the projects it covers. Each company's owner or admin sets your role.</p></div>
+        <MyCompanies />
       </section>
 
       {!ownsCompany && (

@@ -1388,6 +1388,8 @@ body.sheet-open { overflow: hidden; }
 .acct-row + .acct-row { border-top: 1px solid var(--line); }
 .acct-row h3 { margin: 0 0 2px; font-size: 15px; }
 .acct-row > div:first-child { flex: 1 1 260px; min-width: 0; }
+.my-cos { list-style: none; margin: 0; }
+.my-co-role { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .acct-out { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 18px 0 8px; border-top: 1px solid var(--line); }
 .acct-out p { margin: 2px 0 0; }
 @media (max-width: 639px) {
