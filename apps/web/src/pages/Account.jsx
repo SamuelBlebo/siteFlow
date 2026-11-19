@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useTitle } from '../lib/hooks';
@@ -11,6 +12,7 @@ import PageHead from '../components/PageHead';
 import ThemeSwitch from '../components/ThemeSwitch';
 import SkinPicker from '../components/SkinPicker';
 import { initials } from '../components/TopBar';
+import CompanySetupForm from '../components/CompanySetupForm';
 
 export default function Account() {
   useTitle('Your account');
@@ -19,6 +21,10 @@ export default function Account() {
   const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '', callPhone: profile.callPhone || '' });
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  // An owner's company id is their uid, so this shows until the person has started their own
+  const ownsCompany = (profile.companyIds || []).includes(user.uid);
+  const [starting, setStarting] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -87,6 +93,15 @@ export default function Account() {
           </div>
         </div>
       </section>
+
+      {!ownsCompany && (
+        <section className="acct-sec" aria-labelledby="own">
+          <div className="acct-sec-h"><h2 id="own">Your own company</h2><p className="muted">Run your own projects too? Start a company of your own, with you as its Owner. You stay in the companies you're in now and switch between them from the menu.</p></div>
+          {starting
+            ? <CompanySetupForm name={profile.name || ''} idPrefix="own" submitLabel="Start my company" onDone={() => navigate('/')} />
+            : <div className="card"><button type="button" className="btn" onClick={() => setStarting(true)}>Start your own company</button></div>}
+        </section>
+      )}
 
       <section className="acct-sec" aria-labelledby="password">
         <div className="acct-sec-h"><h2 id="password">Password</h2><p className="muted">Change the password you sign in with.</p></div>
