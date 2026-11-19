@@ -1,55 +1,25 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
 import { signOut } from 'firebase/auth';
-import { companySetupInput, friendlyError, guessCountry, validate } from '@siteflow/shared';
-import { auth, functions } from '../firebase';
+import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useTitle } from '../lib/hooks';
 import Brand from '../components/Brand';
 import AuthFrame from '../components/AuthFrame';
-import { CountrySelect } from '../components/CountryFields';
+import CompanySetupForm from '../components/CompanySetupForm';
 
 // Shown when someone is signed in but has no profile: a sign-up that didn't finish,
 // or a login that was never added to a company.
 export default function FinishSetup() {
   useTitle('Set up your company');
   const { user } = useAuth();
-  const [f, setF] = useState(() => ({ companyName: '', name: user?.displayName || '', country: guessCountry() }));
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-
-  async function submit(e) {
-    e.preventDefault();
-    const v = validate(companySetupInput, { ...f, acceptTerms: f.acceptTerms || undefined });
-    if (!v.ok) return setErr(v.error);
-    setBusy(true); setErr('');
-    try {
-      await httpsCallable(functions, 'createCompany')(v.data);
-      // The profile listener picks up the new profile and the app opens
-    } catch (e2) {
-      console.error('createCompany failed', e2);
-      setErr(friendlyError(e2));
-      setBusy(false);
-    }
-  }
-
+  // The profile listener picks up the new profile and the app opens
   return (
     <AuthFrame>
       <Brand big />
-      <form className="form card" onSubmit={submit}>
+      <CompanySetupForm name={user?.displayName || ''} idPrefix="fs"
+        footer={<p className="row-between"><span /><button type="button" className="linkbtn" onClick={() => signOut(auth)}>Sign out</button></p>}>
         <h1>Finish setting up</h1>
         <p className="muted">Signed in as {user?.email}. If your company already uses SiteFlow, ask your manager to add you instead, then sign out.</p>
-        {err && <p className="err" role="alert">{err}</p>}
-        <div className="field"><label htmlFor="fs-c">Company name</label><input id="fs-c" value={f.companyName} onChange={set('companyName')} /></div>
-        <div className="field"><label htmlFor="fs-n">Your name</label><input id="fs-n" value={f.name} onChange={set('name')} /></div>
-        <div className="field"><label htmlFor="fs-k">Country</label><CountrySelect id="fs-k" value={f.country} onChange={({ country }) => setF({ ...f, country })} />
-          <p className="hint">Sets your currency, time zone and phone format.</p></div>
-        <label className="agree"><input id="fs-terms" type="checkbox" checked={!!f.acceptTerms} onChange={(e) => setF({ ...f, acceptTerms: e.target.checked })} /> <span>I agree to the <Link to="/terms" target="_blank">Terms of Service</Link> and the <Link to="/privacy" target="_blank">Privacy Policy</Link>, for my company.</span></label>
-        <button type="submit" className="btn block" disabled={busy}>{busy ? 'Setting up…' : 'Create my company'}</button>
-        <p className="row-between"><span /><button type="button" className="linkbtn" onClick={() => signOut(auth)}>Sign out</button></p>
-      </form>
+      </CompanySetupForm>
     </AuthFrame>
   );
 }

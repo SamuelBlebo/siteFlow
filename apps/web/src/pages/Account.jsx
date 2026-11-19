@@ -11,6 +11,8 @@ import PageHead from '../components/PageHead';
 import ThemeSwitch from '../components/ThemeSwitch';
 import SkinPicker from '../components/SkinPicker';
 import { initials } from '../components/TopBar';
+import CompanySetupForm from '../components/CompanySetupForm';
+import MyCompanies from '../components/MyCompanies';
 
 export default function Account() {
   useTitle('Your account');
@@ -19,6 +21,13 @@ export default function Account() {
   const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '', callPhone: profile.callPhone || '' });
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
+  // An owner's company id is their uid, so this shows until the person has started their own
+  const ownsCompany = (profile.companyIds || []).includes(user.uid);
+  const [starting, setStarting] = useState(false);
+
+  // The server has already moved the account to the new company; a fresh load opens it on Home as its Owner
+  // (in-app navigation would run while the old role is still loaded and land on that role's page)
+  const openNewCompany = () => window.location.assign('/');
 
   async function submit(e) {
     e.preventDefault();
@@ -51,7 +60,7 @@ export default function Account() {
       </div>
 
       <nav className="acct-nav" aria-label="On this page">
-        <a href="#details">Details</a><a href="#emails">Emails</a><a href="#appearance">Appearance</a><a href="#password">Password</a>
+        <a href="#details">Details</a><a href="#companies">Companies</a><a href="#emails">Emails</a><a href="#appearance">Appearance</a><a href="#password">Password</a>
       </nav>
 
       <section className="acct-sec" aria-labelledby="details">
@@ -87,6 +96,20 @@ export default function Account() {
           </div>
         </div>
       </section>
+
+      <section className="acct-sec" aria-labelledby="companies">
+        <div className="acct-sec-h"><h2 id="companies">Your companies and projects</h2><p className="muted">Every company you're part of, your role there and the projects it covers. Each company's owner or admin sets your role.</p></div>
+        <MyCompanies />
+      </section>
+
+      {!ownsCompany && (
+        <section className="acct-sec" aria-labelledby="own">
+          <div className="acct-sec-h"><h2 id="own">Your own company</h2><p className="muted">Run your own projects too? Start a company of your own, with you as its Owner. You stay in the companies you're in now and switch between them from the menu.</p></div>
+          {starting
+            ? <CompanySetupForm name={profile.name || ''} idPrefix="own" submitLabel="Start my company" onDone={openNewCompany} />
+            : <div className="card"><button type="button" className="btn" onClick={() => setStarting(true)}>Start your own company</button></div>}
+        </section>
+      )}
 
       <section className="acct-sec" aria-labelledby="password">
         <div className="acct-sec-h"><h2 id="password">Password</h2><p className="muted">Change the password you sign in with.</p></div>

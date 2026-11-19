@@ -85,7 +85,7 @@ export default function Layout() {
     : (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />);
   const companyPick = companies.length > 1 && (
     <select id="org-pick-m" aria-label="Company" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
-      {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+      {companies.map((c) => <option key={c.id} value={c.id}>{c.role && ROLE_LABELS[c.role] ? `${c.name} · ${ROLE_LABELS[c.role]}` : c.name}</option>)}
     </select>
   );
 
@@ -107,7 +107,7 @@ export default function Layout() {
           <div className="org pick">
             <label htmlFor="org-pick" className="visually-hidden">Company</label>
             <select id="org-pick" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
-              {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {companies.map((c) => <option key={c.id} value={c.id}>{c.role && ROLE_LABELS[c.role] ? `${c.name} · ${ROLE_LABELS[c.role]}` : c.name}</option>)}
             </select>
             <span>{role ? ROLE_LABELS[role] : ''}, {companies.length} companies</span>
           </div>
