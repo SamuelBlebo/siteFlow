@@ -95,10 +95,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let live = true;
     if (companyIds.length < 2) { setCompanies([]); return undefined; }
-    Promise.all(companyIds.map((id) => getDoc(companyDoc(id)).then((s) => ({ id, name: s.data()?.name || 'Company' })).catch(() => null)))
+    // Your role in each one shows next to its name
+    Promise.all(companyIds.map((id) => Promise.all([getDoc(companyDoc(id)), uid ? getDoc(memberDoc(id, uid)).catch(() => null) : null])
+      .then(([s, m]) => ({ id, name: s.data()?.name || 'Company', role: m?.data()?.role || null })).catch(() => null)))
       .then((list) => live && setCompanies(list.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name))));
     return () => { live = false; };
-  }, [companyIds]);
+  }, [companyIds, uid]);
 
   const profile = useMemo(() => (account && member ? {
     ...member, id: account.id, companyId: current, companyIds,
