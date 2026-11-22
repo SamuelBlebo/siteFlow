@@ -23,7 +23,7 @@ export const MODULES: ModuleDef[] = [
 ];
 
 // What a new company starts with (the setup wizard can add more)
-export const DEFAULT_MODULES: Partial<Record<ModuleKey, boolean>> = { materials: true, labour: true, budget: true, safety: true };
+export const DEFAULT_MODULES: Partial<Record<ModuleKey, boolean>> = { materials: true, labour: true, budget: true };
 
 export const isOn = (company: Pick<Company, 'modules'> | null | undefined, key: ModuleKey): boolean =>
   key === 'reports' || !!company?.modules?.[key];
