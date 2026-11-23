@@ -13,7 +13,7 @@ describe('countries', () => {
       expect(c.code).toMatch(/^[A-Z]{2}$/);
       expect(c.currency).toMatch(/^[A-Z]{3}$/);
       expect(c.dial).toMatch(/^\d{1,3}$/);
-      expect(c.cities).toHaveLength(3);
+      expect(c.cities).toHaveLength(4);
       expect(() => new Intl.DateTimeFormat('en', { timeZone: c.timeZone })).not.toThrow();
     }
   });

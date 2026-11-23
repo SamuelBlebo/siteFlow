@@ -49,7 +49,7 @@ export default function TodayScreen({ navigation }) {
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 14, marginBottom: 8 }}>
           <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
             backgroundColor: st.done ? colors.ok : colors.sunk, borderWidth: 1, borderColor: st.done ? colors.ok : colors.line }}>
-            <Text style={{ color: st.done ? '#fff' : colors.ink, fontWeight: '700' }}>{st.done ? '✓' : i + 1}</Text>
+            <Text style={{ color: st.done ? '#fff' : colors.ink, fontWeight: '600' }}>{st.done ? '✓' : i + 1}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{st.title}</Text>
@@ -68,7 +68,7 @@ export default function TodayScreen({ navigation }) {
           materials.map((m, i) => (
             <View key={m.id} style={[s.row, i === 0 && { borderTopWidth: 0 }]}>
               <Text style={{ flex: 1, color: colors.ink }}>{m.name}</Text>
-              <Text style={{ fontWeight: '700', color: colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>{m.unit}</Text></Text>
+              <Text style={{ fontWeight: '600', color: colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>{m.unit}</Text></Text>
               {m.stock < 0 ? <Pill kind="bad">Count needed</Pill> : materialStatus(m, usage[m.id]).low ? <Pill kind="warn">Low</Pill> : null}
             </View>
           ))}
@@ -119,7 +119,7 @@ function Progress({ cid, sid, site, milestones, canWork }) {
     <>
       <H2>Progress</H2>
       <Card style={{ padding: 14, marginBottom: 8 }}>
-        <Text style={{ color: colors.ink, fontSize: 18, fontWeight: '700' }}>{st.actual}% done</Text>
+        <Text style={{ color: colors.ink, fontSize: 18, fontWeight: '600' }}>{st.actual}% done</Text>
         <Text style={{ color, fontWeight: '600' }}>
           {SCHEDULE_LABELS[st.state]}{st.planned != null && st.state !== 'finished' ? `: ${st.planned}% planned by today` : ''}{st.state === 'behind' && st.weeksBehind ? `, about ${st.weeksBehind} week${st.weeksBehind === 1 ? '' : 's'} behind` : ''}
         </Text>
@@ -133,7 +133,7 @@ function Progress({ cid, sid, site, milestones, canWork }) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ flex: 1, color: colors.ink, fontWeight: '600' }}>{m.name}</Text>
                   {overdue.has(m.id) ? <Pill kind="bad">Overdue</Pill> : <Muted>{MILESTONE_STATUS_LABELS[m.status]}</Muted>}
-                  <Text style={{ color: colors.ink, fontWeight: '700', width: 48, textAlign: 'right' }}>{m.percentDone}%</Text>
+                  <Text style={{ color: colors.ink, fontWeight: '600', width: 48, textAlign: 'right' }}>{m.percentDone}%</Text>
                 </View>
                 <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.sunk, marginTop: 6 }}>
                   <View style={{ height: 6, borderRadius: 3, width: `${m.percentDone}%`, backgroundColor: m.status === 'done' ? colors.ok : colors.steel }} />

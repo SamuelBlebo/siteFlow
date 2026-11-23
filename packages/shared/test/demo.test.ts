@@ -7,8 +7,8 @@ const today = todayKey(now);
 const by = (k: string) => demo.find((s) => s.id === `${SAMPLE_PREFIX}${k}`)!;
 
 describe('sample projects', () => {
-  it('three projects, all marked as samples, every id starting with sample-', () => {
-    expect(demo.map((s) => s.site.name)).toEqual(['Adenta 4-bedroom residence', 'East Legon office complex', 'Kasoa–Winneba road drainage, phase 2']);
+  it('four projects, all marked as samples, every id starting with sample-', () => {
+    expect(demo.map((s) => s.site.name)).toEqual(['Adenta 4-bedroom residence', 'East Legon office complex', 'Kasoa–Winneba road drainage, phase 2', 'Tema school classroom block']);
     for (const s of demo) {
       expect(s.site.sample).toBe(true);
       const ids = [s.id, ...s.workers, ...s.materials, ...s.materialLogs, ...s.expenses, ...s.issues, ...s.milestones].map((x) => (typeof x === 'string' ? x : x.id));
@@ -93,7 +93,7 @@ describe('sample projects in other countries', () => {
   const ke = buildDemo({ companyId: 'c', photoBase: 'x', now, country: 'KE' });
   const gh = buildDemo({ companyId: 'c', photoBase: 'x', now });
   it('use the country\x27s places and the company name on every record', () => {
-    expect(ke.map((s) => s.site.location)).toEqual(['Karen, Nairobi', 'Westlands, Nairobi', 'Athi River, Machakos']);
+    expect(ke.map((s) => s.site.location)).toEqual(['Karen, Nairobi', 'Westlands, Nairobi', 'Athi River, Machakos', 'Ruiru, Kiambu']);
     expect(ke[1].site.name).toBe('Westlands office complex');
     expect(ke[1].reports.every((r) => r.doc.siteName === 'Westlands office complex')).toBe(true);
     expect(ke[2].issues.every((r) => r.doc.siteName === ke[2].site.name)).toBe(true);
@@ -112,7 +112,7 @@ describe('sample people', () => {
   it('foremen and crews have local names in every record, and Ghana keeps its own', () => {
     const ke = buildDemo({ companyId: 'c', photoBase: 'x', now, country: 'KE' });
     const gh = buildDemo({ companyId: 'c', photoBase: 'x', now });
-    expect(ke.map((s) => s.site.foremanName)).toEqual(['James Mwangi', 'Peter Otieno', 'Grace Wanjiku']);
+    expect(ke.map((s) => s.site.foremanName)).toEqual(['James Mwangi', 'Peter Otieno', 'Grace Wanjiku', 'Wanjiru Kamau']);
     expect(ke[0].workers[0].doc.name).toBe('Brian Kiprop');
     const ghanaNames = new Set([...gh.map((s) => s.site.foremanName), ...gh.flatMap((s) => s.workers.map((w) => w.doc.name))]);
     const anyName = (docs: { doc: Record<string, unknown> }[]) => docs.flatMap((d) => Object.entries(d.doc).filter(([k]) => k === 'name' || k.endsWith('Name')).map(([, v]) => v));
@@ -142,7 +142,7 @@ describe('sample drawings', () => {
   });
   it('the open problems are pinned where they are', () => {
     const pinned = demo.flatMap((s) => s.issues.filter((i) => i.doc.pin).map((i) => [s.drawings[0].id, i.doc.pin as { drawingId: string }]));
-    expect(pinned).toHaveLength(3);
+    expect(pinned).toHaveLength(4); // one per project
     for (const [id, pin] of pinned) expect((pin as { drawingId: string }).drawingId).toBe(id);
   });
 });

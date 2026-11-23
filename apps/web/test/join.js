@@ -3,6 +3,6 @@ import { acceptInvite } from '../src/lib/account';
 
 export const tokenOf = (res) => res.link.split('/invite/')[1];
 export async function join(res, password) {
-  await acceptInvite({ token: tokenOf(res), password });
+  await acceptInvite({ token: tokenOf(res), password, acceptTerms: true });
   return password;
 }

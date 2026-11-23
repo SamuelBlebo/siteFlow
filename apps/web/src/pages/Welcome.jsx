@@ -153,7 +153,7 @@ function ProjectStep({ sites }) {
         </Link>
         <button type="button" className="choice" onClick={demo} disabled={busy || hasSamples}>
           <b>{hasSamples ? 'Sample projects are loaded' : busy ? 'Adding sample projects…' : 'Explore with sample data'}</b>
-          <span>Three sample projects (a house, an office block and a road job) with six weeks of reports, photos, workers, materials and spending. Labelled Sample, never send messages, and removed in one click.</span>
+          <span>Four sample projects (a house, an office block, a road job and a school) with six weeks of reports, photos, workers, materials and spending. Labelled Sample, never send messages, and removed in one click.</span>
         </button>
       </div>
     </div>

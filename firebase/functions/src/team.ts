@@ -6,14 +6,14 @@ import { randomBytes } from 'node:crypto';
 import { checkLimit } from './limits';
 import { EMAIL_KEY, sendEmail } from './notify';
 import { dropInvite, issueInvite } from './invites';
-import { actorOf, joinCompany, leaveCompany, membershipOf, migrateCompany, type Membership } from './members';
+import { actorOf, joinCompany, leaveCompany, membershipOf, migrateCompany, ownCompanyWrites, type Membership } from './members';
 
 // Set ENFORCE_APP_CHECK=true in firebase/functions/.env.<project> once the web app has App Check
 // (docs/OPERATIONS.md). The mobile app doesn't call these functions.
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
 import {
-  DEFAULT_MODULES, MODULES, countryOf, ROLE_LABELS, TERMS_VERSION, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isSiteScoped,
+  MODULES, ROLE_LABELS, applyModuleSwitch, moduleSwitchInput, planFor, assignableRoles, canChangeMember, companySetupInput, inviteInput, isSiteScoped,
   can, memberActiveInput, memberRefInput, memberUpdateInput, paths, siteAssignInput, validate,
   type Company, type Role,
 } from '@siteflow/shared';
@@ -45,9 +45,24 @@ async function changeableMember(db: Firestore, actor: Membership, uid: string) {
 }
 
 // The other companies someone belongs to (one login can be in several)
+// The person's own company is in use once it has a project or anyone besides them (a member or an
+// open invitation). Until then it is an empty space they were given on joining.
+async function ownSpaceInUse(db: Firestore, uid: string) {
+  if (!(await db.collection(paths.sites(uid)).limit(1).get()).empty) return true;
+  return (await db.collection(paths.members(uid)).limit(2).get()).size > 1;
+}
+
+// The person's companies other than this one. An own space not in use yet doesn't count, so managers
+// here keep looking after the login (password links, switching it off) as before.
 async function otherCompanies(db: Firestore, uid: string, cid: string) {
   const ids = ((await db.doc(paths.user(uid)).get()).data()?.companyIds || []) as string[];
-  return ids.filter((x) => x !== cid);
+  const others: string[] = [];
+  for (const id of ids) {
+    if (id === cid) continue;
+    if (id === uid && !(await ownSpaceInUse(db, uid))) continue;
+    others.push(id);
+  }
+  return others;
 }
 
 // Only sites that exist in this company, and only for roles limited to assigned sites
@@ -69,7 +84,6 @@ async function logActivity(db: Firestore, actor: Membership, what: string) {
 export const createCompany = onCall(callOpts, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
   const { companyName, name, country } = parse(companySetupInput, req.data);
-  const where = countryOf(country); // currency and time zone follow the country; the owner can change them later
   const uid = req.auth.uid;
   await checkLimit(uid, 'createCompany');
   const db = getFirestore();
@@ -77,32 +91,11 @@ export const createCompany = onCall(callOpts, async (req) => {
   const login = await getAuth().getUser(uid).catch(() => null);
   if (!login || login.disabled) throw new HttpsError('permission-denied', 'This login is no longer active.');
 
-  const userRef = db.doc(paths.user(uid));
-  const companyRef = db.doc(paths.company(uid)); // an owner's company id is their uid
-  const before = (await userRef.get()).data();
+  const before = (await db.doc(paths.user(uid)).get()).data();
   if (before && 'role' in before && before.companyId) await migrateCompany(db, before.companyId); // older layout: move it first
-  await db.runTransaction(async (t) => {
-    const existing = await t.get(companyRef);
-    if (existing.exists) {
-      if (existing.data()?.ownerId === uid) return; // already set up
-      throw new HttpsError('already-exists', 'This account already has a company.');
-    }
-    const account = await t.get(userRef);
-    const email = req.auth?.token.email ?? '';
-    t.set(companyRef, {
-      name: companyName, ownerId: uid, plan: 'starter', modules: DEFAULT_MODULES,
-      country: where.code, currency: where.currency, timeZone: where.timeZone, createdAt: FieldValue.serverTimestamp(),
-      // The owner agreed to these Terms and Privacy Policy when creating the company (checked by companySetupInput)
-      terms: { version: TERMS_VERSION, acceptedBy: uid, acceptedAt: FieldValue.serverTimestamp() },
-    });
-    const person = account.data();
-    t.set(db.doc(paths.member(uid, uid)), {
-      role: 'owner', name: person?.name || name, email: person?.email || email, ...(person?.phone ? { phone: person.phone } : {}),
-      siteIds: [], active: true, createdAt: FieldValue.serverTimestamp(),
-    });
-    if (!account.exists) t.set(userRef, { name, email, companyIds: [uid], companyId: uid, createdAt: FieldValue.serverTimestamp() });
-    else t.update(userRef, { companyIds: FieldValue.arrayUnion(uid), companyId: uid, updatedAt: FieldValue.serverTimestamp() });
-  });
+  // The owner agreed to the Terms and Privacy Policy (checked by companySetupInput); an owner's company id is their uid
+  const email = req.auth.token.email ?? '';
+  await db.runTransaction((t) => ownCompanyWrites(t, db, { uid, name, email, companyName, country, open: true }));
   return { companyId: uid };
 });
 
@@ -248,6 +241,11 @@ export const removeMember = onCall(callOpts, async (req) => {
   if (!left.length) {
     await db.doc(paths.user(uid)).delete();
     await getAuth().deleteUser(uid).catch((e) => {
+      if (e?.code !== 'auth/user-not-found') throw e;
+    });
+  } else if (left.includes(uid)) {
+    // Their own space stays theirs: a login locked by switching them off here opens again for it
+    await getAuth().updateUser(uid, { disabled: false }).catch((e) => {
       if (e?.code !== 'auth/user-not-found') throw e;
     });
   }

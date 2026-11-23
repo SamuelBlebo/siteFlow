@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
+import { emailPrefsFor, profileInput, validate, getLocale } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { useDoc, useTitle } from '../lib/hooks';
-import { companyDoc, saveEmailPrefs, updateMyProfile } from '../lib/db';
+import { useTitle } from '../lib/hooks';
+import { saveEmailPrefs, updateMyProfile } from '../lib/db';
 import { save, savedText } from '../lib/save';
 import { logOut } from '../lib/account';
 import PasswordForm from '../components/PasswordForm';
@@ -13,11 +13,11 @@ import SkinPicker from '../components/SkinPicker';
 import { initials } from '../components/TopBar';
 import CompanySetupForm from '../components/CompanySetupForm';
 import MyCompanies from '../components/MyCompanies';
+import { ownSpaceName } from '../components/OwnSpaceCard';
 
 export default function Account() {
   useTitle('Your account');
-  const { user, profile, role, cid } = useAuth();
-  const { data: company } = useDoc(() => cid && companyDoc(cid), [cid]);
+  const { user, profile, role } = useAuth();
   const [f, setF] = useState({ name: profile.name || '', phone: profile.phone || '', callPhone: profile.callPhone || '' });
   const [msg, setMsg] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
@@ -54,9 +54,7 @@ export default function Account() {
         <div className="acct-who">
           <b>{profile.name || 'Your name'}</b>
           <span className="muted">{user.email}</span>
-          <span className="acct-role"><span className="pill">{ROLE_LABELS[role]}</span><span className="muted small">{company?.name || ''}</span></span>
         </div>
-        <p className="acct-note muted small">{ROLE_DESCRIPTIONS[role]} Your role is set by your company's owner or admin.</p>
       </div>
 
       <nav className="acct-nav" aria-label="On this page">
@@ -106,7 +104,7 @@ export default function Account() {
         <section className="acct-sec" aria-labelledby="own">
           <div className="acct-sec-h"><h2 id="own">Your own company</h2><p className="muted">Run your own projects too? Start a company of your own, with you as its Owner. You stay in the companies you're in now and switch between them from the menu.</p></div>
           {starting
-            ? <CompanySetupForm name={profile.name || ''} idPrefix="own" submitLabel="Start my company" onDone={openNewCompany} />
+            ? <CompanySetupForm name={profile.name || ''} companyName={ownSpaceName(profile.name)} idPrefix="own" submitLabel="Start my company" onDone={openNewCompany} />
             : <div className="card"><button type="button" className="btn" onClick={() => setStarting(true)}>Start your own company</button></div>}
         </section>
       )}

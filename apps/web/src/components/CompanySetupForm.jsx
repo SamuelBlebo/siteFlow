@@ -8,8 +8,8 @@ import { CountrySelect } from './CountryFields';
 // A new company with you as its Owner: used to finish an unfinished sign-up, and on the Account page
 // by someone already in another company who wants to run their own projects. The server switches the
 // account to the new company; onDone runs after that.
-export default function CompanySetupForm({ name = '', idPrefix = 'cs', submitLabel = 'Create my company', onDone, children, footer }) {
-  const [f, setF] = useState(() => ({ companyName: '', name, country: guessCountry() }));
+export default function CompanySetupForm({ name = '', companyName = '', idPrefix = 'cs', submitLabel = 'Create my company', onDone, children, footer }) {
+  const [f, setF] = useState(() => ({ companyName, name, country: guessCountry() }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });

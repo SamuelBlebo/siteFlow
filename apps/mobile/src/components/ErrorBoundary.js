@@ -20,7 +20,7 @@ export default class ErrorBoundary extends Component {
     if (!this.state.error) return this.props.children;
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: colors.bg }} accessibilityRole="alert">
-        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: '700', color: colors.ink, marginBottom: 8 }}>Something went wrong</Text>
+        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: '600', color: colors.ink, marginBottom: 8 }}>Something went wrong</Text>
         <Text style={{ color: colors.muted, marginBottom: 20 }}>
           This screen hit a problem. Everything you saved on this phone is kept and will still be sent. Tap Try again; if it keeps happening, close and reopen SiteFlow.
         </Text>

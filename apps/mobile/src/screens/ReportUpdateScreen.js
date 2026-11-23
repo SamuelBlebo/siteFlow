@@ -46,7 +46,7 @@ export default function ReportUpdateScreen({ route, navigation }) {
   return (
     <Screen>
       <View style={{ backgroundColor: colors.warnbg, borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ color: colors.ink, fontWeight: '700', marginBottom: 4 }}>{v.byName} ({ROLE_LABELS[v.byRole] || v.byRole}) asked you to change:</Text>
+        <Text style={{ color: colors.ink, fontWeight: '600', marginBottom: 4 }}>{v.byName} ({ROLE_LABELS[v.byRole] || v.byRole}) asked you to change:</Text>
         {v.items.filter((i) => i !== 'other').map((i) => <Text key={i} style={{ color: colors.ink }}>• {REVIEW_ITEMS[i]}</Text>)}
         {v.note ? <Text style={{ color: colors.ink, fontStyle: 'italic', marginTop: 4 }}>“{v.note}”</Text> : null}
       </View>

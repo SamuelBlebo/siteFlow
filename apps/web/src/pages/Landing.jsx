@@ -64,7 +64,7 @@ export default function Landing() {
                 <Link to="/signup" className="btn gold lp-big">Create your company account</Link>
                 <Link to="/login" className="btn lp-big lp-ghost-dark">Sign in</Link>
               </div>
-              <p className="lp-note">Set up in minutes. Explore three sample projects before adding your own.</p>
+              <p className="lp-note">Set up in minutes. Explore four sample projects before adding your own.</p>
             </div>
             <div className="lp-hero-shots" aria-hidden="true">
               <Frame src={`${SHOTS}/dashboard.jpg`} alt="" />

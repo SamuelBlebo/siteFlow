@@ -19,14 +19,14 @@ export default function WelcomeIntro({ uid, name }) {
   const done = () => { setShow(false); AsyncStorage.setItem(key, '1').catch(() => {}); };
   return (
     <Card style={{ padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: colors.brass }}>
-      <Text accessibilityRole="header" style={{ color: colors.ink, fontSize: 20, fontWeight: '800', marginBottom: 10 }}>Welcome{name ? `, ${name.split(' ')[0]}` : ''}</Text>
+      <Text accessibilityRole="header" style={{ color: colors.ink, fontSize: 20, fontWeight: '600', marginBottom: 10 }}>Welcome{name ? `, ${name.split(' ')[0]}` : ''}</Text>
       {TIPS.map(([title, text], i) => (
         <View key={title} style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
           <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.brass, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: colors.brassInk, fontWeight: '700' }}>{i + 1}</Text>
+            <Text style={{ color: colors.brassInk, fontWeight: '600' }}>{i + 1}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.ink, fontWeight: '700' }}>{title}</Text>
+            <Text style={{ color: colors.ink, fontWeight: '600' }}>{title}</Text>
             <Text style={{ color: colors.muted, marginTop: 2 }}>{text}</Text>
           </View>
         </View>

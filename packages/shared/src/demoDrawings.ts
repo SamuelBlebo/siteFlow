@@ -172,5 +172,47 @@ export const DEMO_DRAWINGS: DemoDrawingSpec[] = [
         y: 0.319
       }
     ]
+  },
+  {
+    key: 'tema',
+    file: 'tema-s101',
+    title: 'Foundation plan',
+    sheet: 'S-101',
+    discipline: 'structural',
+    width: 1680,
+    height: 1188,
+    zones: [
+      {
+        name: 'Classrooms 1 and 2',
+        stage: 'Blockwork',
+        x: 0.1131,
+        y: 0.1936,
+        w: 0.3238,
+        h: 0.2003
+      },
+      {
+        name: 'Classrooms 3 and 4',
+        stage: 'Foundation',
+        x: 0.4369,
+        y: 0.1936,
+        w: 0.3238,
+        h: 0.2003
+      },
+      {
+        name: 'Veranda',
+        stage: 'Site clearing',
+        x: 0.1131,
+        y: 0.3939,
+        w: 0.6476,
+        h: 0.0687
+      }
+    ],
+    pins: [
+      {
+        issue: 0,
+        x: 0.356,
+        y: 0.3939
+      }
+    ]
   }
 ];

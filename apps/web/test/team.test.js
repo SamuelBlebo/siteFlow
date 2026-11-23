@@ -185,7 +185,7 @@ describe('one login in several companies', () => {
   it('they switch between companies, with their role in each', async () => {
     const u = await as('super');
     const me = (await getDoc(userDoc(u.uid))).data();
-    expect([...me.companyIds].sort()).toEqual([cid, rivalCid].sort());
+    expect([...me.companyIds].sort()).toEqual([cid, rivalCid, u.uid].sort()); // and their own space, from joining
     expect(me.companyId).toBe(cid); // still looking at the first one
     await expect(getDocs(teamQuery(cid))).rejects.toThrow(); // a supervisor here
     await switchCompany(u.uid, rivalCid);
@@ -202,7 +202,7 @@ describe('one login in several companies', () => {
     await as('rival', 'rival-pass-1');
     await team.remove({ uid: ids.super });
     const u = await as('super');
-    expect((await getDoc(userDoc(u.uid))).data()).toMatchObject({ companyIds: [cid], companyId: cid });
+    expect((await getDoc(userDoc(u.uid))).data()).toMatchObject({ companyIds: [cid, u.uid], companyId: cid });
     expect((await getDoc(memberDoc(cid, u.uid))).data().role).toBe('supervisor');
   });
 });
