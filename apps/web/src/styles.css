@@ -223,13 +223,25 @@ button { cursor: pointer; }
 
 /* alerts */
 .count { white-space: nowrap; font: 600 12px/1 var(--font-ui); background: var(--brass-soft); color: var(--warn); border-radius: 999px; padding: 5px 9px; }
-.alist { list-style: none; margin: 8px 0 0; padding: 0; }
-.alist li { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+/* Needs your attention: a dot, two quiet lines (what; where and why), the action on the right */
+.a-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.afilter { display: flex; gap: 2px; margin: 10px 0 2px; overflow-x: auto; scrollbar-width: none; }
+.afilter::-webkit-scrollbar { display: none; }
+.afilter button { flex: none; border: 0; background: none; border-radius: 6px; padding: 4px 9px; font-size: 12.5px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.afilter button span { color: var(--muted); font-weight: 400; margin-left: 2px; }
+.afilter button:hover { color: var(--ink); }
+.afilter button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.alist { list-style: none; margin: 6px 0 0; padding: 0; }
+.alist li { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
 .alist li:first-child { border-top: 0; }
-.alist .body { flex: 1; min-width: 190px; }
-.alist .body p { font-size: 13.5px; color: var(--muted); }
-.sev { width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; flex: none; background: var(--warn); box-shadow: 0 0 0 4px var(--warnbg); }
-.sev.bad { background: var(--bad); box-shadow: 0 0 0 4px var(--badbg); }
+.alist .body { min-width: 0; }
+.alist .body b { display: block; font-weight: 500; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alist .body p { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.a-site { color: var(--ink); text-decoration: none; }
+.a-site:hover { text-decoration: underline; text-underline-offset: 3px; }
+.alist .actions { display: flex; gap: 6px; }
+.sev { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--warn); }
+.sev.bad { background: var(--bad); }
 
 /* buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; text-decoration: none; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 8px 14px; font-weight: 500; font-size: 13.5px; line-height: 1.3; }
@@ -1260,8 +1272,9 @@ body.sheet-open { overflow: hidden; }
   .list .it:not(.report-row) > .grow { flex: 1 1 100%; min-width: 0; }
   .list .it > .tags { display: flex; flex-wrap: wrap; gap: 6px; }
   /* Alerts: the action sits under its text, aligned with it */
-  .alist .body { flex: 1 1 calc(100% - 24px); min-width: 0; }
-  .alist li > :not(.sev):not(.body) { margin-left: 21px; }
+  .alist li { grid-template-columns: 8px minmax(0, 1fr); }
+  .alist li > :not(.sev):not(.body) { grid-column: 2; margin-top: 6px; }
+  .alist .body b, .alist .body p { white-space: normal; }
   /* Milestones: the percentage and buttons run the full width */
   .list .it.milestone { flex-direction: column; align-items: stretch; }
   .ms-actions { justify-content: space-between; width: 100%; }

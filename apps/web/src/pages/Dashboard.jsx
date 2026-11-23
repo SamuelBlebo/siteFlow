@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useExpenses, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
-  big, budgetUsedPct, cedi, getLocale, reportAuthor, costBreakdown, friendlyError, dailyTotals, isOn, longToday, materialStatus, plannedWeeklySpend, recentWorkDays,
+  big, budgetUsedPct, cedi, getLocale, reportAuthor, costBreakdown, friendlyError, dailyTotals, isOn, longToday, plannedWeeklySpend, recentWorkDays,
   reportDay, reportDue, scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
@@ -80,15 +80,8 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   const sentInPeriod = new Set(reports.filter((r) => inPeriod.has(r.date)).map((r) => `${r.siteId}|${r.date}`)).size;
   const last8 = [...recentWorkDays(8)].reverse();
   const perDay = dailyTotals(reports, last8);
-  const workers = active.reduce((n, s) => n + (present[s.id] || 0), 0);
-  const crewAll = active.reduce((n, s) => n + (crew[s.id] || 0), 0);
   const critical = openIssues.filter((i) => i.priority === 'critical').length;
   const states = Object.fromEntries(active.map((s) => [s.id, scheduleStatus(s, milestones[s.id] || [])]));
-  const behind = active.filter((s) => states[s.id].state === 'behind');
-  const lowSites = active.filter((s) => (materials[s.id] || []).some((m) => m.active !== false && materialStatus(m, usage[s.id]?.[m.id]).low));
-  // Where each headline box leads: one project straight to its tab, several to the projects list
-  const one = (list, tab) => (list.length === 1 ? `/sites/${list[0].id}?tab=${tab}` : '/sites');
-  const lowStock = active.reduce((n, s) => n + (materials[s.id] || []).filter((m) => m.active !== false && materialStatus(m, usage[s.id]?.[m.id]).low).length, 0);
   const budgetAll = active.reduce((n, s) => n + (finance[s.id]?.budget || 0), 0);
   const spentAll = active.reduce((n, s) => n + (finance[s.id]?.spent || 0), 0);
   const weeks = weeklySpend(expenses, 8);
@@ -145,18 +138,8 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                 : <span className={`delta ${expected && sentInPeriod / expected < 0.7 ? 'dn' : 'up'}`}>{expected ? `${Math.round((sentInPeriod / expected) * 100)}% sent` : 'None expected'}</span>}
               <Spark data={perDay.map((d) => d.reports)} color="var(--ok)" />
             </div></div>
-          {mod('labour') && (
-            <div className="tile"><TileLink to={one(active, 'labour')} label="Open the workforce" /><dt>Workforce today</dt><dd>{workers}<small> of {crewAll}</small></dd>
-              <div className="foot"><span className="delta up">{crewAll ? `${Math.round((workers / crewAll) * 100)}% on site` : 'No crews yet'}</span><Spark data={perDay.map((d) => d.workers)} color="var(--c-done)" /></div></div>
-          )}
           <div className="tile"><TileLink to="/issues" label="Open issues" /><dt>Open issues</dt><dd>{openIssues.length}</dd>
             <div className="foot"><span className={`delta ${critical ? 'dn' : 'up'}`}>{critical ? `${critical} critical` : 'None critical'}</span></div></div>
-          <div className="tile"><TileLink to={one(behind, 'progress')} label="Open the programme" /><dt>Programme</dt><dd>{behind.length ? `${behind.length} behind` : 'On time'}</dd>
-            <div className="foot"><span className={`delta ${behind.length ? 'dn' : 'up'}`}>{behind.length ? behind.map((s) => s.name.split(' ')[0]).join(', ') : 'No project behind plan'}</span></div></div>
-          {mod('materials') && (
-            <div className="tile"><TileLink to={one(lowSites, 'materials')} label="Open materials to reorder" /><dt>Materials to reorder</dt><dd>{lowStock}</dd>
-              <div className="foot"><span className={`delta ${lowStock ? 'nt' : 'up'}`}>{lowStock ? 'Below reorder level' : 'Stock levels fine'}</span></div></div>
-          )}
           <div className="tile"><TileLink to="/sites?status=on_hold" label="Open projects on hold" /><dt>On hold</dt><dd>{active.length - reporting.length}</dd>
             <div className="foot"><span className="delta nt">Not chased for reports</span></div></div>
         </dl>
