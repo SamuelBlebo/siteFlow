@@ -45,15 +45,21 @@ async function changeableMember(db: Firestore, actor: Membership, uid: string) {
 }
 
 // The other companies someone belongs to (one login can be in several)
-// The person's companies other than this one. Their own company counts only once it has a project:
-// until then it is an empty space they were given on joining, and managers here keep looking after
-// the login (password links, switching it off) as before.
+// The person's own company is in use once it has a project or anyone besides them (a member or an
+// open invitation). Until then it is an empty space they were given on joining.
+async function ownSpaceInUse(db: Firestore, uid: string) {
+  if (!(await db.collection(paths.sites(uid)).limit(1).get()).empty) return true;
+  return (await db.collection(paths.members(uid)).limit(2).get()).size > 1;
+}
+
+// The person's companies other than this one. An own space not in use yet doesn't count, so managers
+// here keep looking after the login (password links, switching it off) as before.
 async function otherCompanies(db: Firestore, uid: string, cid: string) {
   const ids = ((await db.doc(paths.user(uid)).get()).data()?.companyIds || []) as string[];
   const others: string[] = [];
   for (const id of ids) {
     if (id === cid) continue;
-    if (id === uid && (await db.collection(paths.sites(uid)).limit(1).get()).empty) continue;
+    if (id === uid && !(await ownSpaceInUse(db, uid))) continue;
     others.push(id);
   }
   return others;
@@ -235,6 +241,11 @@ export const removeMember = onCall(callOpts, async (req) => {
   if (!left.length) {
     await db.doc(paths.user(uid)).delete();
     await getAuth().deleteUser(uid).catch((e) => {
+      if (e?.code !== 'auth/user-not-found') throw e;
+    });
+  } else if (left.includes(uid)) {
+    // Their own space stays theirs: a login locked by switching them off here opens again for it
+    await getAuth().updateUser(uid, { disabled: false }).catch((e) => {
       if (e?.code !== 'auth/user-not-found') throw e;
     });
   }

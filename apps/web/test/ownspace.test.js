@@ -6,7 +6,7 @@ import { getDoc, terminate } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { TERMS_VERSION } from '@siteflow/shared';
 import { auth, db, functions } from '../src/firebase';
-import { companyDoc, memberDoc, userDoc } from '../src/lib/db';
+import { companyDoc, memberDoc, switchCompany, userDoc } from '../src/lib/db';
 import { acceptInvite } from '../src/lib/account';
 import { tokenOf } from './join';
 
@@ -70,5 +70,24 @@ describe('own space', () => {
     await acceptInvite({ token: tokenOf(kofi), password: 'yaw-pass-1', acceptTerms: true });
     await as('owner', 'password123');
     await expect(call('resetMemberPassword', { uid: kofi.uid })).resolves.toMatchObject({ link: expect.any(String) });
+  });
+  it("a manager can't send a password link once the person's own space has a team", async () => {
+    const kofi = await as('kofi', 'kofi-pass-2');
+    await switchCompany(kofi.uid, kofi.uid);
+    await call('inviteMember', { name: 'Akos Kofi', email: email('akos'), role: 'viewer', siteIds: [] }); // no projects yet, but a team
+    await switchCompany(kofi.uid, cid);
+    await as('owner', 'password123');
+    await expect(call('resetMemberPassword', { uid: kofi.uid })).rejects.toThrow(/another company/);
+  });
+
+  it('switched off, then removed: the login opens again for their own space', async () => {
+    await as('owner', 'password123');
+    const r = await call('inviteMember', { name: 'Esi Mensah', email: email('esi'), role: 'viewer', siteIds: [] });
+    await acceptInvite({ token: tokenOf(r), password: 'esi-pass-1', acceptTerms: true });
+    await as('owner', 'password123');
+    await call('setMemberActive', { uid: r.uid, active: false }); // own space is empty, so the login is locked
+    await call('removeMember', { uid: r.uid });
+    const esi = await as('esi', 'esi-pass-1');
+    expect((await getDoc(userDoc(esi.uid))).data()).toMatchObject({ companyIds: [esi.uid], companyId: esi.uid });
   });
 });
