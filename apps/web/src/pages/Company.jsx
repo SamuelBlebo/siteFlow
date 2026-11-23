@@ -21,7 +21,7 @@ export default function Company() {
   const [demoBusy, setDemoBusy] = useState(false);
   const hasSamples = sites.some((s) => s.sample);
   async function demo() {
-    if (hasSamples && !window.confirm('Remove the three sample projects and everything in them? Your own projects are not touched.')) return;
+    if (hasSamples && !window.confirm('Remove the four sample projects and everything in them? Your own projects are not touched.')) return;
     setDemoBusy(true);
     try {
       if (hasSamples) { const r = await removeDemo(); toast(`Sample projects removed (${r.removed}).`); }
@@ -87,8 +87,8 @@ export default function Company() {
 
       <h2 className="sub">Sample projects</h2>
       <div className="card">
-        <p className="muted">{hasSamples ? 'Three sample projects are in your account. Removing them deletes only the sample projects and everything in them.'
-          : 'Add three sample projects with six weeks of reports, photos, workers, materials and spending, to see what SiteFlow does. They are labelled Sample and never send messages.'}</p>
+        <p className="muted">{hasSamples ? 'Four sample projects are in your account. Removing them deletes only the sample projects and everything in them.'
+          : 'Add four sample projects with six weeks of reports, photos, workers, materials and spending, to see what SiteFlow does. They are labelled Sample and never send messages.'}</p>
         <button type="button" className={`btn ${hasSamples ? 'ghost' : 'gold'} mt-sm`} onClick={demo} disabled={demoBusy}>
           {demoBusy ? (hasSamples ? 'Removing…' : 'Adding… about 20 seconds') : hasSamples ? 'Remove sample projects' : 'Add sample projects'}</button>
       </div>

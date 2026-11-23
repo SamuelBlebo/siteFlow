@@ -60,7 +60,7 @@ export function SampleBanner() {
   const { can } = useAuth();
   const [busy, setBusy] = useState(false);
   async function remove() {
-    if (!window.confirm('Remove the three sample projects and everything in them? Your own projects are not touched.')) return;
+    if (!window.confirm('Remove the four sample projects and everything in them? Your own projects are not touched.')) return;
     setBusy(true);
     try { const r = await removeDemo(); toast(`Sample projects removed (${r.removed}).`); } catch (e) { toast(friendlyError(e), 'err'); } finally { setBusy(false); }
   }

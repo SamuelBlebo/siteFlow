@@ -1,4 +1,4 @@
-// Sample projects for "Explore with sample data": three Ghanaian jobs with about six weeks of
+// Sample projects for "Explore with sample data": four Ghanaian jobs with about six weeks of
 // history, so every screen has something real-looking to show. Pure data: the loadDemo Cloud
 // Function writes it, removeDemo deletes it. Everything is marked sample: true, uses ids that start
 // with "sample-", and sends no messages (the triggers and scheduled jobs skip sample sites).
@@ -110,6 +110,27 @@ const PLANS: Plan[] = [
       { title: 'Traffic signs knocked down overnight', priority: 'medium', category: 'Safety', location: 'Diversion at 2+200', status: 'resolved', daysAgo: 6, description: 'Signs replaced and weighted down.' },
     ],
     weekly: { Equipment: 9800, Transport: 3600 },
+  },
+  {
+    key: 'tema', name: 'Tema school classroom block', location: 'Tema, Greater Accra', workType: 'building', stageIndex: 1, budget: 480000,
+    startDaysAgo: 45, lengthDays: 210, foremanName: 'Esi Badu', foremanPhone: '0271234567',
+    client: { name: 'Tema Metropolitan Assembly', phone: '0303202020', email: 'works@example.com' },
+    reportsToday: true,
+    crew: [['Kwesi Appiah', 'Mason', 180], ['Nana Yeboah', 'Steel bender', 170], ['Afia Mensima', 'Labourer', 110], ['Elikem Dogbe', 'Carpenter', 170], ['Baba Seidu', 'Labourer', 110]],
+    materials: [
+      { name: 'Cement (50kg)', unit: 'bags', reorderLevel: 40, avgDaily: 8, start: 160, price: 98 },
+      { name: 'Iron rods 16mm', unit: 'lengths', reorderLevel: 20, avgDaily: 3, start: 70, price: 205 },
+      { name: 'Sandcrete blocks 9"', unit: 'pcs', reorderLevel: 400, avgDaily: 80, start: 1500, price: 9 },
+      { name: 'Chippings', unit: 'trips', reorderLevel: 2, avgDaily: 0.3, start: 5, price: 1100 },
+    ],
+    photos: ['tema-foundation-walls', 'tema-rebar', 'tema-formwork'],
+    work: ['Excavated the foundation trenches for classrooms 3 and 4.', 'Cast the concrete blinding under the strip footings.', 'Fixed column starter bars on grid lines 1 to 4.',
+      'Laid 9-inch blocks for the foundation walls, 3 courses.', 'Backfilled and compacted between the foundation walls.', 'Set up formwork for the ground beam.'],
+    issues: [
+      { title: 'Trench side collapsed after rain', priority: 'high', category: 'Safety', location: 'Classroom 2 trench', status: 'in_progress', daysAgo: 1, description: 'Part of the trench wall fell in overnight. The trench is being shored before work restarts.' },
+      { title: 'Setting-out peg moved', priority: 'low', category: 'Quality', location: 'Grid line 3', status: 'resolved', daysAgo: 8, description: 'Peg re-set from the survey control point and checked.' },
+    ],
+    weekly: { Equipment: 1500, Transport: 1200 },
   },
 ];
 
@@ -340,7 +361,13 @@ const PEOPLE: Record<string, string[]> = {
     'Blessing Okon',
     'Danladi Haruna',
     'Funmi Ogunleye',
-    'Gbenga Akin'
+    'Gbenga Akin',
+    'Aisha Danjuma',
+    'Chukwuma Eze',
+    'Bolaji Akande',
+    'Halima Garba',
+    'Ifeanyi Okeke',
+    'Yusuf Lawal',
   ],
   'east': [
     'James Mwangi',
@@ -364,7 +391,13 @@ const PEOPLE: Record<string, string[]> = {
     'Collins Odhiambo',
     'Isaac Maina',
     'Felix Ruto',
-    'Ann Wairimu'
+    'Ann Wairimu',
+    'Wanjiru Kamau',
+    'Otieno Ochieng',
+    'Mwangi Njoroge',
+    'Achieng Atieno',
+    'Baraka Juma',
+    'Hamisi Salim',
   ],
   'south': [
     'Sipho Ndlovu',
@@ -388,7 +421,13 @@ const PEOPLE: Record<string, string[]> = {
     'Musa Banda',
     'Kabelo Seabi',
     'Ruan Pretorius',
-    'Palesa Mokoena'
+    'Palesa Mokoena',
+    'Nomvula Dlamini',
+    'Sipho Ndlovu',
+    'Lindani Khumalo',
+    'Thandeka Zulu',
+    'Tshepo Molefe',
+    'Bongani Nkosi',
   ],
   'mena': [
     'Ahmed Hassan',
@@ -412,7 +451,13 @@ const PEOPLE: Record<string, string[]> = {
     'Adel Mahmoud',
     'Zaid Kareem',
     'Sami Darwish',
-    'Majid Salem'
+    'Majid Salem',
+    'Layla Haddad',
+    'Omar Farouk',
+    'Karim Mansour',
+    'Salma Idrissi',
+    'Tarek Saleh',
+    'Youssef Amrani',
   ],
   'southasia': [
     'Rajesh Kumar',
@@ -436,7 +481,13 @@ const PEOPLE: Record<string, string[]> = {
     'Usman Tariq',
     'Vijay Iyer',
     'Harish Shetty',
-    'Anil Desai'
+    'Anil Desai',
+    'Priya Nair',
+    'Arjun Mehta',
+    'Rohan Iyer',
+    'Ayesha Khan',
+    'Vikram Rao',
+    'Imran Sheikh',
   ],
   'ph': [
     'Jose Santos',
@@ -460,7 +511,13 @@ const PEOPLE: Record<string, string[]> = {
     'Ronnie Salazar',
     'Edwin Lopez',
     'Ana Rivera',
-    'Marvin Gomez'
+    'Marvin Gomez',
+    'Maricel Santos',
+    'Joel Dela Cruz',
+    'Ramon Villanueva',
+    'Liza Bautista',
+    'Paolo Mendoza',
+    'Jerome Reyes',
   ],
   'caribbean': [
     'Andre Campbell',
@@ -484,7 +541,13 @@ const PEOPLE: Record<string, string[]> = {
     'Nigel Samuel',
     'Curtis Bailey',
     'Shanice Walker',
-    'Garfield Hall'
+    'Garfield Hall',
+    'Keisha Campbell',
+    'Andre Thompson',
+    'Marlon Clarke',
+    'Shanice Brown',
+    'Dwayne Williams',
+    'Jermaine Grant',
   ],
   'anglo': [
     'Mike Thompson',
@@ -508,14 +571,22 @@ const PEOPLE: Record<string, string[]> = {
     'Nick Stewart',
     'Adam Price',
     'Laura Brooks',
-    'Jack Morris'
+    'Jack Morris',
+    'Hannah Price',
+    'Chris Walker',
+    'Liam Murphy',
+    'Grace Turner',
+    'Owen Davies',
+    'Ryan Cole',
   ]
 };
 const REGION: Record<string, string> = {'NG':'west', 'SL':'west', 'LR':'west', 'GM':'west', 'CI':'west', 'SN':'west', 'CM':'west', 'KE':'east', 'UG':'east', 'TZ':'east', 'RW':'east', 'ET':'east', 'ZA':'south', 'ZM':'south', 'BW':'south', 'NA':'south', 'MW':'south', 'EG':'mena', 'MA':'mena', 'AE':'mena', 'SA':'mena', 'IN':'southasia', 'PK':'southasia', 'PH':'ph', 'JM':'caribbean', 'TT':'caribbean', 'GB':'anglo', 'IE':'anglo', 'US':'anglo', 'CA':'anglo', 'AU':'anglo'};
 function nameMap(code: string) {
   const local = PEOPLE[REGION[code]];
   if (!local) return new Map<string, string>();
-  const ghana = [...PLANS.map((p) => p.foremanName), ...PLANS.flatMap((p) => p.crew.map(([n]) => n))];
+  // The first three projects' foremen, then their crews, as the lists were written; later projects follow, each foreman then crew
+  const first = PLANS.slice(0, 3);
+  const ghana = [...first.map((p) => p.foremanName), ...first.flatMap((p) => p.crew.map(([n]) => n)), ...PLANS.slice(3).flatMap((p) => [p.foremanName, ...p.crew.map(([n]) => n)])];
   return new Map(ghana.map((n, i) => [n, local[i] ?? n]));
 }
 
@@ -527,8 +598,8 @@ function localiseDemo(sites: DemoSite[], c: Country): DemoSite[] {
     ...x, doc: Object.fromEntries(Object.entries(x.doc).map(([key, v]) => [key, (key === 'name' || key.endsWith('Name')) && typeof v === 'string' && who.has(v) ? who.get(v) : v])),
   });
   const k = c.perUSD / ghana.perUSD;
-  const names = [`${place(c.cities[0])} 4-bedroom residence`, `${place(c.cities[1])} office complex`, `${place(c.cities[2])} road drainage, phase 2`];
-  const generic: Record<string, string> = { 'Ghacem depot, Tema': 'Cement depot', 'Kasoa building materials': 'Building materials yard', 'Department of Urban Roads': 'Roads authority' };
+  const names = [`${place(c.cities[0])} 4-bedroom residence`, `${place(c.cities[1])} office complex`, `${place(c.cities[2])} road drainage, phase 2`, `${place(c.cities[3])} school classroom block`];
+  const generic: Record<string, string> = { 'Ghacem depot, Tema': 'Cement depot', 'Kasoa building materials': 'Building materials yard', 'Department of Urban Roads': 'Roads authority', 'Tema Metropolitan Assembly': 'Local council' };
   return sites.map((s, i) => {
     const siteName = names[i] ?? (s.site.name as string);
     const withName = <T extends { doc: Record<string, unknown> }>(x: T): T => { const r = rename(x); return { ...r, doc: { ...r.doc, ...('siteName' in r.doc ? { siteName } : {}) } }; };

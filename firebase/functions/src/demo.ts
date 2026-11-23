@@ -7,7 +7,7 @@ import { actorOf } from './members';
 
 const callOpts = { enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
 const APP_URL = process.env.APP_URL ?? 'https://siteflow.app';
-const SAMPLE_IDS = ['adenta', 'legon', 'road'].map((k) => `${SAMPLE_PREFIX}${k}`);
+const SAMPLE_IDS = ['adenta', 'legon', 'road', 'tema'].map((k) => `${SAMPLE_PREFIX}${k}`);
 
 // The signed-in owner (only the owner adds or removes sample data)
 async function owner(uid: string | undefined) {
@@ -18,7 +18,7 @@ async function owner(uid: string | undefined) {
 
 const at = (date: string, time?: string) => Timestamp.fromMillis(sampleTime(date, time));
 
-// "Explore with sample data": three sample projects with about six weeks of history.
+// "Explore with sample data": four sample projects with about six weeks of history.
 // Written by the server (it is a lot of documents), marked sample: true, and silent: the
 // notification triggers and scheduled reminders skip sample projects.
 export const loadDemo = onCall({ ...callOpts, timeoutSeconds: 300, memory: '512MiB' }, async (req) => {

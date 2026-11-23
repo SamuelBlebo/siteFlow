@@ -35,12 +35,12 @@ describe('sample projects', () => {
     expect(await code(loadDemo())).toBe('functions/permission-denied');
   });
 
-  it('the owner adds three sample projects with history, totals and photos', async () => {
+  it('the owner adds four sample projects with history, totals and photos', async () => {
     await as('owner');
     expect(await loadDemo()).toMatchObject({ loaded: true });
     const sites = (await getDocs(sitesCol(cid))).docs.map((d) => ({ id: d.id, ...d.data() }));
     const samples = sites.filter((s) => s.sample);
-    expect(samples.map((s) => s.id).sort()).toEqual(['adenta', 'legon', 'road'].map((k) => `${SAMPLE_PREFIX}${k}`));
+    expect(samples.map((s) => s.id).sort()).toEqual(['adenta', 'legon', 'road', 'tema'].map((k) => `${SAMPLE_PREFIX}${k}`));
     const legon = `${SAMPLE_PREFIX}legon`;
     const f = (await getDoc(financeDoc(cid, legon))).data();
     expect(f.spent).toBeGreaterThan(0);
@@ -59,7 +59,7 @@ describe('sample projects', () => {
   });
 
   it('removing them deletes only the samples', async () => {
-    expect(await removeDemo()).toMatchObject({ removed: 3 });
+    expect(await removeDemo()).toMatchObject({ removed: 4 });
     const left = (await getDocs(sitesCol(cid))).docs.map((d) => d.id);
     expect(left).toEqual([real]);
     expect((await getDocs(sub(cid, `${SAMPLE_PREFIX}legon`, 'reports'))).size).toBe(0);
@@ -77,7 +77,7 @@ describe('a company in another country', () => {
     expect(c).toMatchObject({ country: 'NG', currency: 'NGN', timeZone: 'Africa/Lagos' });
     await loadDemo();
     const sites = (await getDocs(sitesCol(user.uid))).docs.map((d) => d.data());
-    expect(sites.map((s) => s.location).sort()).toEqual(['Ikorodu, Lagos', 'Lekki, Lagos', 'Wuse II, Abuja']);
+    expect(sites.map((s) => s.location).sort()).toEqual(['Ikeja, Lagos', 'Ikorodu, Lagos', 'Lekki, Lagos', 'Wuse II, Abuja']);
     expect((await getDoc(financeDoc(user.uid, `${SAMPLE_PREFIX}adenta`))).data().budget).toBeGreaterThan(50_000_000); // naira, not cedis
     await removeDemo();
   });
