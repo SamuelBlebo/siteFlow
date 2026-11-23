@@ -16,7 +16,6 @@ import StatusPill from '../components/StatusPill';
 import { Mark } from '../components/Brand';
 import { CostDonut, Ring, Spark, SpendChart } from '../components/Charts';
 import { ScheduleBadge } from '../components/ProgressPanel';
-import ProjectCover from '../components/ProjectCover';
 import OwnSpaceCard from '../components/OwnSpaceCard';
 import { Empty, ErrorState, Loading } from '../components/States';
 import Choice from '../components/Choice';
@@ -144,7 +143,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             <div className="foot"><span className="delta nt">Not chased for reports</span></div></div>
         </dl>
 
-        <ProjectStrip sites={active} states={states} today={today} risk={(s) => money && siteFinanceSummary(finance[s.id], s.progress || 0).overspendRisk} />
 
         <div className="dgrid">
           <AlertsPanel alerts={alerts} className={`${money ? 'c8' : 'c12'} dside`} />
@@ -296,42 +294,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         {money && spentAll > 0 && <p className="hint mt">Figures in {getLocale().currency}. Spending comes from recorded expenses ({cedi(spentAll)} in total across active projects).</p>}
       </div>
     </>
-  );
-}
-
-// Your projects at a glance (the reference's loading bays): one card each with its image, progress and stage.
-// A card is washed with the accent when the project needs you: behind plan, today's report missing, or spending ahead of the work.
-const code = (name = '') => name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 3).map((w) => w[0].toUpperCase()).join('') || 'P';
-function ProjectStrip({ sites, states, today, risk }) {
-  if (sites.length < 2) return null;
-  const why = (s) => {
-    if (states[s.id].state === 'behind') return states[s.id].weeksBehind ? `${states[s.id].weeksBehind} week${states[s.id].weeksBehind === 1 ? '' : 's'} behind` : 'Behind plan';
-    if (reportDay(s, today) === 'due' && s.status === 'active') return "Today's report missing";
-    if (risk(s)) return 'Spending ahead of work';
-    return '';
-  };
-  const hot = sites.filter((s) => why(s)).length;
-  return (
-    <section className="pstrip" aria-labelledby="pstrip-h">
-      <div className="pstrip-h"><h2 id="pstrip-h">Your projects</h2><p>{hot ? `${hot} need${hot === 1 ? 's' : ''} you, shown in colour` : 'All on track'}</p></div>
-      <ul className="bays">
-        {sites.map((s) => {
-          const w = why(s);
-          const pct = states[s.id].actual;
-          return (
-            <li key={s.id}>
-              <Link to={`/sites/${s.id}`} className={`bay${w ? ' hot' : ''}`}>
-                <ProjectCover site={s} className="bay-img" label={false} />
-                <span className="bay-t"><span className="bay-code">{code(s.name)}</span><span className="bay-pct">{pct}%</span></span>
-                <b>{s.name}</b>
-                <small>{s.stage || 'No stage set'}{w ? <> · <span className="late">{w}</span></> : s.status !== 'active' ? ' · On hold' : ''}</small>
-                <span className="bay-bar"><span style={{ width: `${Math.min(100, pct)}%` }} /></span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
   );
 }
 
