@@ -184,7 +184,8 @@ export const reportRequestRefInput = z.object({ siteId: z.string().min(1).max(12
 // Invitation links: the token from the link, and the password the person chooses
 const inviteToken = z.string().regex(/^[A-Za-z0-9_-]{30,100}$/, 'This invitation link is not valid.');
 export const inviteTokenInput = z.object({ token: inviteToken });
-export const acceptInviteInput = z.object({ token: inviteToken, password: z.string().min(8, 'Use at least 8 characters.').max(128) });
+// acceptTerms: agreed to the Terms of Service and Privacy Policy (needed to join from an invitation, not to reset a password)
+export const acceptInviteInput = z.object({ token: inviteToken, password: z.string().min(8, 'Use at least 8 characters.').max(128), acceptTerms: z.literal(true).optional() });
 
 // Milestones (set up by site managers; progress updated by the site team)
 const optDateKey = z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date.').optional().default('');
