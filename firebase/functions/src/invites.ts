@@ -8,7 +8,7 @@ import {
   type Company, type Role, type UserProfile,
 } from '@siteflow/shared';
 import { EMAIL_KEY, sendEmail } from './notify';
-import { assertNotSuspended, migrateCompany } from './members';
+import { assertNotSuspended, migrateCompany, ownCompanyWrites } from './members';
 
 // Invitation links. A new team member (or someone who needs a new password) gets a one-time link,
 // valid for INVITE_DAYS, to set their own password. The invitation belongs to the membership in the
@@ -74,9 +74,10 @@ export const inviteInfo = onCall(callOpts, async (req) => {
   };
 });
 
-// The person sets their password from the link. The link then stops working.
+// The person sets their password from the link. The link then stops working. Joining from an
+// invitation (not a password link) needs the Terms agreed, and gives the person their own company too.
 export const acceptInvite = onCall(callOpts, async (req) => {
-  const { token, password } = parse(acceptInviteInput, req.data);
+  const { token, password, acceptTerms } = parse(acceptInviteInput, req.data);
   const db = getFirestore();
   const hash = hashOf(token);
   const ref = invitesCol(db).doc(hash);
@@ -95,6 +96,15 @@ export const acceptInvite = onCall(callOpts, async (req) => {
     const account = await t.get(userRef);
     if (!profile || profile.inviteHash !== hash) throw new HttpsError('not-found', 'This link was replaced by a newer one. Use the latest invitation.');
     if (profile.active === false) throw new HttpsError('permission-denied', 'Your access has been switched off. Ask your manager.');
+    if (inv.kind === 'invite') {
+      if (acceptTerms !== true) throw new HttpsError('failed-precondition', 'Agree to the Terms of Service and the Privacy Policy to join.');
+      // Their own space, in the inviting company's country; they still open the company that invited them
+      const inviter = (await t.get(db.doc(paths.company(inv.companyId)))).data() as Company | undefined;
+      const first = String(inv.name || profile.name || '').trim().split(/\s+/)[0] || 'My';
+      await ownCompanyWrites(t, db, {
+        uid: inv.uid, name: inv.name, email: inv.email, companyName: first === 'My' ? 'My projects' : `${first}'s projects`, country: inviter?.country ?? '', open: false,
+      });
+    }
     t.delete(ref);
     if (account.exists) t.update(userRef, { mustChangePassword: false, updatedAt: FieldValue.serverTimestamp() });
     t.update(memberRef, {

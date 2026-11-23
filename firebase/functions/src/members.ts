@@ -2,8 +2,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
-import { isRole, paths, type UserProfile } from '@siteflow/shared';
+import { getFirestore, FieldValue, type Firestore, type Transaction } from 'firebase-admin/firestore';
+import { DEFAULT_MODULES, TERMS_VERSION, countryOf, isRole, paths, type UserProfile } from '@siteflow/shared';
 import { checkLimit } from './limits';
 
 // One login, several companies. users/{uid} is the person (name, email, phone, companyIds and the
@@ -28,6 +28,34 @@ export async function membershipOf(db: Firestore, uid: string, cid?: string): Pr
 }
 
 // A company SiteFlow has paused (companies/{cid}.suspended is set) is refused by every company callable
+// The person's own company (its id is their uid), with them as Owner, inside a transaction. They
+// agreed to the Terms and Privacy Policy before this is called. open: make it the company they look at.
+// Safe to repeat: an existing own company is left as it is. All reads happen before any write.
+export async function ownCompanyWrites(t: Transaction, db: Firestore, o: { uid: string; name: string; email: string; companyName: string; country: string; open: boolean }): Promise<'created' | 'exists'> {
+  const companyRef = db.doc(paths.company(o.uid));
+  const userRef = db.doc(paths.user(o.uid));
+  const existing = await t.get(companyRef);
+  if (existing.exists) {
+    if (existing.data()?.ownerId === o.uid) return 'exists';
+    throw new HttpsError('already-exists', 'This account already has a company.');
+  }
+  const account = await t.get(userRef);
+  const where = countryOf(o.country); // currency and time zone follow the country; the owner can change them later
+  t.set(companyRef, {
+    name: o.companyName, ownerId: o.uid, plan: 'starter', modules: DEFAULT_MODULES,
+    country: where.code, currency: where.currency, timeZone: where.timeZone, createdAt: FieldValue.serverTimestamp(),
+    terms: { version: TERMS_VERSION, acceptedBy: o.uid, acceptedAt: FieldValue.serverTimestamp() },
+  });
+  const person = account.data();
+  t.set(db.doc(paths.member(o.uid, o.uid)), {
+    role: 'owner', name: person?.name || o.name, email: person?.email || o.email, ...(person?.phone ? { phone: person.phone } : {}),
+    siteIds: [], active: true, createdAt: FieldValue.serverTimestamp(),
+  });
+  if (!account.exists) t.set(userRef, { name: o.name, email: o.email, companyIds: [o.uid], companyId: o.uid, createdAt: FieldValue.serverTimestamp() });
+  else t.update(userRef, { companyIds: FieldValue.arrayUnion(o.uid), ...(o.open ? { companyId: o.uid } : {}), updatedAt: FieldValue.serverTimestamp() });
+  return 'created';
+}
+
 export async function assertNotSuspended(db: Firestore, cid: string): Promise<void> {
   const company = (await db.doc(paths.company(cid)).get()).data();
   if (company?.suspended) throw new HttpsError('permission-denied', "This company's account is paused. Contact SiteFlow.");

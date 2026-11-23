@@ -7,13 +7,14 @@ import { useDoc, useDocsByIds, useQuery } from '../lib/hooks';
 import { companyDoc, siteDoc, sitesCol } from '../lib/db';
 import { usePins } from './PinButton';
 import Icon from './Icons';
+import { ownsCompany } from './OwnSpaceCard';
 
 // "+ New": add a daily report, issue, attendance, delivery, expense or project from anywhere.
 // Only what the person can add is listed. The project is the one you're on, your only open one,
 // or picked from a short list. top: a button and menu in the top bar; bar: the round + in the
 // phone's bottom bar, with a sheet that slides up.
 export default function NewMenu({ variant = 'top' }) {
-  const { cid, role, can, profile } = useAuth();
+  const { cid, role, can, profile, user, viewAs } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
@@ -84,7 +85,13 @@ export default function NewMenu({ variant = 'top' }) {
         : <p className="hint">You have no open projects to add this to.</p>}
       <button type="button" className="uitem muted" onClick={() => setChoice(null)}>← Back</button>
     </>
-  ) : choices.map((c) => <button key={c.key} type="button" className="uitem" onClick={() => choose(c)}><Icon name={ICONS[c.key]} />{c.label}</button>);
+  ) : (
+    <>
+      {choices.map((c) => <button key={c.key} type="button" className="uitem" onClick={() => choose(c)}><Icon name={ICONS[c.key]} />{c.label}</button>)}
+      {/* No space of their own yet (invited before every account had one): start it from Account */}
+      {!viewAs && !ownsCompany(profile, user?.uid) && <button type="button" className="uitem" onClick={() => go('/account#own')}><Icon name="projects" />Your own projects</button>}
+    </>
+  );
 
   if (variant === 'bar') {
     return (

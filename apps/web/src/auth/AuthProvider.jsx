@@ -98,7 +98,8 @@ export function AuthProvider({ children }) {
     // Your role in each one shows next to its name
     Promise.all(companyIds.map((id) => Promise.all([getDoc(companyDoc(id)), uid ? getDoc(memberDoc(id, uid)).catch(() => null) : null])
       .then(([s, m]) => ({ id, name: s.data()?.name || 'Company', role: m?.data()?.role || null })).catch(() => null)))
-      .then((list) => live && setCompanies(list.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name))));
+      // Your own space first, then the rest by name
+      .then((list) => live && setCompanies(list.filter(Boolean).sort((a, b) => (b.id === uid) - (a.id === uid) || a.name.localeCompare(b.name))));
     return () => { live = false; };
   }, [companyIds, uid]);
 

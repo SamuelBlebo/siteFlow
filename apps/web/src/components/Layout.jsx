@@ -22,6 +22,8 @@ const MENU_LOOK = {
   team: { icon: 'team' },
 };
 const late = (s) => reportDay(s, todayKey()) === 'due';
+// In the company switcher: your own space reads "Your projects · Owner", others "Name · Role"
+const companyLabel = (c, uid) => (c.id === uid ? 'Your projects · Owner' : c.role && ROLE_LABELS[c.role] ? `${c.name} · ${ROLE_LABELS[c.role]}` : c.name);
 // Laptops: the sidebar can be folded to icons; the choice is kept on this device
 const ICONS_KEY = 'sf.sideIcons';
 const readIcons = () => { try { return localStorage.getItem(ICONS_KEY) === '1'; } catch { return false; } };
@@ -31,7 +33,7 @@ const TABLET = '(min-width: 640px) and (max-width: 1023px)';
 // The app shell: a white sidebar that stays put (company, menu in groups, projects), and beside
 // it the top bar (with you, top right) and the page. On phones the sidebar gives way to a bottom bar of icons, like a phone app.
 export default function Layout() {
-  const { cid, profile, role, can, companies, switchCompany, viewAs } = useAuth();
+  const { user, cid, profile, role, can, companies, switchCompany, viewAs } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const main = useRef(null);
@@ -85,7 +87,7 @@ export default function Layout() {
     : (profile?.siteIds || []).map((sid) => <MySiteLink key={sid} cid={cid} sid={sid} />);
   const companyPick = companies.length > 1 && (
     <select id="org-pick-m" aria-label="Company" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
-      {companies.map((c) => <option key={c.id} value={c.id}>{c.role && ROLE_LABELS[c.role] ? `${c.name} · ${ROLE_LABELS[c.role]}` : c.name}</option>)}
+      {companies.map((c) => <option key={c.id} value={c.id}>{companyLabel(c, user?.uid)}</option>)}
     </select>
   );
 
@@ -107,7 +109,7 @@ export default function Layout() {
           <div className="org pick">
             <label htmlFor="org-pick" className="visually-hidden">Company</label>
             <select id="org-pick" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
-              {companies.map((c) => <option key={c.id} value={c.id}>{c.role && ROLE_LABELS[c.role] ? `${c.name} · ${ROLE_LABELS[c.role]}` : c.name}</option>)}
+              {companies.map((c) => <option key={c.id} value={c.id}>{companyLabel(c, user?.uid)}</option>)}
             </select>
             <span>{companies.length} companies</span>
           </div>

@@ -12,6 +12,7 @@ import StatusPill from '../components/StatusPill';
 import PageHead from '../components/PageHead';
 import Choice from '../components/Choice';
 import SearchBox from '../components/SearchBox';
+import OwnSpaceCard from '../components/OwnSpaceCard';
 
 // Grid (cards with the project image) or list (table). Remembered on this browser.
 const VIEW_KEY = 'sf.projectsView';
@@ -69,6 +70,7 @@ export default function Sites() {
       {can('sites.manage') && <Link to="/sites/new" className="btn gold">New project</Link>}
     </PageHead>
     <section className="wrap">
+      <OwnSpaceCard />
       <div>
       </div>
       {!sites.length ? (

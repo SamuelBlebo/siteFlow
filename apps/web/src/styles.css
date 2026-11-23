@@ -1550,3 +1550,7 @@ body.sheet-open { overflow: hidden; }
   .today-side { grid-column: 2; grid-row: 1; min-width: 0; }
   .today-side table { min-width: 0; }
 }
+/* Create your own projects (accounts without their own space yet) */
+.own-space { margin-bottom: 16px; }
+.own-space p { margin: 4px 0 14px; }
+.own-actions { display: flex; gap: 8px; flex-wrap: wrap; }

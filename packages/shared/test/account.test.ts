@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  companySettingsInput, inviteInput, memberActiveInput, memberUpdateInput, passwordInput, profileInput, validate,
+  acceptInviteInput, companySettingsInput, inviteInput, memberActiveInput, memberUpdateInput, passwordInput, profileInput, validate,
 } from '../src';
 
 describe('profile', () => {
@@ -45,5 +45,14 @@ describe('team inputs', () => {
     expect(validate(memberUpdateInput, { uid: 'u1', role: 'supervisor', siteIds: ['s1'] }).ok).toBe(true);
     expect(validate(memberUpdateInput, { uid: '', role: 'viewer' }).ok).toBe(false);
     expect(validate(memberActiveInput, { uid: 'u1', active: 'no' }).ok).toBe(false);
+  });
+});
+
+describe('accepting an invitation', () => {
+  it('acceptInviteInput takes an optional acceptTerms that must be true', () => {
+    const base = { token: 'a'.repeat(43), password: 'password123' };
+    expect(validate(acceptInviteInput, base).ok).toBe(true);
+    expect(validate(acceptInviteInput, { ...base, acceptTerms: true })).toMatchObject({ ok: true, data: { acceptTerms: true } });
+    expect(validate(acceptInviteInput, { ...base, acceptTerms: false }).ok).toBe(false);
   });
 });

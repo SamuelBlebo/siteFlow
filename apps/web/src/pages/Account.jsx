@@ -13,6 +13,7 @@ import SkinPicker from '../components/SkinPicker';
 import { initials } from '../components/TopBar';
 import CompanySetupForm from '../components/CompanySetupForm';
 import MyCompanies from '../components/MyCompanies';
+import { ownSpaceName } from '../components/OwnSpaceCard';
 
 export default function Account() {
   useTitle('Your account');
@@ -103,7 +104,7 @@ export default function Account() {
         <section className="acct-sec" aria-labelledby="own">
           <div className="acct-sec-h"><h2 id="own">Your own company</h2><p className="muted">Run your own projects too? Start a company of your own, with you as its Owner. You stay in the companies you're in now and switch between them from the menu.</p></div>
           {starting
-            ? <CompanySetupForm name={profile.name || ''} idPrefix="own" submitLabel="Start my company" onDone={openNewCompany} />
+            ? <CompanySetupForm name={profile.name || ''} companyName={ownSpaceName(profile.name)} idPrefix="own" submitLabel="Start my company" onDone={openNewCompany} />
             : <div className="card"><button type="button" className="btn" onClick={() => setStarting(true)}>Start your own company</button></div>}
         </section>
       )}
