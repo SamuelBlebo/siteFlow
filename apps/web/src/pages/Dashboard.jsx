@@ -17,6 +17,7 @@ import { Mark } from '../components/Brand';
 import { CostDonut, Ring, Spark, SpendChart } from '../components/Charts';
 import { ScheduleBadge } from '../components/ProgressPanel';
 import ProjectCover from '../components/ProjectCover';
+import OwnSpaceCard from '../components/OwnSpaceCard';
 import { Empty, ErrorState, Loading } from '../components/States';
 import Choice from '../components/Choice';
 import SearchBox from '../components/SearchBox';
@@ -124,6 +125,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
       </PageHead>
 
       <div className="dpage">
+        <OwnSpaceCard />
         {active.some((s) => s.sample) && <SampleBanner />}
         <GettingStarted company={company} sites={active} budgetSet={money ? active.some((s) => !s.sample && finance[s.id]?.budget > 0) : null} />
         <ProjectStrip sites={active} states={states} today={today} risk={(s) => money && siteFinanceSummary(finance[s.id], s.progress || 0).overspendRisk} />
