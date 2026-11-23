@@ -6,7 +6,7 @@ Two Firebase projects on the same account, kept completely apart:
 | --- | --- | --- |
 | Project id | `siteflow-dp-dev` | `siteflow-dp-prod` |
 | Console | https://console.firebase.google.com/project/siteflow-dp-dev | https://console.firebase.google.com/project/siteflow-dp-prod |
-| Web address | https://siteflow-dp-dev.web.app | https://siteflow-dp-prod.web.app (a custom domain can be added later) |
+| Web address | https://siteflow-dp-dev.web.app | https://siteflow.digitalprimegh.com (also https://siteflow-dp-prod.web.app) |
 | Apps registered | Web, Android and iOS `com.digitalprime.siteflow.dev` | Web, Android and iOS `com.digitalprime.siteflow` |
 | Data | Test companies only | Real companies only |
 

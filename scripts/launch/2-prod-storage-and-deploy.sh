@@ -41,5 +41,5 @@ TAG="prod-$(date -u +%Y%m%d-%H%M)"
 git tag "$TAG" "$SHA"
 git push -q origin "$TAG"
 echo
-echo "Live: https://siteflow-dp-prod.web.app  (release $TAG = $SHA)"
+echo "Live: https://siteflow.digitalprimegh.com  (release $TAG = $SHA)"
 echo "Firestore indexes may take a few minutes to show Enabled."
