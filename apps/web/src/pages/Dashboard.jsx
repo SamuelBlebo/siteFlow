@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useDoc, useExpenses, useQuery, useSiteSignals, useTitle } from '../lib/hooks';
 import { companyDoc, companyReportsQuery, openIssuesQuery, sitesCol } from '../lib/db';
 import {
-  big, budgetUsedPct, cedi, getLocale, reportAuthor, costBreakdown, friendlyError, dailyTotals, isOn, longToday, plannedWeeklySpend, recentWorkDays,
+  big, cedi, getLocale, friendlyError, dailyTotals, isOn, longToday, recentWorkDays,
   reportDay, reportDue, scheduleStatus, siteAlerts, siteFinanceSummary, todayKey, weeklySpend,
 } from '@siteflow/shared';
 import AlertsPanel from '../components/AlertsPanel';
@@ -12,7 +12,7 @@ import { GettingStarted, SampleBanner } from '../components/GettingStarted';
 import { loadDemo } from '../lib/account';
 import { toast } from '../lib/save';
 import PageHead from '../components/PageHead';
-import { CostDonut, Ring, Spark, SpendChart } from '../components/Charts';
+import { Spark } from '../components/Charts';
 import ProjectCover from '../components/ProjectCover';
 import OwnSpaceCard from '../components/OwnSpaceCard';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -82,14 +82,8 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   const budgetAll = active.reduce((n, s) => n + (finance[s.id]?.budget || 0), 0);
   const spentAll = active.reduce((n, s) => n + (finance[s.id]?.spent || 0), 0);
   const weeks = weeklySpend(expenses, 8);
-  const plan = plannedWeeklySpend(active.map((s) => ({ budget: finance[s.id]?.budget, planStart: s.planStart, planEnd: s.planEnd })));
-  const parts = costBreakdown(active.map((s) => finance[s.id]));
   const usedPct = budgetAll ? Math.round((spentAll / budgetAll) * 100) : 0;
-  const overWeeks = plan ? weeks.filter((w) => w.total > plan * 1.1).length : 0;
 
-  // Today on site: the latest reports in the chosen period, with their photos
-  const feed = reports.filter((r) => inPeriod.has(r.date)).slice(0, period === 'today' ? 10 : 6);
-  const siteById = Object.fromEntries(active.map((s) => [s.id, s]));
   const matches = q.trim() ? active.filter((s) => [s.name, s.location, s.stage, s.foremanName].join(' ').toLowerCase().includes(q.trim().toLowerCase())).slice(0, 6) : [];
 
   return (
@@ -143,82 +137,7 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         <ProjectStrip sites={active} states={states} today={today} risk={(s) => money && siteFinanceSummary(finance[s.id], s.progress || 0).overspendRisk} />
 
         <div className="dgrid">
-          <AlertsPanel alerts={alerts} className={`${money ? 'c8' : 'c12'} dside`} />
-
-          {money && (
-            <section className="panel c4" aria-labelledby="bvp-h">
-              <div className="panel-h"><div><h2 id="bvp-h">Budget against progress</h2><p>Money should not run ahead of the work</p></div></div>
-              <div className="legend2"><span><i style={{ background: 'var(--c-done)' }} />Work done</span><span><i style={{ background: 'var(--brass)' }} />Budget used</span></div>
-              <div className="bvp">
-                {active.map((s) => {
-                  const f = finance[s.id];
-                  const fs = siteFinanceSummary(f, s.progress || 0);
-                  const b = f ? budgetUsedPct(f) : 0;
-                  return (
-                    <div className="bvp-row" key={s.id}>
-                      <div className="row-between"><b>{s.name}</b>{!f?.budget ? <span className="pill">No budget</span> : fs.overspendRisk ? <span className="pill bad">Overspend risk</span> : <span className="pill ok">On track</span>}</div>
-                      <div className="meter work"><span style={{ width: `${s.progress || 0}%` }} /></div>
-                      <div className={`meter ${fs.overspendRisk ? 'hot' : ''}`}><span style={{ width: `${Math.min(b, 100)}%` }} /></div>
-                      <div className="bvp-lab"><span>{s.progress || 0}% built</span><span className={fs.overspendRisk ? 'overrun' : ''}>{f?.budget ? `${b}% of ${big(f.budget)} spent` : 'Set a budget under Budget'}</span></div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-
-          {money && (
-            <>
-              <section className="panel c8">
-                <div className="panel-h">
-                  <div><h2>Weekly spend against plan</h2><p>All projects, last 8 weeks.{plan ? (overWeeks ? ` ${overWeeks} week${overWeeks === 1 ? '' : 's'} ran more than 10% over plan (red).` : ' No week ran more than 10% over plan.') : ' Add planned dates to projects to see the plan line.'}</p></div>
-                  <span className="count">{big(weeks.reduce((n, w) => n + w.total, 0))}</span>
-                </div>
-                <SpendChart weeks={weeks} plan={plan} />
-              </section>
-              <section className="panel c4">
-                <div className="panel-h"><div><h2>Where the money goes</h2><p>Spending by category to date</p></div></div>
-                {parts.length ? <CostDonut parts={parts} /> : <p className="empty mt-sm">No spending recorded yet.</p>}
-              </section>
-            </>
-          )}
-
-          {mod('labour') && (
-            <section className="panel c5">
-              <div className="panel-h"><div><h2>Workforce by project</h2><p>Present today against crew size</p></div></div>
-              <div className="hbars">
-                {active.map((s) => (
-                  <div key={s.id}>
-                    <div className="l"><span>{s.name}</span><b>{present[s.id] || 0} / {crew[s.id] || 0}</b></div>
-                    <div className="t"><span style={{ width: `${crew[s.id] ? Math.min(100, ((present[s.id] || 0) / crew[s.id]) * 100) : 0}%` }} /></div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className={`panel ${mod('labour') ? 'c7' : 'c12'}`}>
-            <div className="panel-h"><div><h2>{period === 'today' ? 'Today on site' : 'Latest from site'}</h2><p>Latest daily reports{period === 'today' ? '' : `, ${period === 'week' ? 'this week' : 'this month'}`}</p></div>
-              <Link to="/reports" className="btn ghost sm">All reports</Link></div>
-            {feed.length ? (
-              <div className="sfeed">
-                {feed.map((r) => (
-                  <article key={`${r.siteId}-${r.id}`}>
-                    <Ring pct={siteById[r.siteId]?.progress ?? r.progress ?? 0} size={46} />
-                    <div>
-                      <p className="when"><Link to={`/reports/${r.siteId}/${r.id}`}>{r.siteName}</Link>, {r.date === today ? `sent ${r.time}` : `${r.date.slice(8)}/${r.date.slice(5, 7)} at ${r.time}`} by {reportAuthor(r)}</p>
-                      <p className="mt-sm">{r.text}</p>
-                      {r.issues && <p className="issue">{r.issues}</p>}
-                      {!!(r.thumbs?.length || r.photos?.length) && (
-                        <div className="thumbs">{(r.thumbs?.length ? r.thumbs : r.photos).slice(0, 4).map((u, i) => <img key={u} src={u} alt={`${r.siteName} photo ${i + 1}`} loading="lazy" />)}</div>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : <p className="empty mt-sm">{period === 'today' ? 'No reports yet today.' : 'No reports in this period.'}</p>}
-          </section>
+          <AlertsPanel alerts={alerts} className="c12" />
         </div>
         {money && spentAll > 0 && <p className="hint mt">Figures in {getLocale().currency}. Spending comes from recorded expenses ({cedi(spentAll)} in total across active projects).</p>}
       </div>
