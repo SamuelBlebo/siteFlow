@@ -12,10 +12,7 @@ import { GettingStarted, SampleBanner } from '../components/GettingStarted';
 import { loadDemo } from '../lib/account';
 import { toast } from '../lib/save';
 import PageHead from '../components/PageHead';
-import StatusPill from '../components/StatusPill';
-import { Mark } from '../components/Brand';
 import { CostDonut, Ring, Spark, SpendChart } from '../components/Charts';
-import { ScheduleBadge } from '../components/ProgressPanel';
 import ProjectCover from '../components/ProjectCover';
 import OwnSpaceCard from '../components/OwnSpaceCard';
 import { Empty, ErrorState, Loading } from '../components/States';
@@ -93,7 +90,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
   // Today on site: the latest reports in the chosen period, with their photos
   const feed = reports.filter((r) => inPeriod.has(r.date)).slice(0, period === 'today' ? 10 : 6);
   const siteById = Object.fromEntries(active.map((s) => [s.id, s]));
-  const thumbFor = (sid) => reports.find((r) => r.siteId === sid && (r.thumbs?.[0] || r.photos?.[0]));
   const matches = q.trim() ? active.filter((s) => [s.name, s.location, s.stage, s.foremanName].join(' ').toLowerCase().includes(q.trim().toLowerCase())).slice(0, 6) : [];
 
   return (
@@ -171,75 +167,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             </section>
           )}
 
-          <section className="panel c12">
-            <div className="panel-h">
-              <div><h2>Projects</h2><p>Select a row for reports, materials, labour and budget</p></div>
-              {can('sites.manage') && <Link to="/sites/new" className="btn ghost sm">Add project</Link>}
-            </div>
-            <div className="scroll flush"><table className="ptable">
-              <thead><tr>
-                <th>Project</th><th>Stage</th><th>Progress</th>{money && <><th>Budget used</th><th className="num">Spent</th></>}<th>Today's report</th>
-                {mod('labour') && <th className="num">On site</th>}<th className="num">Open issues</th>
-              </tr></thead>
-              <tbody>
-                {active.map((s) => {
-                  const st = states[s.id];
-                  const f = finance[s.id];
-                  const b = f ? budgetUsedPct(f) : 0;
-                  const pic = thumbFor(s.id);
-                  const iss = issuesBySite(s.id);
-                  return (
-                    <tr key={s.id} className="row" onClick={() => nav(`/sites/${s.id}`)}>
-                      <td><div className="pcell">
-                        <span className="pthumb">{pic ? <img src={pic.thumbs?.[0] || pic.photos[0]} alt="" loading="lazy" /> : <Mark />}</span>
-                        <div><Link className="sname" to={`/sites/${s.id}`} onClick={(e) => e.stopPropagation()}>{s.name}</Link> {s.sample && <span className="pill sample">Sample</span>} {s.status !== 'active' && <StatusPill status={s.status} />}
-                          <div className="muted small">{s.location}</div></div>
-                      </div></td>
-                      <td>{s.stage}</td>
-                      <td><div className="pcell"><Ring pct={st.actual} size={40} /><ScheduleBadge st={st} /></div></td>
-                      {money && (
-                        <>
-                          <td>{f?.budget ? <><div className={`mbar ${b >= 90 ? 'hot' : ''}`}><span style={{ width: `${Math.min(b, 100)}%` }} /></div><span className={`small ${b >= 90 ? 'badt' : 'muted'}`}>{b}%</span></> : <span className="muted">–</span>}</td>
-                          <td className="num">{f ? <>{big(f.spent || 0)} {f.budget ? <span className="muted small">of {big(f.budget)}</span> : null}</> : '–'}</td>
-                        </>
-                      )}
-                      <td>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill ok skipped">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[reportDay(s, today)]}</td>
-                      {mod('labour') && <td className="num">{present[s.id] || 0} / {crew[s.id] || 0}</td>}
-                      <td className="num">{iss.length ? <Link to={`/sites/${s.id}?tab=progress&view=issues`} onClick={(e) => e.stopPropagation()}>{iss.length}</Link> : <span className="muted">0</span>}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table></div>
-            {/* Phones: the same projects as cards (the table is hidden there) */}
-            <ul className="pcards-m">
-              {active.map((s) => {
-                const st = states[s.id];
-                const f = finance[s.id];
-                const pic = thumbFor(s.id);
-                const iss = issuesBySite(s.id);
-                const day = reportDay(s, today);
-                return (
-                  <li key={s.id}>
-                    <Link to={`/sites/${s.id}`} className="pcm">
-                      <span className="pcm-top">
-                        <span className="pthumb">{pic ? <img src={pic.thumbs?.[0] || pic.photos[0]} alt="" loading="lazy" /> : <Mark />}</span>
-                        <span className="pcm-name"><b>{s.name}</b><span className="muted small">{s.location}</span></span>
-                        <Ring pct={st.actual} size={44} />
-                      </span>
-                      <span className="pcm-stage"><span>{s.stage}</span><ScheduleBadge st={st} />{s.sample && <span className="pill sample">Sample</span>}{s.status !== 'active' && <StatusPill status={s.status} />}</span>
-                      <span className="pcm-facts">
-                        <span><small>Today's report</small>{{ sent: <span className="pill ok">Sent {s.lastReportTime}</span>, due: <span className="pill bad">Missing</span>, skipped: <span className="pill ok skipped">Skipped</span>, day_off: <span className="pill calm">Day off</span>, not_active: <span className="muted">–</span> }[day]}</span>
-                        {money && <span><small>Spent</small><b className={f && budgetUsedPct(f) >= 90 ? 'badt' : ''}>{f ? big(f.spent || 0) : '–'}</b></span>}
-                        {mod('labour') && <span><small>On site</small><b>{present[s.id] || 0} / {crew[s.id] || 0}</b></span>}
-                        <span><small>Issues</small><b className={iss.length ? 'badt' : ''}>{iss.length}</b></span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
 
           {money && (
             <>
