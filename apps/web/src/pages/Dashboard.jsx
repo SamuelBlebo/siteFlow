@@ -128,7 +128,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
         <OwnSpaceCard />
         {active.some((s) => s.sample) && <SampleBanner />}
         <GettingStarted company={company} sites={active} budgetSet={money ? active.some((s) => !s.sample && finance[s.id]?.budget > 0) : null} />
-        <ProjectStrip sites={active} states={states} today={today} risk={(s) => money && siteFinanceSummary(finance[s.id], s.progress || 0).overspendRisk} />
         <dl className="tiles">
           {money && (
             <>
@@ -152,9 +151,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
           )}
           <div className="tile"><TileLink to="/issues" label="Open issues" /><dt>Open issues</dt><dd>{openIssues.length}</dd>
             <div className="foot"><span className={`delta ${critical ? 'dn' : 'up'}`}>{critical ? `${critical} critical` : 'None critical'}</span></div></div>
-        </dl>
-
-        <dl className="tiles mtiles">
           <div className="tile"><TileLink to={one(behind, 'progress')} label="Open the programme" /><dt>Programme</dt><dd>{behind.length ? `${behind.length} behind` : 'On time'}</dd>
             <div className="foot"><span className={`delta ${behind.length ? 'dn' : 'up'}`}>{behind.length ? behind.map((s) => s.name.split(' ')[0]).join(', ') : 'No project behind plan'}</span></div></div>
           {mod('materials') && (
@@ -165,11 +161,13 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
             <div className="foot"><span className="delta nt">Not chased for reports</span></div></div>
         </dl>
 
+        <ProjectStrip sites={active} states={states} today={today} risk={(s) => money && siteFinanceSummary(finance[s.id], s.progress || 0).overspendRisk} />
+
         <div className="dgrid">
-          <AlertsPanel alerts={alerts} className={`${money ? 'c7' : 'c12'} dside`} />
+          <AlertsPanel alerts={alerts} className={`${money ? 'c8' : 'c12'} dside`} />
 
           {money && (
-            <section className="panel c5" aria-labelledby="bvp-h">
+            <section className="panel c4" aria-labelledby="bvp-h">
               <div className="panel-h"><div><h2 id="bvp-h">Budget against progress</h2><p>Money should not run ahead of the work</p></div></div>
               <div className="legend2"><span><i style={{ background: 'var(--c-done)' }} />Work done</span><span><i style={{ background: 'var(--brass)' }} />Budget used</span></div>
               <div className="bvp">
@@ -188,22 +186,6 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
                 })}
               </div>
             </section>
-          )}
-
-          {money && (
-            <>
-              <section className="panel c8">
-                <div className="panel-h">
-                  <div><h2>Weekly spend against plan</h2><p>All projects, last 8 weeks.{plan ? (overWeeks ? ` ${overWeeks} week${overWeeks === 1 ? '' : 's'} ran more than 10% over plan (red).` : ' No week ran more than 10% over plan.') : ' Add planned dates to projects to see the plan line.'}</p></div>
-                  <span className="count">{big(weeks.reduce((n, w) => n + w.total, 0))}</span>
-                </div>
-                <SpendChart weeks={weeks} plan={plan} />
-              </section>
-              <section className="panel c4">
-                <div className="panel-h"><div><h2>Where the money goes</h2><p>Spending by category to date</p></div></div>
-                {parts.length ? <CostDonut parts={parts} /> : <p className="empty mt-sm">No spending recorded yet.</p>}
-              </section>
-            </>
           )}
 
           <section className="panel c12">
@@ -275,6 +257,22 @@ function Body({ can, nav, period, setPeriod, today, company, mod, money, active,
               })}
             </ul>
           </section>
+
+          {money && (
+            <>
+              <section className="panel c8">
+                <div className="panel-h">
+                  <div><h2>Weekly spend against plan</h2><p>All projects, last 8 weeks.{plan ? (overWeeks ? ` ${overWeeks} week${overWeeks === 1 ? '' : 's'} ran more than 10% over plan (red).` : ' No week ran more than 10% over plan.') : ' Add planned dates to projects to see the plan line.'}</p></div>
+                  <span className="count">{big(weeks.reduce((n, w) => n + w.total, 0))}</span>
+                </div>
+                <SpendChart weeks={weeks} plan={plan} />
+              </section>
+              <section className="panel c4">
+                <div className="panel-h"><div><h2>Where the money goes</h2><p>Spending by category to date</p></div></div>
+                {parts.length ? <CostDonut parts={parts} /> : <p className="empty mt-sm">No spending recorded yet.</p>}
+              </section>
+            </>
+          )}
 
           {mod('labour') && (
             <section className="panel c5">
