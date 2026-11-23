@@ -53,7 +53,7 @@ export default function PhotoPicker({ photos, onChange, limit }) {
               <Image source={{ uri }} style={{ width: 84, height: 64, borderRadius: 6, backgroundColor: colors.sunk }} accessibilityLabel={`Photo ${i + 1}`} />
               <Pressable onPress={() => remove(uri, i)} accessibilityRole="button" accessibilityLabel={`Remove photo ${i + 1}`} hitSlop={10}
                 style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.bad, borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>✕</Text>
               </Pressable>
             </View>
           ))}

@@ -82,7 +82,7 @@ export default function SitesScreen({ navigation }) {
                 {site.cover
                   ? <Image source={{ uri: site.cover }} style={{ width: 64, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: colors.sunk }} accessibilityIgnoresInvertColors />
                   : <View style={{ width: 64, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: colors.muted, fontWeight: '800', letterSpacing: 1 }}>{site.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')}</Text>
+                      <Text style={{ color: colors.muted, fontWeight: '600', letterSpacing: 1 }}>{site.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')}</Text>
                     </View>}
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>{site.name}</Text>
@@ -99,7 +99,7 @@ export default function SitesScreen({ navigation }) {
                       // Straight to today's report form for this site
                       ? <Pressable onPress={() => navigation.navigate('Site', { sid: site.id, name: site.name, screen: 'Report' })} accessibilityRole="button" accessibilityLabel={`Make a report for ${site.name}`} hitSlop={8}
                           style={{ backgroundColor: colors.brass, borderRadius: 8, paddingHorizontal: 14, minHeight: 40, justifyContent: 'center' }}>
-                          <Text style={{ color: colors.brassInk, fontWeight: '700' }}>Report</Text>
+                          <Text style={{ color: colors.brassInk, fontWeight: '600' }}>Report</Text>
                         </Pressable>
                       : <Pill kind={sent ? 'ok' : 'bad'}>{sent ? 'Report sent' : 'Report due'}</Pill>}
               </Pressable>
@@ -118,7 +118,7 @@ function Attention({ sites, openIssues, navigation }) {
   const top = alerts.slice(0, 5);
   return (
     <>
-      <Text style={{ fontWeight: '700', color: colors.ink, fontSize: 16, marginBottom: 6 }}>Needs your attention ({alerts.length})</Text>
+      <Text style={{ fontWeight: '600', color: colors.ink, fontSize: 16, marginBottom: 6 }}>Needs your attention ({alerts.length})</Text>
       <Card style={{ marginBottom: 14 }}>
         {top.map((a, i) => (
           <Pressable key={`${a.site.id}-${a.kind}-${i}`} onPress={() => navigation.navigate('Site', { sid: a.site.id, name: a.site.name })} accessibilityRole="button"

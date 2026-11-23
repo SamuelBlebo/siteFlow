@@ -77,7 +77,7 @@ export default function WorkersScreen() {
       </Card>
       <Card style={{ marginTop: 12, padding: 14 }}>
         <Text style={{ color: colors.ink }}>{c.present} present, {c.late} late, {c.absent} absent, {c.leave} on leave{unmarked.length ? `, ${unmarked.length} not marked` : ''}</Text>
-        {pay ? <Text style={{ fontWeight: '700', color: colors.ink, marginTop: 4 }}>Wages: {cedi(dailyWages(workers, pay, marks))}</Text> : null}
+        {pay ? <Text style={{ fontWeight: '600', color: colors.ink, marginTop: 4 }}>Wages: {cedi(dailyWages(workers, pay, marks))}</Text> : null}
       </Card>
 
       {work && <AddWorker cid={cid} sid={sid} uid={user.uid} withPay={can('finance.edit')} />}
