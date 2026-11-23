@@ -55,7 +55,7 @@ export default function MaterialsScreen() {
               <Pressable key={k} onPress={() => { setType(k); setMsg({}); }} accessibilityRole="button" accessibilityState={{ selected: type === k }}
                 style={{ flex: 1, minHeight: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
                   borderColor: type === k ? colors.steel : colors.line, backgroundColor: type === k ? colors.steel : colors.surface }}>
-                <Text style={{ color: type === k ? '#fff' : colors.ink, fontWeight: '700', fontSize: 16 }}>{l}</Text>
+                <Text style={{ color: type === k ? '#fff' : colors.ink, fontWeight: '600', fontSize: 16 }}>{l}</Text>
               </Pressable>
             ))}
           </View>
@@ -109,7 +109,7 @@ export default function MaterialsScreen() {
                 <Text style={{ color: colors.ink, fontWeight: '600' }}>{m.name}</Text>
                 <Muted>Used today: {usage[m.id] || 0} {m.unit}{left != null ? `. About ${left} day${left === 1 ? '' : 's'} left` : ''}</Muted>
               </View>
-              <Text style={{ fontWeight: '700', color: st.negative ? colors.bad : colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>{m.unit}</Text></Text>
+              <Text style={{ fontWeight: '600', color: st.negative ? colors.bad : colors.ink }}>{m.stock} <Text style={{ fontWeight: '400', color: colors.muted }}>{m.unit}</Text></Text>
               {st.negative ? <Pill kind="bad">Count needed</Pill> : st.low ? <Pill kind="warn">Low</Pill> : null}
             </View>
           );

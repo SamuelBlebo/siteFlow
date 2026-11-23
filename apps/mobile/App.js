@@ -46,7 +46,7 @@ function SiteTabBar() {
           tabBarInactiveTintColor: colors.muted,
           tabBarIcon: () => null,
           tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.line },
-          tabBarLabelStyle: { fontSize: 15, fontWeight: '600' },
+          tabBarLabelStyle: { fontSize: 14, fontWeight: '500' },
           tabBarItemStyle: { justifyContent: 'center' },
         }}
       >
@@ -69,7 +69,7 @@ function Root() {
     return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.steel} /></View>;
   }
   return (
-    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.ink, headerTitleStyle: { fontWeight: '700' }, headerShadowVisible: false, contentStyle: { backgroundColor: colors.bg } }}>
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.ink, headerTitleStyle: { fontWeight: '600', fontSize: 16 }, headerShadowVisible: false, contentStyle: { backgroundColor: colors.bg } }}>
       {!user ? (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       ) : !active ? (

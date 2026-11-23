@@ -53,7 +53,7 @@ export function DrawingSheet({ drawing, milestones, pins, width, onPin, labels =
         <Pressable key={i.id} onPress={() => onPin?.(i)} accessibilityRole="button" accessibilityLabel={`Issue ${n + 1}: ${i.title}`} hitSlop={12}
           style={{ position: 'absolute', left: pc(i.pin.x), top: pc(i.pin.y), marginLeft: -12, marginTop: -12, width: 24, height: 24, borderRadius: 12,
             backgroundColor: PIN_COLOURS[i.priority] || PIN_COLOURS.high, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{n + 1}</Text>
+          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>{n + 1}</Text>
         </Pressable>
       ))}
     </View>

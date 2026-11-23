@@ -146,7 +146,7 @@ function Stepper({ value, onMinus, onPlus, onChange, hint, step = 1 }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Button title={`−${step === 1 ? '' : step}`} variant="ghost" onPress={onMinus} style={{ width: 64 }} accessibilityLabel={`Less, by ${step}`} />
         <View style={{ flex: 1 }}>
-          <Field label="" value={String(value)} onChangeText={onChange} keyboardType="number-pad" accessibilityLabel={hint} style={{ textAlign: 'center', fontSize: 20, fontWeight: '700' }} />
+          <Field label="" value={String(value)} onChangeText={onChange} keyboardType="number-pad" accessibilityLabel={hint} style={{ textAlign: 'center', fontSize: 20, fontWeight: '600' }} />
         </View>
         <Button title={`+${step === 1 ? '' : step}`} variant="ghost" onPress={onPlus} style={{ width: 64 }} accessibilityLabel={`More, by ${step}`} />
       </View>

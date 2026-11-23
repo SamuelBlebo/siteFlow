@@ -38,7 +38,7 @@ export const isSkin = (v: unknown): v is Skin => typeof v === 'string' && Object
 
 // Spacing steps (px / dp), corner radii and the smallest comfortable touch target
 export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
-export const RADIUS = { sm: 6, md: 9, lg: 12, card: 14, pill: 999 } as const;
+export const RADIUS = { sm: 6, md: 8, lg: 10, card: 12, pill: 999 } as const;
 export const TOUCH_MIN = 48; // Android's recommended minimum; also covers iOS's 44pt
 
 // Status colours, so a "late", "over budget" or "critical" looks the same everywhere

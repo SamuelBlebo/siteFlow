@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ROLE_LABELS, canViewAs, longToday } from '@siteflow/shared';
+import { canViewAs, longToday } from '@siteflow/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { logOut } from '../lib/account';
 import Brand from './Brand';
@@ -31,7 +31,7 @@ export default function TopBar() {
 }
 
 function UserMenu() {
-  const { user, profile, role, platformAdmin, realRole, viewAs } = useAuth();
+  const { user, profile, platformAdmin, realRole, viewAs } = useAuth();
   const [open, setOpen] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const box = useRef(null);
@@ -48,7 +48,7 @@ function UserMenu() {
     <div className="umenu" ref={box}>
       <button type="button" className="ubtn" aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(!open)}>
         <span className="avatar">{initials(profile?.name)}</span>
-        <span className="who-text"><b>{profile?.name}</b><span>{role ? ROLE_LABELS[role] : ''}</span></span>
+        <span className="who-text"><b>{profile?.name}</b></span>
         <Icon name="chevron" />
       </button>
       {open && (

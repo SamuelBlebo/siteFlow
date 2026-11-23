@@ -7,7 +7,7 @@ import { PLAN_LABELS, ROLE_LABELS, navItems, navSection, planFor, reportDay, set
 import Brand from './Brand';
 import ErrorBoundary from './ErrorBoundary';
 import Icon from './Icons';
-import TopBar, { initials } from './TopBar';
+import TopBar from './TopBar';
 import { ViewAsBar } from './ViewAs';
 import BottomNav from './BottomNav';
 import { usePins } from './PinButton';
@@ -28,8 +28,8 @@ const readIcons = () => { try { return localStorage.getItem(ICONS_KEY) === '1'; 
 const saveIcons = (on) => { try { localStorage.setItem(ICONS_KEY, on ? '1' : '0'); } catch { /* private window: this session only */ } };
 const TABLET = '(min-width: 640px) and (max-width: 1023px)';
 
-// The app shell: a white sidebar that stays put (company, menu in groups, projects, you), and beside
-// it the top bar and the page. On phones the sidebar gives way to a bottom bar of icons, like a phone app.
+// The app shell: a white sidebar that stays put (company, menu in groups, projects), and beside
+// it the top bar (with you, top right) and the page. On phones the sidebar gives way to a bottom bar of icons, like a phone app.
 export default function Layout() {
   const { cid, profile, role, can, companies, switchCompany, viewAs } = useAuth();
   const navigate = useNavigate();
@@ -109,11 +109,11 @@ export default function Layout() {
             <select id="org-pick" value={cid} onChange={(e) => { navigate('/'); switchCompany(e.target.value); }}>
               {companies.map((c) => <option key={c.id} value={c.id}>{c.role && ROLE_LABELS[c.role] ? `${c.name} · ${ROLE_LABELS[c.role]}` : c.name}</option>)}
             </select>
-            <span>{role ? ROLE_LABELS[role] : ''}, {companies.length} companies</span>
+            <span>{companies.length} companies</span>
           </div>
         ) : (
           <div className="org"><b title={company.name}>{company.name}</b>
-            <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${role ? ROLE_LABELS[role] : ''}, ${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
+            <span>{all ? `${plan} plan, ${open.length} project${open.length === 1 ? '' : 's'}` : `${(profile?.siteIds || []).length} project${(profile?.siteIds || []).length === 1 ? '' : 's'}`}</span></div>
         ))}
         <nav className="snav" aria-label="Main">
           {items.map((i) => <NavLink key={i.key} to={i.to} className={lit(i.key)} title={i.label}><Icon name={i.icon} /><span className="snav-t">{i.label}</span></NavLink>)}
@@ -121,12 +121,6 @@ export default function Layout() {
           {projectLinks}
           {settings && <NavLink to={settings.to} className={lit('settings')} title={settings.label}><Icon name={settings.icon} /><span className="snav-t">{settings.label}</span></NavLink>}
         </nav>
-        <div className="me">
-          <NavLink to="/account" title="Your account">
-            <span className="avatar">{initials(profile?.name)}</span>
-            <span className="who-text"><b>{profile?.name}</b><span>{role ? ROLE_LABELS[role] : ''}</span></span>
-          </NavLink>
-        </div>
       </aside>
       {/* A crash in one page keeps the menu working; moving to another page clears it */}
       <main id="main" className={`main${viewAs ? ' previewing' : ''}`} ref={main} tabIndex={-1}><ViewAsBar /><TopBar /><ErrorBoundary key={pathname}><Outlet /></ErrorBoundary></main>

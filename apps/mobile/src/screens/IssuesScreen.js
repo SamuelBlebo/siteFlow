@@ -120,7 +120,7 @@ function ReportIssue({ cid, site, onDone }) {
           return (
             <Pressable key={p} onPress={() => set('priority')(p)} accessibilityRole="button" accessibilityState={{ selected: on }}
               style={{ borderWidth: on ? 2 : 1, borderColor: on ? PRIORITY_COLOR[p] : colors.line, borderRadius: 10, padding: 12, backgroundColor: colors.surface }}>
-              <Text style={{ fontWeight: '700', color: on ? PRIORITY_COLOR[p] : colors.ink }}>{ISSUE_PRIORITY_LABELS[p]}</Text>
+              <Text style={{ fontWeight: '600', color: on ? PRIORITY_COLOR[p] : colors.ink }}>{ISSUE_PRIORITY_LABELS[p]}</Text>
               <Muted>{ISSUE_PRIORITY_HINTS[p]}</Muted>
             </Pressable>
           );

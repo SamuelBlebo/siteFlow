@@ -36,7 +36,7 @@ export default function LoginScreen() {
       <Screen>
         <View style={{ marginTop: 80, marginBottom: 32, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: 28, height: 28, borderRadius: 4, backgroundColor: colors.tape, borderWidth: 4, borderColor: colors.tapeDark }} />
-          <Text style={{ fontSize: 30, fontWeight: '800', color: colors.ink }}>SiteFlow</Text>
+          <Text style={{ fontSize: 30, fontWeight: '600', color: colors.ink }}>SiteFlow</Text>
         </View>
         {msg.kind === 'err' ? <ErrorText>{msg.text}</ErrorText> : msg.text ? <Notice>{msg.text}</Notice> : null}
         <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
