@@ -891,8 +891,8 @@ main:focus { outline: none; }
 .view-toggle { margin: 0; }
 .view-toggle button { display: inline-flex; align-items: center; gap: 6px; }
 .pgrid { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px; }
-.pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: transform .15s ease, box-shadow .15s ease; }
-.pcard:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(15, 29, 39, .14); }
+.pcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: transform .15s ease, box-shadow .15s ease; }
+.pcard:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(15, 29, 39, .10); }
 .pcard-link { color: inherit; text-decoration: none; display: flex; flex-direction: column; flex: 1; }
 .pcard-link:focus-visible { outline: 3px solid var(--brass); outline-offset: -3px; }
 .pcard-media { position: relative; }
@@ -900,8 +900,8 @@ main:focus { outline: none; }
 .pcard:hover .pcard-media .cover img { transform: scale(1.04); }
 .pcard-tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
 .pcard-tags .pill { box-shadow: 0 1px 4px rgba(0, 0, 0, .3); background-clip: padding-box; }
-.pcard-body { padding: 14px 16px 4px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-.pcard-body h3 { margin: 0; font-size: 16.5px; line-height: 1.3; }
+.pcard-body { padding: 12px 14px 4px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.pcard-body h3 { margin: 0; font-size: 14.5px; line-height: 1.3; }
 .pcard-body p { margin: 0; }
 .pcard-progress { display: grid; gap: 6px; margin-top: 4px; }
 .pcard-progress .meter { min-width: 0; }
@@ -1007,10 +1007,9 @@ main:focus { outline: none; }
 .pill.ok.skipped { border: 1px dashed color-mix(in srgb, var(--ok) 55%, transparent); }
 .days li.skipped-day > button:hover { background: color-mix(in srgb, var(--ok) 14%, transparent); text-decoration: none; }
 
-/* Projects grid: four in a row on wide screens */
-.pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 1439px) { .pgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1023px) { .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Projects grid: four in a row on laptops and wider, two on tablets, one on phones */
+.pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1099px) { .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 639px) { .pgrid { grid-template-columns: minmax(0, 1fr); } }
 .pgrid + .pgroup-title { margin-top: 26px; }
 .pgroup-title { font-size: 14px; font-family: var(--font-ui, inherit); font-weight: 600; color: var(--muted); margin: 6px 0 10px; letter-spacing: .2px; }
@@ -1054,7 +1053,8 @@ ol.history ul { margin: 2px 0 0; padding-left: 18px; }
 .pstrip-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .pstrip-h h2 { font-size: 15px; }
 .pstrip-h p { color: var(--muted); font-size: 13px; }
-.bays { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.bays { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) and (max-width: 1099px) { .bays { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .bay { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-height: 124px; border-radius: 10px; padding: 10px; color: #fff; text-decoration: none; background: #1D2328; transition: transform .15s ease, box-shadow .15s ease; }
 .bay .cover.bay-img { position: absolute; inset: 0; z-index: -2; aspect-ratio: auto; border-radius: 0; }
 .bay .cover.bay-img img { transition: transform .45s ease; }
