@@ -61,7 +61,7 @@ jobs:
     timeout-minutes: 30
     environment:
       name: production
-      url: https://siteflow-dp-prod.web.app
+      url: https://siteflow.digitalprimegh.com
     permissions:
       contents: write # to tag the release
     steps:
